@@ -48,31 +48,31 @@
       </div>
       <mat-progress-bar mode="determinate" value="74" aria-label="Milestone completion" />
 
-      <div class="focus-list">
-        <div class="focus-item">
+      <ul class="focus-list">
+        <li class="focus-item">
           <span class="focus-status focus-status-active" aria-hidden="true"></span>
-          <span
+          <span class="focus-copy"
             ><strong>Review the weekly challenges flow</strong
             ><small>2 tasks · assigned to you</small></span
           >
           <span class="item-tag">Today</span>
-        </div>
-        <div class="focus-item">
+        </li>
+        <li class="focus-item">
           <span class="focus-status" aria-hidden="true"></span>
-          <span
+          <span class="focus-copy"
             ><strong>Finish base click audio feedback</strong><small>Ready for test</small></span
           >
           <span class="item-tag item-tag-muted">Tomorrow</span>
-        </div>
-        <div class="focus-item">
+        </li>
+        <li class="focus-item">
           <span class="focus-status" aria-hidden="true"></span>
-          <span
+          <span class="focus-copy"
             ><strong>Validate the shared achievement cases</strong
             ><small>6 linked stories</small></span
           >
           <span class="item-tag item-tag-muted">Fri</span>
-        </div>
-      </div>
+        </li>
+      </ul>
     </article>
 
     <article class="activity-card">
@@ -84,20 +84,20 @@
         <button mat-button type="button">See all</button>
       </header>
 
-      <div class="activity-list">
+      <ul class="activity-list">
         @for (activity of activities; track activity.title) {
-          <div class="activity-item">
+          <li class="activity-item">
             <span class="activity-avatar" aria-hidden="true">{{ activity.initials }}</span>
             <span class="activity-copy">
               <span
                 ><strong>{{ activity.actor }}</strong> {{ activity.detail }}</span
               >
-              <a href="#">{{ activity.title }}</a>
+              <span class="activity-title">{{ activity.title }}</span>
             </span>
             <time>{{ activity.time }}</time>
-          </div>
+          </li>
         }
-      </div>
+      </ul>
     </article>
   </div>
 </section>

@@ -7,14 +7,13 @@ import {
   viewChild,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
-import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ShellProject } from '../project-context/mock-projects';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatButtonModule, MatMenuModule, MatTooltipModule, NgTemplateOutlet],
+  imports: [MatMenuModule, MatTooltipModule, NgTemplateOutlet],
   selector: 'pf-project-switcher',
   styleUrl: './project-switcher.scss',
   templateUrl: './project-switcher.html',

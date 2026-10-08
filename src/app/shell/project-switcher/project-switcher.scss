@@ -1,15 +1,42 @@
 :host {
   display: block;
+  flex: 0 1 19rem;
   min-width: 0;
 }
 
 .project-trigger {
   display: flex;
+  width: 100%;
   height: 3rem;
+  min-width: 0;
   max-width: min(22rem, 44vw);
+  align-items: center;
+  overflow: hidden;
+  border: 0;
   padding-inline: 0.5rem 0.625rem;
   border-radius: var(--app-radius-md);
+  background: transparent;
   color: var(--mat-sys-on-surface);
+  cursor: pointer;
+  text-align: start;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
+}
+
+.project-trigger:hover {
+  background: var(--mat-sys-surface-container-high);
+}
+
+.project-trigger:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
+}
+
+.project-trigger:disabled {
+  color: var(--mat-sys-on-surface-variant);
+  cursor: default;
+  opacity: 0.55;
 }
 
 .project-mark,
@@ -33,6 +60,7 @@
 
 .project-copy {
   display: grid;
+  flex: 1 1 auto;
   min-width: 0;
   margin-inline: 0.625rem 0.35rem;
   text-align: left;
@@ -45,6 +73,7 @@
 }
 
 .project-name {
+  min-width: 0;
   overflow: hidden;
   font: var(--mat-sys-title-small);
   text-overflow: ellipsis;
@@ -54,6 +83,7 @@
 .chevron {
   width: 1.125rem;
   height: 1.125rem;
+  flex: 0 0 auto;
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
@@ -62,7 +92,12 @@
 }
 
 @media (max-width: 599px) {
+  :host {
+    flex-basis: 56vw;
+  }
+
   .project-trigger {
+    width: 100%;
     max-width: 56vw;
   }
 
