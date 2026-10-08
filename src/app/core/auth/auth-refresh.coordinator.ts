@@ -64,6 +64,7 @@ export class AuthRefreshCoordinator {
   }
 
   private isCurrentSession(refreshToken: string, revision: number): boolean {
+    this.tokenStorage.reconcilePersistedSession();
     return (
       this.tokenStorage.revision() === revision && this.tokenStorage.refreshToken() === refreshToken
     );

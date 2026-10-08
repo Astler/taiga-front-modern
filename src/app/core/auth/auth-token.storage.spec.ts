@@ -116,4 +116,24 @@ describe('AuthTokenStorage', () => {
     });
     expect(service.externalSyncRevision()).toBe(initialExternalRevision + 1);
   });
+
+  it('can reconcile an externally persisted session before its storage event is delivered', () => {
+    const service = createService();
+    service.setTokens({ accessToken: 'current-access', refreshToken: 'current-refresh' });
+    const initialRevision = service.revision();
+    const initialExternalRevision = service.externalSyncRevision();
+
+    browserStorage.setItem('token', JSON.stringify('external-access'));
+    browserStorage.setItem('refresh', JSON.stringify('external-refresh'));
+
+    expect(service.reconcilePersistedSession()).toBe(false);
+    expect(service.tokens()).toEqual({
+      accessToken: 'external-access',
+      refreshToken: 'external-refresh',
+    });
+    expect(service.revision()).toBe(initialRevision + 1);
+    expect(service.externalSyncRevision()).toBe(initialExternalRevision + 1);
+    expect(service.reconcilePersistedSession()).toBe(true);
+    expect(service.revision()).toBe(initialRevision + 1);
+  });
 });

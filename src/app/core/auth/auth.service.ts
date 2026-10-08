@@ -88,7 +88,7 @@ export class AuthService {
 
     return this.me().pipe(
       catchError((error: unknown) => {
-        if (this.tokenStorage.revision() !== restoreRevision) {
+        if (!this.isCurrentSessionRevision(restoreRevision)) {
           return throwError(() => error);
         }
         if (error instanceof HttpErrorResponse && (error.status === 401 || error.status === 403)) {
@@ -106,9 +106,14 @@ export class AuthService {
   }
 
   private assertCurrentSessionRevision(revision: number): void {
-    if (this.tokenStorage.revision() !== revision) {
+    if (!this.isCurrentSessionRevision(revision)) {
       throw new StaleAuthSessionError();
     }
+  }
+
+  private isCurrentSessionRevision(revision: number): boolean {
+    this.tokenStorage.reconcilePersistedSession();
+    return this.tokenStorage.revision() === revision;
   }
 }
 

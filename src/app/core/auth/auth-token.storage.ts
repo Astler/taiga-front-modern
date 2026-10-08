@@ -52,6 +52,18 @@ export class AuthTokenStorage {
     this.storeTokens(tokens, true);
   }
 
+  reconcilePersistedSession(): boolean {
+    const persistedTokens = this.readPersistedTokens();
+    if (persistedTokens === null || tokensEqual(persistedTokens, this.tokensState())) {
+      return true;
+    }
+
+    this.tokensState.set(persistedTokens);
+    this.revisionState.update((revision) => revision + 1);
+    this.externalSyncRevisionState.update((revision) => revision + 1);
+    return false;
+  }
+
   rotateTokens(response: AuthTokenResponse): void {
     this.storeTokens(
       {
@@ -101,24 +113,25 @@ export class AuthTokenStorage {
   }
 
   private readTokens(): AuthTokens {
-    return Object.freeze({
-      accessToken: this.read(AUTH_STORAGE_KEYS.accessToken),
-      refreshToken: this.read(AUTH_STORAGE_KEYS.refreshToken),
-    });
+    return (
+      this.readPersistedTokens() ??
+      Object.freeze({
+        accessToken: null,
+        refreshToken: null,
+      })
+    );
   }
 
-  private read(key: string): string | null {
+  private readPersistedTokens(): AuthTokens | null {
+    if (!this.storage) {
+      return null;
+    }
+
     try {
-      const serialized = this.storage?.getItem(key) ?? null;
-      if (serialized === null) {
-        return null;
-      }
-      try {
-        const parsed: unknown = JSON.parse(serialized);
-        return normalizeToken(typeof parsed === 'string' ? parsed : null);
-      } catch {
-        return normalizeToken(serialized);
-      }
+      return Object.freeze({
+        accessToken: readToken(this.storage, AUTH_STORAGE_KEYS.accessToken),
+        refreshToken: readToken(this.storage, AUTH_STORAGE_KEYS.refreshToken),
+      });
     } catch {
       return null;
     }
@@ -175,11 +188,26 @@ export class AuthTokenStorage {
     this.storageSyncScheduled = true;
     queueMicrotask(() => {
       this.storageSyncScheduled = false;
-      this.tokensState.set(this.readTokens());
-      this.revisionState.update((revision) => revision + 1);
-      this.externalSyncRevisionState.update((revision) => revision + 1);
+      this.reconcilePersistedSession();
     });
   }
+}
+
+function readToken(storage: Storage, key: string): string | null {
+  const serialized = storage.getItem(key);
+  if (serialized === null) {
+    return null;
+  }
+  try {
+    const parsed: unknown = JSON.parse(serialized);
+    return normalizeToken(typeof parsed === 'string' ? parsed : null);
+  } catch {
+    return normalizeToken(serialized);
+  }
+}
+
+function tokensEqual(left: AuthTokens, right: AuthTokens): boolean {
+  return left.accessToken === right.accessToken && left.refreshToken === right.refreshToken;
 }
 
 function normalizeToken(value: string | null): string | null {

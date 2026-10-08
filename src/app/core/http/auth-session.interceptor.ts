@@ -34,6 +34,7 @@ export const authSessionInterceptor: HttpInterceptorFn = (request, next) => {
 
   return next(apiRequest).pipe(
     catchError((error: unknown) => {
+      tokenStorage.reconcilePersistedSession();
       if (!shouldRefresh(error, apiRequest.url, config, tokenStorage, apiRequest.context)) {
         return throwError(() => error);
       }

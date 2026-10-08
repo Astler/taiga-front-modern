@@ -80,6 +80,29 @@ describe('KanbanBoard', () => {
     expect(cardSubjects(host)).toHaveLength(3);
   });
 
+  it('matches a hash-prefixed reference exactly', async () => {
+    load.mockReturnValue(
+      of({
+        swimlanes: [],
+        userStories: [
+          story(101, 'Exact reference', 1, 10, 'frontend'),
+          story(1010, 'Reference with the same prefix', 1, 20, 'frontend'),
+        ],
+      }),
+    );
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', project());
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    setControlValue(host.querySelector<HTMLInputElement>('input[type="search"]')!, '#101', 'input');
+    fixture.detectChanges();
+
+    expect(cardSubjects(host)).toEqual(['#101 Exact reference']);
+  });
+
   it('keeps WIP violations based on unfiltered stories and renders a zero limit', async () => {
     const fixture = TestBed.createComponent(KanbanBoard);
     fixture.componentRef.setInput('project', {

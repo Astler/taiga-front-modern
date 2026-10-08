@@ -261,7 +261,7 @@ function matchesStoryQuery(story: KanbanUserStory, query: string): boolean {
   const reference = String(story.ref);
   const referenceQuery = /^#(\d+)$/.exec(query);
   if (referenceQuery) {
-    return reference.includes(referenceQuery[1]!);
+    return reference === referenceQuery[1];
   }
   return reference.includes(query) || story.subject.toLocaleLowerCase().includes(query);
 }

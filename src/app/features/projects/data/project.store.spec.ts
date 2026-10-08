@@ -309,6 +309,27 @@ describe('ProjectStore', () => {
     expect(store.loading()).toBe(false);
   });
 
+  it('recovers from an old deep-link failure when a generic project load is retried', async () => {
+    const first = projectListItem(1, 'first');
+    const lookupFailure = new Error('Missing project');
+    pinnedApi.load.mockReturnValue(of([]));
+    api.listByMember.mockReturnValue(of([first]));
+    api.getBySlug.mockReturnValueOnce(throwError(() => lookupFailure));
+    createStore();
+
+    const initialList = store.loadMemberProjects(9);
+    await expect(store.selectBySlug('missing')).rejects.toBe(lookupFailure);
+    await initialList;
+    expect(store.selectedProject()).toBeNull();
+    expect(store.error()).toEqual({ operation: 'select', cause: lookupFailure });
+
+    api.getBySlug.mockReturnValueOnce(of(projectDetail(first)));
+    await store.loadMemberProjects(9);
+
+    expect(store.selectedProject()?.slug).toBe('first');
+    expect(store.error()).toBeNull();
+  });
+
   it('exposes API failures without discarding an existing project list', async () => {
     const project = projectListItem(1, 'first');
     api.listByMember.mockReturnValueOnce(of([project]));

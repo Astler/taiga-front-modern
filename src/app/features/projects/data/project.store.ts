@@ -58,7 +58,7 @@ export class ProjectStore {
     const revision = ++this.listRevision;
     const memberRevision = this.memberRevision;
     this.beginRequest();
-    if (this.errorState()?.operation !== 'select') {
+    if (this.projectsLoadedState() || this.errorState()?.operation !== 'select') {
       this.errorState.set(null);
     }
 

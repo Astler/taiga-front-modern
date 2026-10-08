@@ -279,4 +279,37 @@ describe('AuthService', () => {
       refreshToken: 'user-c-refresh',
     });
   });
+
+  it('does not erase a newer externally persisted identity before its storage event arrives', async () => {
+    tokenStorage.setTokens({ accessToken: 'user-a-access', refreshToken: 'user-a-refresh' });
+    const staleRestore = firstValueFrom(service.restoreSession()).catch((error: unknown) => error);
+    const staleRequest = httpTesting.expectOne('/api/v1/users/me');
+    expect(staleRequest.request.headers.get('Authorization')).toBe('Bearer user-a-access');
+
+    storage.setItem('token', JSON.stringify('user-b-access'));
+    storage.setItem('refresh', JSON.stringify('user-b-refresh'));
+    staleRequest.flush(null, { status: 401, statusText: 'Unauthorized' });
+
+    await expect(staleRestore).resolves.toMatchObject({ status: 401 });
+    expect(storage.getItem('token')).toBe(JSON.stringify('user-b-access'));
+    expect(storage.getItem('refresh')).toBe(JSON.stringify('user-b-refresh'));
+    expect(tokenStorage.tokens()).toEqual({
+      accessToken: 'user-b-access',
+      refreshToken: 'user-b-refresh',
+    });
+
+    TestBed.tick();
+    const currentRestore = httpTesting.expectOne('/api/v1/users/me');
+    expect(currentRestore.request.headers.get('Authorization')).toBe('Bearer user-b-access');
+    currentRestore.flush({
+      id: 2,
+      username: 'user-b',
+      full_name_display: 'User B',
+      photo: null,
+    });
+    TestBed.tick();
+
+    expect(service.user()?.username).toBe('user-b');
+    expect(service.status()).toBe('authenticated');
+  });
 });
