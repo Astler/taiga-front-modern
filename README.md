@@ -22,9 +22,10 @@ The modern frontend currently provides:
 - stable Taiga sign-in, refresh-token restore, logout and protected routes;
 - the real member-project list and full project details from the stable REST API;
 - project pins synchronized through Taiga user storage, with a local fallback;
-- deep-linked read-only Kanban routes at `/project/:projectSlug/kanban`;
-- swimlanes, WIP indicators, multiple assignees, tags, text/tag/assignee filters and explicit
-  loading, empty and error states;
+- deep-linked Kanban routes at `/project/:projectSlug/kanban` with optimistic drag-and-drop,
+  keyboard-accessible moves, quick story creation and automatic server reconciliation;
+- swimlanes, WIP indicators, compact story metadata, multiple assignees, tags,
+  text/tag/assignee filters and explicit loading, empty and recoverable error states;
 - deep-linked read-only Issues routes at `/project/:projectSlug/issues`, backed by Taiga's stable
   paginated API with server search, sorting, include/exclude filters, and responsive dense rows;
 - deep-linked Epics routes with stable server search, include/exclude facets, pagination and linked
@@ -33,8 +34,9 @@ The modern frontend currently provides:
 - a project Settings overview for identity, modules, access, workflow and tags;
 - exact links back to the relevant classic pages for editing flows that have not migrated yet.
 
-Card movement and mutations deliberately remain outside this slice. They will use Taiga's existing
-versioned bulk-order API after the read path has been exercised against production data.
+Kanban movement uses Taiga's stable relative-order endpoint and applies every ordering update
+returned by the backend. Failed moves roll back locally; successful writes refresh in the
+background so derived state remains authoritative.
 
 ## Local development
 
@@ -90,8 +92,8 @@ the existing Taiga gateway or Coolify proxy.
 ## Migration milestones
 
 1. Foundation: responsive shell, Material 3 tokens, runtime config, authentication and API client.
-2. Daily work: real project switcher, read-only Kanban and Issues, filters and tags. Accessible card
-   movement is the next vertical slice.
+2. Daily work: real project switcher, interactive Kanban, read-only Issues, filters and tags.
+   Work-item details are the next vertical slice.
 3. Work item details: stories, tasks, issues, comments, attachments and activity.
 4. Planning: Epics and Team read paths are live; backlog and sprints are next.
 5. Administration: Settings overview is live; safe versioned mutations and removal of the classic

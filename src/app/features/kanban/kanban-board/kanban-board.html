@@ -1,15 +1,33 @@
 <section class="board-page" aria-labelledby="kanban-title">
   <header class="board-header">
     <div class="board-heading">
-      <span class="eyebrow">{{ project().name }} · live data</span>
+      <span class="eyebrow">{{ project().name }} · Taiga API</span>
       <h1 id="kanban-title">Kanban</h1>
-      <p>{{ visibleStories().length }} of {{ store.userStories().length }} open stories</p>
+      <p>
+        <strong>{{ openStoryCount() }}</strong> open · {{ store.userStories().length }} total
+        @if (hasActiveFilters()) {
+          · <strong>{{ visibleStories().length }}</strong> matching
+        }
+      </p>
     </div>
 
-    <a mat-flat-button [href]="config.snapshot().legacyUrl" target="_blank" rel="noopener">
-      Open classic Taiga
-      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8" /></svg>
-    </a>
+    <div class="board-actions">
+      <button
+        mat-button
+        type="button"
+        [disabled]="store.isLoading() || store.isRefreshing() || store.isMutating()"
+        (click)="refresh()"
+      >
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" />
+        </svg>
+        {{ store.isRefreshing() ? 'Syncing…' : 'Refresh' }}
+      </button>
+      <a mat-flat-button [href]="classicBoardUrl()" target="_blank" rel="noopener">
+        Open classic Taiga
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8" /></svg>
+      </a>
+    </div>
   </header>
 
   <div class="filters" aria-label="Board filters">
@@ -49,8 +67,20 @@
 
     @if (hasActiveFilters()) {
       <button mat-button type="button" (click)="clearFilters()">Clear filters</button>
+      <span class="filter-note">Clear filters to drag cards</span>
     }
   </div>
+
+  @if (store.mutationError(); as mutationError) {
+    <div class="mutation-message" role="alert">
+      <span>{{ mutationError }}</span>
+      @if (!store.requiresReconciliation()) {
+        <button type="button" aria-label="Dismiss message" (click)="store.dismissMutationError()">
+          ×
+        </button>
+      }
+    </div>
+  }
 
   @if (store.isLoading()) {
     <div class="loading-state" role="status">
@@ -76,8 +106,11 @@
   } @else {
     <div
       class="board-scroll"
+      cdkDropListGroup
+      cdkScrollable
       tabindex="0"
       aria-label="Kanban board. Scroll horizontally for more columns."
+      [attr.aria-busy]="store.isMutating() || store.isRefreshing()"
     >
       @for (lane of lanes(); track lane.id ?? 'root') {
         <section
@@ -87,20 +120,36 @@
           @if (lane.name) {
             <header class="swimlane-header">
               <h2 [id]="'lane-' + (lane.id ?? 'none')">{{ lane.name }}</h2>
-              <span>{{ visibleStories().length }} stories on this board</span>
+              <span>
+                {{ laneStoryCount(lane.id, true) }}
+                @if (hasActiveFilters()) {
+                  of {{ laneStoryCount(lane.id, false) }}
+                }
+                stories
+              </span>
             </header>
           }
 
           <div class="board-grid" [style.--column-count]="statuses().length">
             @for (status of statuses(); track status.id) {
-              <article
+              @let visibleCards = cardsFor(lane.id, status.id);
+              @let totalCards = columnStoryCount(lane.id, status.id);
+              <section
                 class="board-column"
+                [attr.aria-labelledby]="'column-' + (lane.id ?? 'root') + '-' + status.id"
                 [attr.data-over-limit]="isOverWipLimit(status, lane.id)"
               >
                 <header class="column-header">
                   <span class="status-dot" [style.background]="status.color"></span>
-                  <h3>{{ status.name }}</h3>
-                  <span class="story-count">{{ cardsFor(lane.id, status.id).length }}</span>
+                  <h3 [id]="'column-' + (lane.id ?? 'root') + '-' + status.id">
+                    {{ status.name }}
+                  </h3>
+                  <span class="story-count">
+                    {{ visibleCards.length }}
+                    @if (hasActiveFilters()) {
+                      <span>/{{ totalCards }}</span>
+                    }
+                  </span>
                   @let limit = wipLimit(status, lane.id);
                   @if (limit !== null) {
                     <span
@@ -111,66 +160,334 @@
                       / {{ limit }}
                     </span>
                   }
+                  @if (canCreate()) {
+                    <button
+                      class="add-story-button"
+                      type="button"
+                      [disabled]="
+                        store.isMutating() || store.isRefreshing() || store.requiresReconciliation()
+                      "
+                      [attr.data-quick-create-trigger]="cellKey(lane.id, status.id)"
+                      [attr.aria-label]="'Add story to ' + status.name"
+                      [matTooltip]="'Add story to ' + status.name"
+                      (click)="startQuickCreate(lane.id, status.id)"
+                    >
+                      <svg aria-hidden="true" viewBox="0 0 24 24">
+                        <path d="M12 5v14M5 12h14" />
+                      </svg>
+                    </button>
+                  }
                 </header>
 
-                <div class="column-cards">
-                  @for (story of cardsFor(lane.id, status.id); track story.id) {
-                    <a class="story-card" [href]="storyUrl(story)" target="_blank" rel="noopener">
-                      @if (story.tags.length) {
-                        <div class="story-tags" aria-label="Tags">
-                          @for (tag of story.tags.slice(0, 3); track tag[0]) {
-                            <span class="story-tag" [style.--tag-color]="tag[1] || '#8f8a99'">{{
-                              tag[0]
-                            }}</span>
+                <div
+                  class="column-cards"
+                  cdkDropList
+                  [cdkDropListData]="visibleCards"
+                  [cdkDropListDisabled]="!canReorder()"
+                  (cdkDropListDropped)="dropStory($event, lane, status)"
+                >
+                  @if (isQuickCreating(lane.id, status.id)) {
+                    <form
+                      class="quick-create"
+                      (submit)="submitQuickCreate($event, lane.id, status.id)"
+                    >
+                      <label>
+                        <span>New {{ status.name }} story</span>
+                        <textarea
+                          autofocus
+                          rows="2"
+                          placeholder="Story title — one per line"
+                          [value]="quickCreateDraft()"
+                          (input)="updateQuickCreateDraft($event)"
+                          (keydown)="quickCreateKeydown($event)"
+                        ></textarea>
+                      </label>
+                      <div class="quick-create-actions">
+                        <button mat-button type="button" (click)="cancelQuickCreate()">
+                          Cancel
+                        </button>
+                        <button
+                          mat-flat-button
+                          type="submit"
+                          [disabled]="
+                            !quickCreateDraft().trim() ||
+                            store.isMutating() ||
+                            store.isRefreshing() ||
+                            store.requiresReconciliation()
+                          "
+                        >
+                          {{ store.mutation()?.kind === 'create' ? 'Adding…' : 'Add' }}
+                        </button>
+                      </div>
+                    </form>
+                  }
+
+                  @for (story of visibleCards; track story.id) {
+                    <article
+                      class="story-card"
+                      cdkDrag
+                      [cdkDragData]="story"
+                      [cdkDragDisabled]="!canReorder()"
+                      [class.story-card-blocked]="story.is_blocked"
+                      [class.story-card-moving]="store.mutation()?.storyIds?.includes(story.id)"
+                    >
+                      <div class="story-card-top">
+                        @if (story.tags.length) {
+                          <div class="story-tags" aria-label="Tags">
+                            @for (tag of story.tags.slice(0, 3); track tag[0]) {
+                              <span class="story-tag" [style.--tag-color]="tag[1] || '#8f8a99'">
+                                {{ tag[0] }}
+                              </span>
+                            }
+                            @if (story.tags.length > 3) {
+                              <span class="story-tag-overflow">+{{ story.tags.length - 3 }}</span>
+                            }
+                          </div>
+                        } @else {
+                          <span></span>
+                        }
+
+                        <div class="story-actions">
+                          @if (canModify()) {
+                            <span
+                              class="drag-handle"
+                              cdkDragHandle
+                              aria-hidden="true"
+                              [class.drag-handle-disabled]="!canReorder()"
+                              [matTooltip]="
+                                hasActiveFilters()
+                                  ? 'Clear filters to drag cards'
+                                  : 'Drag to move story'
+                              "
+                            >
+                              <svg aria-hidden="true" viewBox="0 0 24 24">
+                                <circle cx="9" cy="7" r="1" />
+                                <circle cx="15" cy="7" r="1" />
+                                <circle cx="9" cy="12" r="1" />
+                                <circle cx="15" cy="12" r="1" />
+                                <circle cx="9" cy="17" r="1" />
+                                <circle cx="15" cy="17" r="1" />
+                              </svg>
+                            </span>
+                          }
+                          <button
+                            class="story-menu-button"
+                            type="button"
+                            [matMenuTriggerFor]="storyMenu"
+                            [matMenuTriggerRestoreFocus]="false"
+                            [attr.data-story-menu-trigger]="story.id"
+                            [attr.aria-label]="'Story ' + story.ref + ' actions'"
+                            (click)="selectStory(story)"
+                            (menuOpened)="selectStory(story)"
+                          >
+                            <svg aria-hidden="true" viewBox="0 0 24 24">
+                              <circle cx="12" cy="5" r="1.25" />
+                              <circle cx="12" cy="12" r="1.25" />
+                              <circle cx="12" cy="19" r="1.25" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+
+                      <a
+                        class="story-subject"
+                        [href]="storyUrl(story)"
+                        target="_blank"
+                        rel="noopener"
+                      >
+                        <strong>#{{ story.ref }}</strong> {{ story.subject }}
+                      </a>
+
+                      @if (
+                        story.is_blocked ||
+                        story.due_date ||
+                        story.total_attachments ||
+                        story.total_comments ||
+                        taskSummary(story)
+                      ) {
+                        <div class="story-facts">
+                          @if (story.is_blocked) {
+                            <span
+                              class="story-fact blocked"
+                              [matTooltip]="story.blocked_note || 'Blocked'"
+                            >
+                              <svg aria-hidden="true" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="8" />
+                                <path d="m7 17 10-10" />
+                              </svg>
+                              Blocked
+                            </span>
+                          }
+                          @if (story.due_date) {
+                            <span class="story-fact" [class.overdue]="isOverdue(story)">
+                              <svg aria-hidden="true" viewBox="0 0 24 24">
+                                <rect x="4" y="5" width="16" height="15" rx="2" />
+                                <path d="M8 3v4M16 3v4M4 10h16" />
+                              </svg>
+                              @if (isOverdue(story)) {
+                                Overdue ·
+                              }
+                              {{ formatDueDate(story.due_date) }}
+                            </span>
+                          }
+                          @if (taskSummary(story); as taskProgress) {
+                            <span
+                              class="story-fact"
+                              [attr.aria-label]="taskProgress + ' tasks complete'"
+                            >
+                              <svg aria-hidden="true" viewBox="0 0 24 24">
+                                <path d="m5 12 4 4L19 6" />
+                              </svg>
+                              {{ taskProgress }}
+                            </span>
+                          }
+                          @if (story.total_attachments) {
+                            <span
+                              class="story-fact"
+                              [attr.aria-label]="
+                                story.total_attachments +
+                                (story.total_attachments === 1 ? ' attachment' : ' attachments')
+                              "
+                            >
+                              <svg aria-hidden="true" viewBox="0 0 24 24">
+                                <path d="m9 12 5-5a3 3 0 1 1 4 4l-7 7a5 5 0 0 1-7-7l7-7" />
+                              </svg>
+                              {{ story.total_attachments }}
+                            </span>
+                          }
+                          @if (story.total_comments) {
+                            <span
+                              class="story-fact"
+                              [attr.aria-label]="
+                                story.total_comments +
+                                (story.total_comments === 1 ? ' comment' : ' comments')
+                              "
+                            >
+                              <svg aria-hidden="true" viewBox="0 0 24 24">
+                                <path d="M5 5h14v11H9l-4 4z" />
+                              </svg>
+                              {{ story.total_comments }}
+                            </span>
                           }
                         </div>
                       }
 
-                      <span class="story-subject"
-                        ><strong>#{{ story.ref }}</strong> {{ story.subject }}</span
-                      >
-
-                      <span class="story-meta">
-                        @if (storyAssignees(story); as assignees) {
-                          @if (assignees.length) {
-                            <span class="assignees" aria-label="Assigned people">
-                              @for (assignee of assignees.slice(0, 3); track assignee.id) {
-                                <span class="assignee" [matTooltip]="assigneeName(assignee)">
+                      <div class="story-meta">
+                        @if (storyAssignees(story); as storyPeople) {
+                          @if (storyPeople.length) {
+                            <span
+                              class="assignees"
+                              role="group"
+                              [attr.aria-label]="assigneeSummary(story)"
+                            >
+                              @for (assignee of storyPeople.slice(0, 3); track assignee.id) {
+                                <span
+                                  class="assignee"
+                                  aria-hidden="true"
+                                  [matTooltip]="assigneeName(assignee)"
+                                >
                                   @if (assignee.photo) {
                                     <img [src]="assignee.photo" alt="" />
                                   } @else {
-                                    <span aria-hidden="true">{{ assigneeInitials(assignee) }}</span>
+                                    <span class="assignee-initials">{{
+                                      assigneeInitials(assignee)
+                                    }}</span>
                                   }
-                                  <span class="visually-hidden"
-                                    >Assigned to {{ assigneeName(assignee) }}</span
-                                  >
                                 </span>
                               }
-                              @if (assignees.length > 3) {
-                                <span class="assignee-overflow">+{{ assignees.length - 3 }}</span>
+                              @if (storyPeople.length > 3) {
+                                <span class="assignee-overflow" aria-hidden="true">
+                                  +{{ storyPeople.length - 3 }}
+                                </span>
                               }
                             </span>
                           } @else {
                             <span class="unassigned">Unassigned</span>
                           }
-                        } @else {
-                          <span class="unassigned">Unassigned</span>
                         }
 
-                        @if (story.total_points !== undefined && story.total_points !== null) {
-                          <span class="points">{{ story.total_points }} pts</span>
-                        }
-                      </span>
-                    </a>
+                        <span class="story-meta-right">
+                          @if (story.milestone_name) {
+                            <span class="milestone" [matTooltip]="story.milestone_name">
+                              {{ story.milestone_name }}
+                            </span>
+                          }
+                          @if (story.total_points !== undefined && story.total_points !== null) {
+                            <span class="points">{{ story.total_points }} pts</span>
+                          }
+                        </span>
+                      </div>
+                    </article>
                   } @empty {
-                    <div class="empty-column">No matching stories</div>
+                    @if (!isQuickCreating(lane.id, status.id)) {
+                      <div class="empty-column">
+                        <span>{{
+                          hasActiveFilters() ? 'No matching stories' : 'Drop stories here'
+                        }}</span>
+                        @if (canCreate() && !hasActiveFilters()) {
+                          <button
+                            type="button"
+                            [disabled]="
+                              store.isMutating() ||
+                              store.isRefreshing() ||
+                              store.requiresReconciliation()
+                            "
+                            (click)="startQuickCreate(lane.id, status.id)"
+                          >
+                            Add the first story
+                          </button>
+                        }
+                      </div>
+                    }
                   }
                 </div>
-              </article>
+              </section>
             }
           </div>
         </section>
       }
     </div>
   }
+
+  <p class="visually-hidden" aria-live="polite">{{ liveAnnouncement() }}</p>
 </section>
+
+<mat-menu #storyMenu="matMenu">
+  @if (activeStory(); as selectedStory) {
+    @if (canModify()) {
+      <button mat-menu-item disabled>Move #{{ selectedStory.ref }} to</button>
+      @for (lane of lanes(); track lane.id ?? 'root') {
+        @if (lanes().length > 1) {
+          <button mat-menu-item disabled>{{ lane.name || 'Unclassified' }}</button>
+        }
+        @for (status of statuses(); track status.id) {
+          <button
+            mat-menu-item
+            type="button"
+            [attr.aria-label]="
+              (lane.name ? lane.name + ', ' : '') +
+              status.name +
+              (selectedStory.swimlane === lane.id && selectedStory.status === status.id
+                ? ', move to bottom'
+                : '')
+            "
+            [disabled]="
+              store.isMutating() || store.isRefreshing() || store.requiresReconciliation()
+            "
+            (click)="moveActiveStory(lane, status)"
+          >
+            <span class="menu-status-dot" [style.background]="status.color"></span>
+            @if (selectedStory.swimlane === lane.id && selectedStory.status === status.id) {
+              Move to bottom of {{ status.name }}
+            } @else {
+              {{ status.name }}
+            }
+          </button>
+        }
+      }
+    }
+    <a mat-menu-item [href]="storyUrl(selectedStory)" target="_blank" rel="noopener">
+      Open in classic Taiga
+    </a>
+  }
+</mat-menu>

@@ -1,18 +1,31 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { Observable, Subject, of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { KanbanApiService, type KanbanPayload } from './kanban-api.service';
-import type { KanbanSwimlane, KanbanUserStory } from './kanban.models';
+import type {
+  KanbanCreateRequest,
+  KanbanMoveRequest,
+  KanbanOrderUpdate,
+  KanbanSwimlane,
+  KanbanUserStory,
+} from './kanban.models';
 import { KanbanStore } from './kanban.store';
 
 describe('KanbanStore', () => {
   let api: {
     load: ReturnType<typeof vi.fn<(projectId: number) => Observable<KanbanPayload>>>;
+    moveUserStories: ReturnType<
+      typeof vi.fn<(request: KanbanMoveRequest) => Observable<readonly KanbanOrderUpdate[]>>
+    >;
+    createUserStories: ReturnType<
+      typeof vi.fn<(request: KanbanCreateRequest) => Observable<readonly KanbanUserStory[]>>
+    >;
   };
   let store: KanbanStore;
 
   beforeEach(() => {
-    api = { load: vi.fn() };
+    api = { load: vi.fn(), moveUserStories: vi.fn(), createUserStories: vi.fn() };
     TestBed.configureTestingModule({
       providers: [KanbanStore, { provide: KanbanApiService, useValue: api }],
     });
@@ -84,6 +97,263 @@ describe('KanbanStore', () => {
     expect(store.error()).toBeNull();
     expect(store.swimlanes().map(({ id }) => id)).toEqual([20]);
     expect(store.userStories().map(({ id }) => id)).toEqual([20]);
+  });
+
+  it('optimistically moves a story and reconciles every order returned by Taiga', async () => {
+    api.load
+      .mockReturnValueOnce(
+        of({
+          swimlanes: [],
+          userStories: [
+            userStory(1, 1),
+            { ...userStory(2, 2), status: 2 },
+            { ...userStory(3, 3), status: 2 },
+          ],
+        }),
+      )
+      .mockReturnValueOnce(
+        of({
+          swimlanes: [],
+          userStories: [
+            { ...userStory(2, 2), status: 2 },
+            { ...userStory(1, 8), status: 2 },
+            { ...userStory(3, 9), status: 2 },
+          ],
+        }),
+      );
+    const response = new Subject<readonly KanbanOrderUpdate[]>();
+    api.moveUserStories.mockReturnValue(response);
+    store.load(17);
+
+    const result = store.moveStory({
+      projectId: 17,
+      storyId: 1,
+      statusId: 2,
+      swimlaneId: null,
+      destinationIndex: 1,
+      afterStoryId: 2,
+    });
+
+    expect(store.isMutating()).toBe(true);
+    expect(
+      store
+        .userStories()
+        .filter(({ status }) => status === 2)
+        .map(({ id }) => id),
+    ).toEqual([2, 1, 3]);
+    expect(api.moveUserStories).toHaveBeenCalledWith({
+      projectId: 17,
+      statusId: 2,
+      swimlaneId: null,
+      storyIds: [1],
+      afterStoryId: 2,
+    });
+
+    response.next([
+      { id: 1, status: 2, swimlane: null, kanban_order: 8 },
+      { id: 3, status: 2, swimlane: null, kanban_order: 9 },
+    ]);
+    response.complete();
+
+    await expect(result).resolves.toBe('moved');
+    expect(store.isMutating()).toBe(false);
+    expect(api.load).toHaveBeenCalledTimes(2);
+    expect(store.isRefreshing()).toBe(false);
+    expect(store.userStories().find(({ id }) => id === 1)?.kanban_order).toBe(8);
+    expect(store.userStories().find(({ id }) => id === 3)?.kanban_order).toBe(9);
+  });
+
+  it('rolls an optimistic move back when Taiga rejects it', async () => {
+    const original = [userStory(1, 1), { ...userStory(2, 2), status: 2 }];
+    api.load.mockReturnValue(of({ swimlanes: [], userStories: original }));
+    api.moveUserStories.mockReturnValue(
+      throwError(() => new HttpErrorResponse({ status: 403, statusText: 'Forbidden' })),
+    );
+    store.load(17);
+
+    await expect(
+      store.moveStory({
+        projectId: 17,
+        storyId: 1,
+        statusId: 2,
+        swimlaneId: null,
+        destinationIndex: 0,
+        beforeStoryId: 2,
+      }),
+    ).resolves.toBe('failed');
+
+    expect(store.userStories()).toEqual(original);
+    expect(store.mutationError()).toContain('restored');
+    expect(store.isMutating()).toBe(false);
+  });
+
+  it('reconciles an ambiguous move failure before allowing another mutation', async () => {
+    const original = [userStory(1, 1), { ...userStory(2, 2), status: 2 }];
+    const committed = [
+      { ...userStory(2, 1), status: 2 },
+      { ...userStory(1, 2), status: 2 },
+    ];
+    api.load
+      .mockReturnValueOnce(of({ swimlanes: [], userStories: original }))
+      .mockReturnValueOnce(of({ swimlanes: [], userStories: committed }));
+    api.moveUserStories.mockReturnValue(
+      throwError(() => new HttpErrorResponse({ status: 0, statusText: 'Network error' })),
+    );
+    store.load(17);
+
+    await expect(
+      store.moveStory({
+        projectId: 17,
+        storyId: 1,
+        statusId: 2,
+        swimlaneId: null,
+        destinationIndex: 1,
+        afterStoryId: 2,
+      }),
+    ).resolves.toBe('uncertain');
+
+    expect(api.load).toHaveBeenCalledTimes(2);
+    expect(store.userStories().find(({ id }) => id === 1)?.status).toBe(2);
+    expect(store.mutationError()).toBeNull();
+    expect(store.requiresReconciliation()).toBe(false);
+    expect(store.isRefreshing()).toBe(false);
+  });
+
+  it('adds stories returned by the quick-create endpoint', async () => {
+    const createdStory = { ...userStory(2, 2), subject: 'New story' };
+    api.load
+      .mockReturnValueOnce(of({ swimlanes: [], userStories: [userStory(1, 1)] }))
+      .mockReturnValueOnce(of({ swimlanes: [], userStories: [userStory(1, 1), createdStory] }));
+    api.createUserStories.mockReturnValue(of([createdStory]));
+    store.load(17);
+
+    await expect(
+      store.createStories({
+        projectId: 17,
+        statusId: 1,
+        swimlaneId: null,
+        subjects: 'New story',
+      }),
+    ).resolves.toBe('created');
+
+    expect(store.userStories().map(({ subject }) => subject)).toEqual(['Story 1', 'New story']);
+    expect(store.mutationError()).toBeNull();
+  });
+
+  it('blocks retries until an ambiguous create has been reconciled successfully', async () => {
+    const original = [userStory(1, 1)];
+    const createdStory = { ...userStory(2, 2), subject: 'Possibly created' };
+    api.load
+      .mockReturnValueOnce(of({ swimlanes: [], userStories: original }))
+      .mockReturnValueOnce(throwError(() => new Error('offline during reconciliation')))
+      .mockReturnValueOnce(of({ swimlanes: [], userStories: [...original, createdStory] }));
+    api.createUserStories.mockReturnValue(
+      throwError(() => new HttpErrorResponse({ status: 0, statusText: 'Network error' })),
+    );
+    store.load(17);
+    const request = {
+      projectId: 17,
+      statusId: 1,
+      swimlaneId: null,
+      subjects: 'Possibly created',
+    } as const;
+
+    await expect(store.createStories(request)).resolves.toBe('uncertain');
+    await expect(store.createStories(request)).resolves.toBe('failed');
+    await expect(
+      store.moveStory({
+        projectId: 17,
+        storyId: 1,
+        statusId: 1,
+        swimlaneId: null,
+        destinationIndex: 0,
+      }),
+    ).resolves.toBe('failed');
+
+    expect(api.createUserStories).toHaveBeenCalledOnce();
+    expect(api.moveUserStories).not.toHaveBeenCalled();
+    expect(store.requiresReconciliation()).toBe(true);
+    expect(store.mutationError()).toContain('still unverified');
+
+    store.dismissMutationError();
+    expect(store.mutationError()).toContain('still unverified');
+
+    store.refresh();
+
+    expect(store.requiresReconciliation()).toBe(false);
+    expect(store.mutationError()).toBeNull();
+    expect(store.userStories().map(({ id }) => id)).toEqual([1, 2]);
+  });
+
+  it('keeps a definitive create rejection retryable', async () => {
+    api.load.mockReturnValue(of({ swimlanes: [], userStories: [userStory(1, 1)] }));
+    api.createUserStories.mockReturnValue(
+      throwError(() => new HttpErrorResponse({ status: 400, statusText: 'Bad request' })),
+    );
+    store.load(17);
+
+    await expect(
+      store.createStories({
+        projectId: 17,
+        statusId: 1,
+        swimlaneId: null,
+        subjects: 'Invalid story',
+      }),
+    ).resolves.toBe('failed');
+
+    expect(store.requiresReconciliation()).toBe(false);
+    expect(store.mutationError()).toContain('could not be created');
+  });
+
+  it('ignores a stale mutation failure after switching projects', async () => {
+    const create = new Subject<readonly KanbanUserStory[]>();
+    api.load.mockImplementation((projectId) =>
+      of({ swimlanes: [], userStories: [userStory(projectId, 1, projectId)] }),
+    );
+    api.createUserStories.mockReturnValue(create);
+    store.load(17);
+
+    const result = store.createStories({
+      projectId: 17,
+      statusId: 1,
+      swimlaneId: null,
+      subjects: 'Old project draft',
+    });
+    store.load(18);
+    create.error(new HttpErrorResponse({ status: 0, statusText: 'Network error' }));
+
+    await expect(result).resolves.toBe('failed');
+    expect(store.projectId()).toBe(18);
+    expect(store.requiresReconciliation()).toBe(false);
+    expect(store.mutationError()).toBeNull();
+  });
+
+  it('keeps the current board visible when a background refresh fails', () => {
+    api.load
+      .mockReturnValueOnce(of({ swimlanes: [], userStories: [userStory(1, 1)] }))
+      .mockReturnValueOnce(throwError(() => new Error('offline')));
+    store.load(17);
+
+    store.refresh();
+
+    expect(store.status()).toBe('loaded');
+    expect(store.userStories().map(({ id }) => id)).toEqual([1]);
+    expect(store.isRefreshing()).toBe(false);
+    expect(store.mutationError()).toContain('current view was kept');
+  });
+
+  it('ignores refresh requests until the initial load has completed', () => {
+    const request = new Subject<KanbanPayload>();
+    api.load.mockReturnValue(request);
+    store.load(17);
+
+    store.refresh();
+
+    expect(api.load).toHaveBeenCalledOnce();
+    expect(store.status()).toBe('loading');
+    request.next({ swimlanes: [], userStories: [userStory(1, 1)] });
+    request.complete();
+    expect(store.status()).toBe('loaded');
   });
 });
 

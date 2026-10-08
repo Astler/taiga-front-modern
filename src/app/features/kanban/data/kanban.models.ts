@@ -16,6 +16,9 @@ export interface KanbanProjectSnapshot {
   readonly slug: string;
   readonly us_statuses: readonly KanbanStatus[];
   readonly members?: readonly KanbanAssignee[];
+  readonly my_permissions?: readonly string[];
+  readonly archived_code?: string | null;
+  readonly blocked_code?: string | null;
 }
 
 export interface KanbanAssignee {
@@ -26,6 +29,11 @@ export interface KanbanAssignee {
 }
 
 export type KanbanTag = readonly [name: string, color: string | null];
+
+export interface KanbanTaskSummary {
+  readonly id: TaigaId;
+  readonly is_closed: boolean;
+}
 
 export interface KanbanUserStory {
   readonly id: TaigaId;
@@ -42,6 +50,51 @@ export interface KanbanUserStory {
   readonly tags: readonly KanbanTag[];
   readonly total_points?: number | null;
   readonly due_date?: string | null;
+  readonly due_date_reason?: string;
+  readonly milestone?: TaigaId | null;
+  readonly milestone_name?: string | null;
+  readonly version?: number;
+  readonly is_blocked?: boolean;
+  readonly blocked_note?: string;
+  readonly client_requirement?: boolean;
+  readonly team_requirement?: boolean;
+  readonly total_attachments?: number;
+  readonly total_comments?: number;
+  readonly watchers?: readonly TaigaId[];
+  readonly tasks?: readonly KanbanTaskSummary[];
+}
+
+export interface KanbanMoveCommand {
+  readonly projectId: TaigaId;
+  readonly storyId: TaigaId;
+  readonly statusId: TaigaId;
+  readonly swimlaneId: TaigaId | null;
+  readonly destinationIndex: number;
+  readonly beforeStoryId?: TaigaId;
+  readonly afterStoryId?: TaigaId;
+}
+
+export interface KanbanMoveRequest {
+  readonly projectId: TaigaId;
+  readonly statusId: TaigaId;
+  readonly swimlaneId: TaigaId | null;
+  readonly storyIds: readonly TaigaId[];
+  readonly beforeStoryId?: TaigaId;
+  readonly afterStoryId?: TaigaId;
+}
+
+export interface KanbanOrderUpdate {
+  readonly id: TaigaId;
+  readonly status: TaigaId;
+  readonly swimlane: TaigaId | null;
+  readonly kanban_order: number;
+}
+
+export interface KanbanCreateRequest {
+  readonly projectId: TaigaId;
+  readonly statusId: TaigaId;
+  readonly swimlaneId: TaigaId | null;
+  readonly subjects: string;
 }
 
 export interface KanbanSwimlaneStatus {

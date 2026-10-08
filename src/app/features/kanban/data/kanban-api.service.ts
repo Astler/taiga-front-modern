@@ -3,7 +3,13 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, forkJoin } from 'rxjs';
 import { RuntimeConfigService } from '../../../core/config';
 import type { TaigaId } from '../../../shared/models';
-import type { KanbanSwimlane, KanbanUserStory } from './kanban.models';
+import type {
+  KanbanCreateRequest,
+  KanbanMoveRequest,
+  KanbanOrderUpdate,
+  KanbanSwimlane,
+  KanbanUserStory,
+} from './kanban.models';
 
 export interface KanbanPayload {
   readonly swimlanes: readonly KanbanSwimlane[];
@@ -25,7 +31,11 @@ export class KanbanApiService {
   }
 
   listUserStories(projectId: TaigaId): Observable<readonly KanbanUserStory[]> {
-    const params = new HttpParams().set('project', projectId).set('status__is_archived', false);
+    const params = new HttpParams()
+      .set('project', projectId)
+      .set('status__is_archived', false)
+      .set('include_attachments', 1)
+      .set('include_tasks', 1);
 
     return this.http.get<readonly KanbanUserStory[]>(this.config.resolveApiPath('userstories'), {
       headers: UNPAGINATED_HEADERS,
@@ -38,5 +48,42 @@ export class KanbanApiService {
       headers: UNPAGINATED_HEADERS,
       params: new HttpParams().set('project', projectId),
     });
+  }
+
+  moveUserStories(request: KanbanMoveRequest): Observable<readonly KanbanOrderUpdate[]> {
+    const body: Record<string, TaigaId | readonly TaigaId[]> = {
+      project_id: request.projectId,
+      status_id: request.statusId,
+      bulk_userstories: request.storyIds,
+    };
+    if (request.swimlaneId !== null) {
+      body['swimlane_id'] = request.swimlaneId;
+    }
+    if (request.afterStoryId !== undefined) {
+      body['after_userstory_id'] = request.afterStoryId;
+    } else if (request.beforeStoryId !== undefined) {
+      body['before_userstory_id'] = request.beforeStoryId;
+    }
+
+    return this.http.post<readonly KanbanOrderUpdate[]>(
+      this.config.resolveApiPath('userstories/bulk_update_kanban_order'),
+      body,
+    );
+  }
+
+  createUserStories(request: KanbanCreateRequest): Observable<readonly KanbanUserStory[]> {
+    const body: Record<string, TaigaId | string> = {
+      project_id: request.projectId,
+      status_id: request.statusId,
+      bulk_stories: request.subjects,
+    };
+    if (request.swimlaneId !== null) {
+      body['swimlane_id'] = request.swimlaneId;
+    }
+
+    return this.http.post<readonly KanbanUserStory[]>(
+      this.config.resolveApiPath('userstories/bulk_create'),
+      body,
+    );
   }
 }
