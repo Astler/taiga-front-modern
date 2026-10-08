@@ -69,12 +69,28 @@ describe('IssuesApiService', () => {
     });
   });
 
-  it('loads filter metadata without pagination', async () => {
+  it('loads faceted filter metadata with the active search and include/exclude filters', async () => {
     const response = filtersData();
-    const result = firstValueFrom(service.filters(17));
-    const request = httpTesting.expectOne('/api/v1/issues/filters_data?project=17');
+    const query = {
+      ...DEFAULT_ISSUE_QUERY,
+      q: 'crash',
+      filters: {
+        status: { value: '4', mode: 'include' as const },
+        tags: { value: 'frontend', mode: 'exclude' as const },
+      },
+    };
+    const result = firstValueFrom(service.filters(17, query));
+    const request = httpTesting.expectOne(
+      (candidate) => candidate.url === '/api/v1/issues/filters_data',
+    );
 
     expect(request.request.headers.get('x-disable-pagination')).toBe('1');
+    expect(request.request.params.get('project')).toBe('17');
+    expect(request.request.params.get('q')).toBe('crash');
+    expect(request.request.params.get('status')).toBe('4');
+    expect(request.request.params.get('exclude_tags')).toBe('frontend');
+    expect(request.request.params.has('page')).toBe(false);
+    expect(request.request.params.has('order_by')).toBe(false);
     request.flush(response);
 
     await expect(result).resolves.toEqual(response);
@@ -91,20 +107,16 @@ describe('IssuesApiService', () => {
 });
 
 function issue(id: number): TaigaIssue {
-  const attribute = { id: 1, name: 'Normal', color: '#6750a4' };
   return {
     id,
     ref: id,
     subject: `Issue ${id}`,
     project: 17,
     status: 1,
-    status_extra_info: { ...attribute, name: 'Open' },
+    status_extra_info: { name: 'Open', color: '#6750a4', is_closed: false },
     type: 1,
-    type_extra_info: { ...attribute, name: 'Bug' },
     severity: 1,
-    severity_extra_info: attribute,
     priority: 1,
-    priority_extra_info: attribute,
     assigned_to: null,
     assigned_to_extra_info: null,
     tags: [],

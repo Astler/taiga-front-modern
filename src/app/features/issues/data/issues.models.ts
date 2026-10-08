@@ -2,12 +2,10 @@ import type { TaigaId } from '../../../shared/models';
 
 export type IssueTag = readonly [name: string, color: string | null];
 
-export interface IssueAttribute {
-  readonly id: TaigaId;
+export interface IssueStatusExtraInfo {
   readonly name: string;
   readonly color: string;
-  readonly order?: number;
-  readonly is_closed?: boolean;
+  readonly is_closed: boolean;
 }
 
 export interface IssueAssignee {
@@ -24,13 +22,10 @@ export interface TaigaIssue {
   readonly subject: string;
   readonly project: TaigaId;
   readonly status: TaigaId;
-  readonly status_extra_info: IssueAttribute;
+  readonly status_extra_info: IssueStatusExtraInfo;
   readonly type: TaigaId;
-  readonly type_extra_info: IssueAttribute;
   readonly severity: TaigaId;
-  readonly severity_extra_info: IssueAttribute;
   readonly priority: TaigaId;
-  readonly priority_extra_info: IssueAttribute;
   readonly assigned_to: TaigaId | null;
   readonly assigned_to_extra_info: IssueAssignee | null;
   readonly tags: readonly IssueTag[];

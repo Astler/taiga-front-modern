@@ -30,6 +30,8 @@ interface FilterDefinition {
   readonly dataKey: keyof IssueFiltersData;
 }
 
+type IssueAttributeDataKey = 'types' | 'severities' | 'priorities';
+
 const FILTERS: readonly FilterDefinition[] = [
   { category: 'status', label: 'Status', dataKey: 'statuses' },
   { category: 'type', label: 'Type', dataKey: 'types' },
@@ -140,6 +142,17 @@ export class IssuesWorkspace implements OnDestroy {
 
   protected optionLabel(option: IssueFilterOption): string {
     return option.full_name || option.name || 'Unassigned';
+  }
+
+  protected issueAttribute(dataKey: IssueAttributeDataKey, id: number): IssueFilterOption | null {
+    return this.store.filtersData()?.[dataKey].find((option) => option.id === id) ?? null;
+  }
+
+  protected tagOverflowTooltip(tags: readonly (readonly [string, string | null])[]): string {
+    return tags
+      .slice(2)
+      .map(([name]) => name)
+      .join(', ');
   }
 
   protected issueUrl(issue: TaigaIssue): string {

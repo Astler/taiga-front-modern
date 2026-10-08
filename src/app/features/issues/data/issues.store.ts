@@ -54,7 +54,7 @@ export class IssuesStore {
 
     forkJoin({
       page: this.api.list(projectId, DEFAULT_ISSUE_QUERY),
-      filters: this.api.filters(projectId),
+      filters: this.api.filters(projectId, DEFAULT_ISSUE_QUERY),
     }).subscribe({
       next: ({ page, filters }) => {
         if (revision !== this.requestRevision) {
@@ -73,7 +73,7 @@ export class IssuesStore {
     if (normalized === this.queryState().q) {
       return;
     }
-    this.updateQuery({ ...this.queryState(), q: normalized, page: 1 });
+    this.updateQuery({ ...this.queryState(), q: normalized, page: 1 }, true);
   }
 
   setSort(orderBy: string): void {
@@ -90,7 +90,7 @@ export class IssuesStore {
     } else {
       delete filters[category];
     }
-    this.updateQuery({ ...this.queryState(), filters, page: 1 });
+    this.updateQuery({ ...this.queryState(), filters, page: 1 }, true);
   }
 
   setFilterMode(category: IssueFilterCategory, mode: IssueFilterMode): void {
@@ -114,7 +114,7 @@ export class IssuesStore {
     if (!this.hasActiveFilters()) {
       return;
     }
-    this.updateQuery({ ...current, q: '', filters: {}, page: 1 });
+    this.updateQuery({ ...current, q: '', filters: {}, page: 1 }, true);
   }
 
   retry(): void {
@@ -127,21 +127,39 @@ export class IssuesStore {
       this.loadProject(projectId);
       return;
     }
-    this.fetchPage(this.queryState());
+    this.fetchPage(this.queryState(), true);
   }
 
-  private updateQuery(query: IssueListQuery): void {
+  private updateQuery(query: IssueListQuery, refreshFilters = false): void {
     this.queryState.set(query);
-    this.fetchPage(query);
+    this.fetchPage(query, refreshFilters);
   }
 
-  private fetchPage(query: IssueListQuery): void {
+  private fetchPage(query: IssueListQuery, refreshFilters = false): void {
     const projectId = this.projectIdState();
     if (projectId === null) {
       return;
     }
     this.startRequest();
     const revision = ++this.requestRevision;
+    if (refreshFilters) {
+      forkJoin({
+        page: this.api.list(projectId, query),
+        filters: this.api.filters(projectId, query),
+      }).subscribe({
+        next: ({ page, filters }) => {
+          if (revision !== this.requestRevision) {
+            return;
+          }
+          this.applyPage(page);
+          this.filtersDataState.set(filters);
+          this.statusState.set('loaded');
+        },
+        error: () => this.fail(revision),
+      });
+      return;
+    }
+
     this.api.list(projectId, query).subscribe({
       next: (page) => {
         if (revision !== this.requestRevision) {

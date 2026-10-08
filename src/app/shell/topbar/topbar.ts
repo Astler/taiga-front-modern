@@ -33,8 +33,9 @@ export class Topbar {
   protected selectProject(project: ShellProject): void {
     this.projectContext.selectProject(project);
     const currentPath = this.router.url.split(/[?#]/, 1)[0] ?? '';
-    if (currentPath === '/kanban' || /^\/project\/[^/]+\/kanban$/.test(currentPath)) {
-      void this.router.navigate(['/project', project.slug, 'kanban']);
+    const projectSection = currentProjectSection(currentPath);
+    if (projectSection) {
+      void this.router.navigate(['/project', project.slug, projectSection]);
     }
   }
 
@@ -45,6 +46,11 @@ export class Topbar {
   protected logout(): void {
     this.auth.logout();
   }
+}
+
+function currentProjectSection(path: string): 'issues' | 'kanban' | null {
+  const match = /^\/(?:project\/[^/]+\/)?(issues|kanban)$/.exec(path);
+  return match ? (match[1] as 'issues' | 'kanban') : null;
 }
 
 function initials(name: string): string {

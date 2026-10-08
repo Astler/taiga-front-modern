@@ -10,7 +10,9 @@ describe('IssuesStore', () => {
     list: ReturnType<
       typeof vi.fn<(projectId: number, query: IssueListQuery) => Observable<IssueListPage>>
     >;
-    filters: ReturnType<typeof vi.fn<(projectId: number) => Observable<IssueFiltersData>>>;
+    filters: ReturnType<
+      typeof vi.fn<(projectId: number, query: IssueListQuery) => Observable<IssueFiltersData>>
+    >;
   };
   let store: IssuesStore;
 
@@ -29,14 +31,14 @@ describe('IssuesStore', () => {
     store.loadProject(17);
 
     expect(api.list).toHaveBeenCalledWith(17, expect.objectContaining({ page: 1 }));
-    expect(api.filters).toHaveBeenCalledWith(17);
+    expect(api.filters).toHaveBeenCalledWith(17, expect.objectContaining({ page: 1 }));
     expect(store.status()).toBe('loaded');
     expect(store.issues().map(({ id }) => id)).toEqual([1]);
     expect(store.page()?.total).toBe(23);
     expect(store.filtersData()?.tags[0]?.name).toBe('frontend');
   });
 
-  it('keeps filter metadata while applying server filters, sorting, and pagination', () => {
+  it('refreshes faceted metadata for filters but reuses it for sorting and pagination', () => {
     api.list.mockReturnValue(of(page(1, 40)));
     api.filters.mockReturnValue(of(filtersData()));
     store.loadProject(17);
@@ -59,7 +61,11 @@ describe('IssuesStore', () => {
       17,
       expect.objectContaining({ page: 2, orderBy: 'priority' }),
     );
-    expect(api.filters).toHaveBeenCalledTimes(1);
+    expect(api.filters).toHaveBeenCalledTimes(2);
+    expect(api.filters).toHaveBeenLastCalledWith(
+      17,
+      expect.objectContaining({ filters: { status: { value: '2', mode: 'exclude' } } }),
+    );
   });
 
   it('ignores an older page response after a newer query wins', () => {
@@ -72,17 +78,25 @@ describe('IssuesStore', () => {
 
     const older = new Subject<IssueListPage>();
     const newer = new Subject<IssueListPage>();
+    const olderFilters = new Subject<IssueFiltersData>();
+    const newerFilters = new Subject<IssueFiltersData>();
     api.list.mockReturnValueOnce(older).mockReturnValueOnce(newer);
+    api.filters.mockReturnValueOnce(olderFilters).mockReturnValueOnce(newerFilters);
     store.setSearch('old');
     store.setSearch('new');
 
     newer.next(page(3, 1));
     newer.complete();
+    newerFilters.next({ ...filtersData(), tags: [{ name: 'new', color: null }] });
+    newerFilters.complete();
     older.next(page(2, 1));
     older.complete();
+    olderFilters.next({ ...filtersData(), tags: [{ name: 'old', color: null }] });
+    olderFilters.complete();
 
     expect(store.issues()[0]?.id).toBe(3);
     expect(store.query().q).toBe('new');
+    expect(store.filtersData()?.tags[0]?.name).toBe('new');
   });
 
   it('surfaces failures and retries the current query', () => {
@@ -101,7 +115,6 @@ describe('IssuesStore', () => {
 });
 
 function page(id: number, total: number): IssueListPage {
-  const attribute = { id: 1, name: 'Normal', color: '#6750a4' };
   return {
     items: [
       {
@@ -110,13 +123,10 @@ function page(id: number, total: number): IssueListPage {
         subject: `Issue ${id}`,
         project: 17,
         status: 1,
-        status_extra_info: { ...attribute, name: 'Open' },
+        status_extra_info: { name: 'Open', color: '#6750a4', is_closed: false },
         type: 1,
-        type_extra_info: { ...attribute, name: 'Bug' },
         severity: 1,
-        severity_extra_info: attribute,
         priority: 1,
-        priority_extra_info: attribute,
         assigned_to: null,
         assigned_to_extra_info: null,
         tags: [],

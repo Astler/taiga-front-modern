@@ -165,20 +165,28 @@
                   {{ issue.status_extra_info.name }}
                 </span>
               </td>
-              <td data-label="Type">{{ issue.type_extra_info.name }}</td>
+              <td data-label="Type">
+                @if (issueAttribute('types', issue.type); as type) {
+                  {{ type.name }}
+                } @else {
+                  <span class="muted">#{{ issue.type }}</span>
+                }
+              </td>
               <td data-label="Severity">
-                <span
-                  class="attribute-dot"
-                  [style.background]="issue.severity_extra_info.color"
-                ></span>
-                {{ issue.severity_extra_info.name }}
+                @if (issueAttribute('severities', issue.severity); as severity) {
+                  <span class="attribute-dot" [style.background]="severity.color"></span>
+                  {{ severity.name }}
+                } @else {
+                  <span class="muted">#{{ issue.severity }}</span>
+                }
               </td>
               <td data-label="Priority">
-                <span
-                  class="attribute-dot"
-                  [style.background]="issue.priority_extra_info.color"
-                ></span>
-                {{ issue.priority_extra_info.name }}
+                @if (issueAttribute('priorities', issue.priority); as priority) {
+                  <span class="attribute-dot" [style.background]="priority.color"></span>
+                  {{ priority.name }}
+                } @else {
+                  <span class="muted">#{{ issue.priority }}</span>
+                }
               </td>
               <td data-label="Tags">
                 <div class="issue-tags">
@@ -186,7 +194,7 @@
                     <span [style.--tag-color]="tag[1] || '#8f8a99'">{{ tag[0] }}</span>
                   }
                   @if (issue.tags.length > 2) {
-                    <span class="tag-overflow" [matTooltip]="issue.tags.slice(2).join(', ')">
+                    <span class="tag-overflow" [matTooltip]="tagOverflowTooltip(issue.tags)">
                       +{{ issue.tags.length - 2 }}
                     </span>
                   }

@@ -19,24 +19,9 @@ export class IssuesApiService {
   private readonly config = inject(RuntimeConfigService);
 
   list(projectId: TaigaId, query: IssueListQuery): Observable<IssueListPage> {
-    let params = new HttpParams()
-      .set('project', projectId)
+    const params = issueFilterParams(projectId, query)
       .set('page', Math.max(1, query.page))
       .set('order_by', query.orderBy);
-
-    const search = query.q.trim();
-    if (search) {
-      params = params.set('q', search);
-    }
-
-    for (const category of ISSUE_FILTER_CATEGORIES) {
-      const selection = query.filters[category];
-      if (!selection?.value) {
-        continue;
-      }
-      const parameter = selection.mode === 'exclude' ? `exclude_${category}` : category;
-      params = params.set(parameter, selection.value);
-    }
 
     return this.http
       .get<readonly TaigaIssue[]>(this.config.resolveApiPath('issues'), {
@@ -46,10 +31,10 @@ export class IssuesApiService {
       .pipe(map((response) => this.toPage(response, query.page)));
   }
 
-  filters(projectId: TaigaId): Observable<IssueFiltersData> {
+  filters(projectId: TaigaId, query: IssueListQuery): Observable<IssueFiltersData> {
     return this.http.get<IssueFiltersData>(this.config.resolveApiPath('issues/filters_data'), {
       headers: UNPAGINATED_HEADERS,
-      params: new HttpParams().set('project', projectId),
+      params: issueFilterParams(projectId, query),
     });
   }
 
@@ -70,6 +55,24 @@ export class IssuesApiService {
       totalPages: Math.max(1, Math.ceil(total / pageSize)),
     };
   }
+}
+
+function issueFilterParams(projectId: TaigaId, query: IssueListQuery): HttpParams {
+  let params = new HttpParams().set('project', projectId);
+  const search = query.q.trim();
+  if (search) {
+    params = params.set('q', search);
+  }
+
+  for (const category of ISSUE_FILTER_CATEGORIES) {
+    const selection = query.filters[category];
+    if (!selection?.value) {
+      continue;
+    }
+    const parameter = selection.mode === 'exclude' ? `exclude_${category}` : category;
+    params = params.set(parameter, selection.value);
+  }
+  return params;
 }
 
 function positiveHeader(response: HttpResponse<unknown>, name: string): number | null {

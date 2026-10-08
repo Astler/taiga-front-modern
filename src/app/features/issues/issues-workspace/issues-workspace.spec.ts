@@ -1,4 +1,6 @@
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { MatTooltip } from '@angular/material/tooltip';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RuntimeConfigService } from '../../../core/config';
@@ -35,16 +37,45 @@ describe('IssuesWorkspace', () => {
 
     const host = fixture.nativeElement as HTMLElement;
     expect(list).toHaveBeenCalledWith(17, expect.objectContaining({ orderBy: '-modified_date' }));
-    expect(filters).toHaveBeenCalledWith(17);
+    expect(filters).toHaveBeenCalledWith(17, expect.objectContaining({ page: 1 }));
     expect(host.querySelector('.issue-main-cell')?.textContent).toContain('#38');
     expect(host.querySelector('.issue-main-cell')?.textContent).toContain('Fix sign-in crash');
     expect(host.querySelector('[data-label="Status"]')?.textContent).toContain('Open');
     expect(host.querySelector('[data-label="Type"]')?.textContent).toContain('Bug');
+    expect(host.querySelector('[data-label="Severity"]')?.textContent).toContain('Important');
+    expect(host.querySelector('[data-label="Priority"]')?.textContent).toContain('High');
     expect(host.querySelector('.issue-tags')?.textContent).toContain('frontend');
     expect(host.querySelector('.assignee-name')?.textContent).toContain('Ada Lovelace');
     expect(host.querySelector<HTMLAnchorElement>('.issue-main-cell a')?.href).toBe(
       'https://legacy.example.test/project/alpha/issue/38',
     );
+  });
+
+  it('shows only tag names in the overflow tooltip', async () => {
+    list.mockReturnValue(
+      of({
+        ...issuePage(),
+        items: [
+          {
+            ...issuePage().items[0]!,
+            tags: [
+              ['frontend', '#6750a4'],
+              ['urgent', '#ff0000'],
+              ['customer', '#00ff00'],
+              ['release', null],
+            ],
+          },
+        ],
+      }),
+    );
+    const fixture = TestBed.createComponent(IssuesWorkspace);
+    fixture.componentRef.setInput('project', project());
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const tooltip = fixture.debugElement.query(By.css('.tag-overflow')).injector.get(MatTooltip);
+    expect(tooltip.message).toBe('customer, release');
   });
 
   it('sends selected status and exclude mode to the server store', async () => {
@@ -85,13 +116,10 @@ function issuePage(): IssueListPage {
         subject: 'Fix sign-in crash',
         project: 17,
         status: 1,
-        status_extra_info: { id: 1, name: 'Open', color: '#8de7d0' },
+        status_extra_info: { name: 'Open', color: '#8de7d0', is_closed: false },
         type: 2,
-        type_extra_info: { id: 2, name: 'Bug', color: '#ffb4ab' },
         severity: 3,
-        severity_extra_info: { id: 3, name: 'Important', color: '#ffca86' },
         priority: 4,
-        priority_extra_info: { id: 4, name: 'High', color: '#c9b6ff' },
         assigned_to: 7,
         assigned_to_extra_info: {
           id: 7,
