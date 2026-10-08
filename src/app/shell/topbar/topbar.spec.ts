@@ -14,6 +14,9 @@ describe('Topbar', () => {
     ['/issues?status=1', 'issues'],
     ['/project/alpha/kanban#ready', 'kanban'],
     ['/kanban', 'kanban'],
+    ['/project/alpha/epics', 'epics'],
+    ['/team', 'team'],
+    ['/project/alpha/settings?tab=modules', 'settings'],
   ] as const)('keeps the %s workspace when switching projects', (url, section) => {
     const navigate = vi.fn();
     const selectProject = vi.fn();

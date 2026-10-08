@@ -10,10 +10,12 @@ describe('app routes', () => {
     expect(shellRoute?.canActivateChild).toContain(authRequiredGuard);
   });
 
-  it('exposes both selected-project and deep-linked issue workspaces', () => {
+  it('exposes both selected-project and deep-linked project workspaces', () => {
     const children = routes.find((route) => route.path === '')?.children ?? [];
 
-    expect(children.some((route) => route.path === 'issues')).toBe(true);
-    expect(children.some((route) => route.path === 'project/:projectSlug/issues')).toBe(true);
+    for (const section of ['epics', 'issues', 'kanban', 'settings', 'team']) {
+      expect(children.some((route) => route.path === section)).toBe(true);
+      expect(children.some((route) => route.path === `project/:projectSlug/${section}`)).toBe(true);
+    }
   });
 });

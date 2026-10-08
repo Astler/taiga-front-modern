@@ -48,9 +48,11 @@ export class Topbar {
   }
 }
 
-function currentProjectSection(path: string): 'issues' | 'kanban' | null {
-  const match = /^\/(?:project\/[^/]+\/)?(issues|kanban)$/.exec(path);
-  return match ? (match[1] as 'issues' | 'kanban') : null;
+type ProjectSection = 'epics' | 'issues' | 'kanban' | 'settings' | 'team';
+
+function currentProjectSection(path: string): ProjectSection | null {
+  const match = /^\/(?:project\/[^/]+\/)?(epics|issues|kanban|settings|team)$/.exec(path);
+  return match ? (match[1] as ProjectSection) : null;
 }
 
 function initials(name: string): string {

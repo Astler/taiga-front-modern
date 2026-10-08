@@ -27,7 +27,11 @@ The modern frontend currently provides:
   loading, empty and error states;
 - deep-linked read-only Issues routes at `/project/:projectSlug/issues`, backed by Taiga's stable
   paginated API with server search, sorting, include/exclude filters, and responsive dense rows;
-- links back to the classic story page for editing flows that have not migrated yet.
+- deep-linked Epics routes with stable server search, include/exclude facets, pagination and linked
+  story progress;
+- a real Team roster with role and status filters, pending invitations and owner/admin context;
+- a project Settings overview for identity, modules, access, workflow and tags;
+- exact links back to the relevant classic pages for editing flows that have not migrated yet.
 
 Card movement and mutations deliberately remain outside this slice. They will use Taiga's existing
 versioned bulk-order API after the read path has been exercised against production data.
@@ -86,11 +90,12 @@ the existing Taiga gateway or Coolify proxy.
 ## Migration milestones
 
 1. Foundation: responsive shell, Material 3 tokens, runtime config, authentication and API client.
-2. Daily work: real project switcher, read-only Kanban, filters and tags. Accessible card movement
-   is the next vertical slice.
+2. Daily work: real project switcher, read-only Kanban and Issues, filters and tags. Accessible card
+   movement is the next vertical slice.
 3. Work item details: stories, tasks, issues, comments, attachments and activity.
-4. Planning: epics, backlog, sprints and team views.
-5. Administration and removal of the classic frontend fallback.
+4. Planning: Epics and Team read paths are live; backlog and sprints are next.
+5. Administration: Settings overview is live; safe versioned mutations and removal of the classic
+   frontend fallback remain.
 
 Every migrated route must work against the existing stable backend and pass unit, keyboard and
 browser-level smoke checks before it replaces the corresponding classic route.

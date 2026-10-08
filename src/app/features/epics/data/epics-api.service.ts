@@ -79,6 +79,10 @@ function positiveHeader(response: HttpResponse<unknown>, name: string): number |
 }
 
 function nonNegativeHeader(response: HttpResponse<unknown>, name: string): number | null {
-  const value = Number(response.headers.get(name));
+  const rawValue = response.headers.get(name);
+  if (rawValue === null) {
+    return null;
+  }
+  const value = Number(rawValue);
   return Number.isSafeInteger(value) && value >= 0 ? value : null;
 }

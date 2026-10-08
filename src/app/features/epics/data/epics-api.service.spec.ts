@@ -102,6 +102,19 @@ describe('EpicsApiService', () => {
     });
     await expect(result).resolves.toMatchObject({ total: 0, page: 1, pageSize: 20 });
   });
+
+  it('falls back to the response length when pagination headers are absent', async () => {
+    const result = firstValueFrom(service.list(17, DEFAULT_EPIC_QUERY));
+    const request = httpTesting.expectOne((candidate) => candidate.url === '/api/v1/epics');
+    request.flush([epic(31), epic(32)]);
+
+    await expect(result).resolves.toMatchObject({
+      total: 2,
+      page: 1,
+      pageSize: 2,
+      totalPages: 1,
+    });
+  });
 });
 
 export function epic(id: number): TaigaEpic {

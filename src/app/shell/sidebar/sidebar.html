@@ -47,7 +47,7 @@
   <mat-divider />
 
   <span class="navigation-label navigation-label-secondary">Manage</span>
-  @for (item of secondaryNavigation; track item.route) {
+  @for (item of secondaryNavigation(); track item.route) {
     <a
       class="navigation-item"
       [routerLink]="item.route"

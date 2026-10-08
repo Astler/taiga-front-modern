@@ -1,0 +1,25 @@
+@if (activeProject(); as project) {
+  <pf-team-workspace [project]="project" />
+} @else if (requestedProjectFailed() || projects.error()) {
+  <section class="project-state" role="alert">
+    <span class="state-mark" aria-hidden="true">!</span>
+    <div>
+      <h1>Project unavailable</h1>
+      <p>Taiga could not load this project. It may be private, missing, or temporarily offline.</p>
+    </div>
+    <button mat-flat-button type="button" (click)="retry()">Try again</button>
+  </section>
+} @else if (projects.projectsLoaded() && projects.projects().length === 0) {
+  <section class="project-state">
+    <span class="state-mark state-mark-info" aria-hidden="true">i</span>
+    <div>
+      <h1>No projects yet</h1>
+      <p>Create or join a project in classic Taiga, then come back to browse its team.</p>
+    </div>
+  </section>
+} @else {
+  <section class="project-loading" role="status">
+    <mat-progress-bar mode="indeterminate" />
+    <span>Loading project…</span>
+  </section>
+}

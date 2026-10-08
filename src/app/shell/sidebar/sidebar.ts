@@ -46,23 +46,26 @@ export class Sidebar {
       {
         iconPath: 'm12 3 8.5 15H3.5L12 3Zm0 5v4.5m0 3v.2',
         label: 'Epics',
-        route: '/epics',
+        route: projectSlug ? `/project/${projectSlug}/epics` : '/epics',
       },
     ];
   });
 
-  protected readonly secondaryNavigation: readonly NavigationItem[] = [
-    {
-      iconPath:
-        'M8.5 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7-1a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM3 19a5.5 5.5 0 0 1 11 0m0-5.5a5 5 0 0 1 7 4.5',
-      label: 'Team',
-      route: '/team',
-    },
-    {
-      iconPath:
-        'M12 3v2m0 14v2M3 12h2m14 0h2M5.64 5.64l1.42 1.42m9.88 9.88 1.42 1.42m0-12.72-1.42 1.42M7.06 16.94l-1.42 1.42M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z',
-      label: 'Settings',
-      route: '/settings',
-    },
-  ];
+  protected readonly secondaryNavigation = computed<readonly NavigationItem[]>(() => {
+    const projectSlug = this.projectContext.selectedProject().slug;
+    return [
+      {
+        iconPath:
+          'M8.5 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7-1a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM3 19a5.5 5.5 0 0 1 11 0m0-5.5a5 5 0 0 1 7 4.5',
+        label: 'Team',
+        route: projectSlug ? `/project/${projectSlug}/team` : '/team',
+      },
+      {
+        iconPath:
+          'M12 3v2m0 14v2M3 12h2m14 0h2M5.64 5.64l1.42 1.42m9.88 9.88 1.42 1.42m0-12.72-1.42 1.42M7.06 16.94l-1.42 1.42M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z',
+        label: 'Settings',
+        route: projectSlug ? `/project/${projectSlug}/settings` : '/settings',
+      },
+    ];
+  });
 }

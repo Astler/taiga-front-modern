@@ -63,34 +63,52 @@ export const routes: Routes = [
       {
         path: 'epics',
         loadComponent: () =>
-          import('./shell/dashboard-placeholder/dashboard-placeholder').then(
-            ({ DashboardPlaceholder }) => DashboardPlaceholder,
-          ),
+          import('./features/epics/epics-page/epics-page').then(({ EpicsPage }) => EpicsPage),
         data: {
-          description: 'Portfolio planning will reuse the same calm shell and navigation model.',
-          title: 'Epics workspace',
+          title: 'Epics',
+        },
+      },
+      {
+        path: 'project/:projectSlug/epics',
+        loadComponent: () =>
+          import('./features/epics/epics-page/epics-page').then(({ EpicsPage }) => EpicsPage),
+        data: {
+          title: 'Epics',
         },
       },
       {
         path: 'team',
         loadComponent: () =>
-          import('./shell/dashboard-placeholder/dashboard-placeholder').then(
-            ({ DashboardPlaceholder }) => DashboardPlaceholder,
-          ),
+          import('./features/team/team-page/team-page').then(({ TeamPage }) => TeamPage),
         data: {
-          description:
-            'People, roles, and workload will live here without leaving the project context.',
+          title: 'Project team',
+        },
+      },
+      {
+        path: 'project/:projectSlug/team',
+        loadComponent: () =>
+          import('./features/team/team-page/team-page').then(({ TeamPage }) => TeamPage),
+        data: {
           title: 'Project team',
         },
       },
       {
         path: 'settings',
         loadComponent: () =>
-          import('./shell/dashboard-placeholder/dashboard-placeholder').then(
-            ({ DashboardPlaceholder }) => DashboardPlaceholder,
+          import('./features/settings/settings-page/settings-page').then(
+            ({ SettingsPage }) => SettingsPage,
           ),
         data: {
-          description: 'Project preferences and modules will be organized into focused sections.',
+          title: 'Project settings',
+        },
+      },
+      {
+        path: 'project/:projectSlug/settings',
+        loadComponent: () =>
+          import('./features/settings/settings-page/settings-page').then(
+            ({ SettingsPage }) => SettingsPage,
+          ),
+        data: {
           title: 'Project settings',
         },
       },
