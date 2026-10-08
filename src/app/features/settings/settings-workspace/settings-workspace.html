@@ -1,0 +1,285 @@
+<section class="settings-page">
+  <header class="settings-header">
+    <div>
+      <span class="eyebrow">{{ project().name }}</span>
+      <h1>Project settings</h1>
+      <p>Configuration, access and workflow at a glance.</p>
+    </div>
+
+    @if (canAdminister()) {
+      <a
+        mat-flat-button
+        [href]="classicSettingsUrl('admin/project-profile/details')"
+        target="_blank"
+        rel="noopener"
+      >
+        Edit in Classic Taiga
+        <span aria-hidden="true">↗</span>
+      </a>
+    } @else {
+      <span class="access-badge">Read only</span>
+    }
+  </header>
+
+  @if (!canAdminister()) {
+    <aside class="notice" role="note">
+      <span class="notice-icon" aria-hidden="true">i</span>
+      <div>
+        <strong>You can view this configuration</strong>
+        <p>Only project owners and admins can change project settings.</p>
+      </div>
+    </aside>
+  }
+
+  @if (project().archived_code || project().blocked_code) {
+    <aside class="notice notice-warning" role="status">
+      <span class="notice-icon" aria-hidden="true">!</span>
+      <div>
+        <strong>{{
+          project().archived_code ? 'This project is archived' : 'This project is blocked'
+        }}</strong>
+        <p>Some project features and changes may be unavailable.</p>
+      </div>
+    </aside>
+  }
+
+  <div class="settings-grid">
+    <article class="settings-card identity-card">
+      <header class="card-heading">
+        <div>
+          <span class="card-kicker">Identity</span>
+          <h2>Project profile</h2>
+        </div>
+        <span class="privacy-badge">{{ project().is_private ? 'Private' : 'Public' }}</span>
+      </header>
+
+      <div class="project-profile">
+        @if (project().logo_small_url) {
+          <img class="project-logo" [src]="project().logo_small_url" alt="" />
+        } @else {
+          <span class="project-logo project-logo-fallback" aria-hidden="true">
+            {{ project().name.slice(0, 2).toLocaleUpperCase() }}
+          </span>
+        }
+        <div>
+          <strong>{{ project().name }}</strong>
+          <span>/{{ project().slug }}</span>
+        </div>
+      </div>
+
+      <p class="description">
+        {{ project().description.trim() || 'No project description has been added yet.' }}
+      </p>
+
+      <dl class="fact-list">
+        <div>
+          <dt>Owner</dt>
+          <dd>{{ ownerName() }}</dd>
+        </div>
+        <div>
+          <dt>Visibility</dt>
+          <dd>{{ project().is_private ? 'Members only' : 'Visible to everyone' }}</dd>
+        </div>
+      </dl>
+
+      @if (canAdminister()) {
+        <a
+          class="text-link"
+          [href]="classicSettingsUrl('admin/project-profile/details')"
+          target="_blank"
+          rel="noopener"
+        >
+          Edit project profile <span aria-hidden="true">↗</span>
+        </a>
+      }
+    </article>
+
+    <article class="settings-card modules-card">
+      <header class="card-heading">
+        <div>
+          <span class="card-kicker">Workspace</span>
+          <h2>Modules</h2>
+        </div>
+        <span class="summary-count">{{ enabledModuleCount() }}/{{ modules().length }} on</span>
+      </header>
+
+      <ul class="module-list">
+        @for (module of modules(); track module.key) {
+          <li>
+            <span
+              class="module-indicator"
+              [class.module-off]="!module.enabled"
+              aria-hidden="true"
+            ></span>
+            <div>
+              <strong>{{ module.label }}</strong>
+              <span>{{ module.description }}</span>
+            </div>
+            <span class="module-state" [class.module-state-off]="!module.enabled">
+              {{ module.enabled ? 'Enabled' : 'Off' }}
+            </span>
+          </li>
+        }
+      </ul>
+
+      @if (canAdminister() && !project().archived_code) {
+        <a
+          class="text-link"
+          [href]="classicSettingsUrl('admin/project-profile/modules')"
+          target="_blank"
+          rel="noopener"
+        >
+          Configure modules <span aria-hidden="true">↗</span>
+        </a>
+      }
+    </article>
+
+    <article class="settings-card access-card">
+      <header class="card-heading">
+        <div>
+          <span class="card-kicker">Access</span>
+          <h2>People and permissions</h2>
+        </div>
+        <span class="summary-count">{{ project().members.length }} members</span>
+      </header>
+
+      <div class="access-level">
+        <span class="access-icon" aria-hidden="true">{{ project().i_am_owner ? '★' : '✓' }}</span>
+        <div>
+          <strong>{{ accessLabel() }}</strong>
+          <span>{{ project().my_permissions.length }} granted permissions</span>
+        </div>
+      </div>
+
+      @if (visiblePermissions().length > 0) {
+        <div class="permission-list" aria-label="Your project permissions">
+          @for (permission of visiblePermissions(); track permission) {
+            <span>{{ permissionLabel(permission) }}</span>
+          }
+          @if (hiddenPermissionCount() > 0) {
+            <span>+{{ hiddenPermissionCount() }} more</span>
+          }
+        </div>
+      } @else {
+        <p class="empty-copy">No explicit project permissions were returned for this account.</p>
+      }
+
+      @if (canAdminister()) {
+        <div class="card-links">
+          <a
+            class="text-link"
+            [href]="classicSettingsUrl('admin/memberships')"
+            target="_blank"
+            rel="noopener"
+            >Manage members <span aria-hidden="true">↗</span></a
+          >
+          @if (!project().archived_code) {
+            <a
+              class="text-link"
+              [href]="classicSettingsUrl('admin/roles')"
+              target="_blank"
+              rel="noopener"
+              >Manage roles <span aria-hidden="true">↗</span></a
+            >
+          }
+        </div>
+      }
+    </article>
+
+    <article class="settings-card workflow-card">
+      <header class="card-heading">
+        <div>
+          <span class="card-kicker">Workflow</span>
+          <h2>Story statuses and tags</h2>
+        </div>
+        <span class="summary-count">{{ activeStatuses().length }} statuses</span>
+      </header>
+
+      <div class="workflow-section">
+        <h3>User story flow</h3>
+        @if (activeStatuses().length > 0) {
+          <ol class="status-list">
+            @for (status of activeStatuses(); track status.id) {
+              <li [class.closed-status]="status.is_closed">
+                <span class="color-dot" [style.background]="status.color" aria-hidden="true"></span>
+                <span>{{ status.name }}</span>
+                @if (status.wip_limit !== null) {
+                  <small>WIP {{ status.wip_limit }}</small>
+                }
+                @if (status.is_closed) {
+                  <small>Closed</small>
+                }
+              </li>
+            }
+          </ol>
+          @if (archivedStatusCount() > 0) {
+            <p class="supporting-copy">{{ archivedStatusCount() }} archived statuses are hidden.</p>
+          }
+        } @else {
+          <p class="empty-copy">No active user story statuses.</p>
+        }
+      </div>
+
+      <div class="workflow-section">
+        <h3>Project tags</h3>
+        @if (project().tags.length > 0) {
+          <div class="tag-list">
+            @for (tag of project().tags.slice(0, 12); track tag) {
+              <span [style.--tag-color]="tagColor(tag)">{{ tag }}</span>
+            }
+            @if (project().tags.length > 12) {
+              <span class="tag-overflow">+{{ project().tags.length - 12 }} more</span>
+            }
+          </div>
+        } @else {
+          <p class="empty-copy">No shared tags have been created.</p>
+        }
+      </div>
+
+      @if (canAdminister() && !project().archived_code) {
+        <div class="card-links">
+          <a
+            class="text-link"
+            [href]="classicSettingsUrl('admin/project-values/status')"
+            target="_blank"
+            rel="noopener"
+            >Edit statuses <span aria-hidden="true">↗</span></a
+          >
+          <a
+            class="text-link"
+            [href]="classicSettingsUrl('admin/project-values/tags')"
+            target="_blank"
+            rel="noopener"
+            >Edit tags <span aria-hidden="true">↗</span></a
+          >
+        </div>
+      }
+    </article>
+
+    @if (canAdminister()) {
+      <article class="settings-card classic-card">
+        <header class="card-heading">
+          <div>
+            <span class="card-kicker">Administration</span>
+            <h2>Advanced settings</h2>
+          </div>
+          <span class="classic-mark">Classic</span>
+        </header>
+        <p class="supporting-copy">
+          Changes still open in Classic Taiga while their safe editing flows are being migrated.
+        </p>
+        <nav class="classic-link-grid" aria-label="Advanced project settings">
+          @for (link of classicLinks(); track link.path) {
+            <a [href]="classicSettingsUrl(link.path)" target="_blank" rel="noopener">
+              <span>
+                <strong>{{ link.label }}</strong>
+                <small>{{ link.description }}</small>
+              </span>
+              <span aria-hidden="true">↗</span>
+            </a>
+          }
+        </nav>
+      </article>
+    }
+  </div>
+</section>
