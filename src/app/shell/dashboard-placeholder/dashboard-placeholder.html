@@ -1,0 +1,103 @@
+<section class="dashboard" aria-labelledby="page-title">
+  <header class="page-header">
+    <div>
+      <div class="page-eyebrow">
+        <span>{{ projectContext.selectedProject().code }}</span>
+        <span>{{ projectContext.selectedProject().name }}</span>
+        <span class="preview-badge">Preview data</span>
+      </div>
+      <h1 id="page-title">{{ pageTitle }}</h1>
+      <p>{{ pageDescription }}</p>
+    </div>
+
+    <div class="page-actions">
+      <button mat-button type="button">View reports</button>
+      <button mat-flat-button type="button">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+        New work item
+      </button>
+    </div>
+  </header>
+
+  <div class="metrics" aria-label="Project summary">
+    @for (metric of metrics; track metric.label) {
+      <article class="metric-card" [attr.data-tone]="metric.tone">
+        <div class="metric-heading">
+          <span class="metric-indicator" aria-hidden="true"></span>
+          <span>{{ metric.label }}</span>
+        </div>
+        <strong>{{ metric.value }}</strong>
+        <small>{{ metric.change }}</small>
+      </article>
+    }
+  </div>
+
+  <div class="dashboard-grid">
+    <article class="focus-card">
+      <header class="card-header">
+        <div>
+          <span class="section-label">Current milestone</span>
+          <h2>Sound &amp; interaction polish</h2>
+        </div>
+        <span class="milestone-date">Oct 7–18</span>
+      </header>
+
+      <div class="progress-copy">
+        <span>23 of 31 stories completed</span>
+        <strong>74%</strong>
+      </div>
+      <mat-progress-bar mode="determinate" value="74" aria-label="Milestone completion" />
+
+      <div class="focus-list">
+        <div class="focus-item">
+          <span class="focus-status focus-status-active" aria-hidden="true"></span>
+          <span
+            ><strong>Review the weekly challenges flow</strong
+            ><small>2 tasks · assigned to you</small></span
+          >
+          <span class="item-tag">Today</span>
+        </div>
+        <div class="focus-item">
+          <span class="focus-status" aria-hidden="true"></span>
+          <span
+            ><strong>Finish base click audio feedback</strong><small>Ready for test</small></span
+          >
+          <span class="item-tag item-tag-muted">Tomorrow</span>
+        </div>
+        <div class="focus-item">
+          <span class="focus-status" aria-hidden="true"></span>
+          <span
+            ><strong>Validate the shared achievement cases</strong
+            ><small>6 linked stories</small></span
+          >
+          <span class="item-tag item-tag-muted">Fri</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="activity-card">
+      <header class="card-header">
+        <div>
+          <span class="section-label">Project pulse</span>
+          <h2>Recent activity</h2>
+        </div>
+        <button mat-button type="button">See all</button>
+      </header>
+
+      <div class="activity-list">
+        @for (activity of activities; track activity.title) {
+          <div class="activity-item">
+            <span class="activity-avatar" aria-hidden="true">{{ activity.initials }}</span>
+            <span class="activity-copy">
+              <span
+                ><strong>{{ activity.actor }}</strong> {{ activity.detail }}</span
+              >
+              <a href="#">{{ activity.title }}</a>
+            </span>
+            <time>{{ activity.time }}</time>
+          </div>
+        }
+      </div>
+    </article>
+  </div>
+</section>

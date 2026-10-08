@@ -1,0 +1,64 @@
+:host,
+.shell-container,
+.shell-main {
+  display: block;
+  height: 100%;
+}
+
+.shell-container {
+  background: var(--app-shell-bg);
+}
+
+.skip-link {
+  position: fixed;
+  z-index: 1000;
+  top: 0.5rem;
+  left: 0.5rem;
+  translate: 0 -150%;
+  border-radius: var(--app-radius-md);
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+  padding: 0.75rem 1rem;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  translate: 0;
+}
+
+.shell-navigation {
+  width: var(--app-sidebar-width);
+  border-right: 1px solid var(--app-border-color);
+  border-radius: 0;
+  background: var(--app-sidebar-bg);
+}
+
+.shell-main {
+  overflow: auto;
+  background:
+    radial-gradient(
+      circle at 82% -12%,
+      color-mix(in srgb, var(--mat-sys-primary) 7%, transparent),
+      transparent 34rem
+    ),
+    var(--app-shell-bg);
+}
+
+.route-content {
+  min-height: calc(100% - var(--app-topbar-height));
+  box-sizing: border-box;
+  outline: none;
+}
+
+@media (max-width: 839px) {
+  .shell-navigation {
+    width: min(var(--app-sidebar-width), calc(100vw - 3rem));
+    box-shadow: var(--mat-sys-level4);
+  }
+}
+
+@media (max-width: 599px) {
+  .route-content {
+    min-height: calc(100% - var(--app-topbar-height-mobile));
+  }
+}

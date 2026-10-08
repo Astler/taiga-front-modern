@@ -1,0 +1,93 @@
+<mat-toolbar class="topbar">
+  <button
+    class="navigation-toggle"
+    mat-icon-button
+    type="button"
+    aria-label="Toggle navigation"
+    aria-controls="primary-navigation"
+    [attr.aria-expanded]="navigationExpanded()"
+    (click)="navigationToggle.emit()"
+  >
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
+  </button>
+
+  <pf-project-switcher
+    [projects]="projectContext.projects"
+    [selectedProject]="projectContext.selectedProject()"
+    (projectSelected)="selectProject($event)"
+  />
+
+  <span class="topbar-spacer"></span>
+
+  <label class="global-search">
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="m16 16 4 4" />
+    </svg>
+    <span class="visually-hidden">Search Taiga</span>
+    <input type="search" placeholder="Search arrives in M2" disabled />
+  </label>
+
+  <a class="classic-link" mat-button [href]="legacyUrl">Classic Taiga</a>
+
+  <button
+    class="compact-search"
+    mat-icon-button
+    type="button"
+    aria-label="Search arrives in M2"
+    matTooltip="Search arrives in M2"
+    disabled
+  >
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="m16 16 4 4" />
+    </svg>
+  </button>
+
+  <button mat-icon-button type="button" aria-label="Help" matTooltip="Help and resources">
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M9.9 9.2a2.35 2.35 0 0 1 4.52.9c0 1.75-2.42 2-2.42 3.62M12 17.2v.1" />
+    </svg>
+  </button>
+
+  <button
+    class="notification-button"
+    mat-icon-button
+    type="button"
+    aria-label="Notifications"
+    matTooltip="Notifications"
+  >
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path
+        d="M6.7 10.2a5.3 5.3 0 0 1 10.6 0c0 6.2 2.2 6.2 2.2 6.2h-15s2.2 0 2.2-6.2ZM9.8 19a2.4 2.4 0 0 0 4.4 0"
+      />
+    </svg>
+    <span class="notification-dot" aria-hidden="true"></span>
+  </button>
+
+  <button
+    class="profile-button"
+    mat-icon-button
+    type="button"
+    aria-label="Open profile menu"
+    [matMenuTriggerFor]="profileMenu"
+  >
+    <span class="profile-avatar">VP</span>
+  </button>
+</mat-toolbar>
+
+<mat-menu #profileMenu="matMenu" xPosition="before">
+  <div class="profile-summary">
+    <span class="profile-avatar profile-avatar-large">VP</span>
+    <span>
+      <strong>Vlady</strong>
+      <small>Workspace owner</small>
+    </span>
+  </div>
+  <button mat-menu-item type="button">Profile</button>
+  <button mat-menu-item type="button">Preferences</button>
+  <button mat-menu-item type="button">Sign out</button>
+</mat-menu>

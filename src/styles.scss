@@ -1,0 +1,132 @@
+@use '@angular/material' as mat;
+@use './styles/dashboard-shell';
+
+html {
+  color-scheme: dark;
+
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$violet-palette,
+        tertiary: mat.$spring-green-palette,
+        theme-type: dark,
+      ),
+      typography: (
+        plain-family: (
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          sans-serif,
+        ),
+        brand-family: (
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          sans-serif,
+        ),
+        regular-weight: 400,
+        medium-weight: 550,
+        bold-weight: 700,
+      ),
+      density: -1,
+    )
+  );
+  @include mat.strong-focus-indicators();
+
+  --app-shell-bg: #111016;
+  --app-sidebar-bg: #16141c;
+  --app-card-bg: color-mix(in srgb, var(--mat-sys-surface-container) 88%, #17141e);
+  --app-border-color: color-mix(in srgb, var(--mat-sys-outline-variant) 66%, transparent);
+  --app-warning: #ffbd72;
+  --app-sidebar-width: 16.5rem;
+  --app-topbar-height: 4.5rem;
+  --app-topbar-height-mobile: 4rem;
+  --app-radius-md: 0.75rem;
+  --app-radius-lg: 1rem;
+  --app-radius-xl: 1.25rem;
+  --app-radius-full: 999px;
+  --app-card-shadow: 0 1px 1px rgb(0 0 0 / 22%), 0 14px 36px rgb(0 0 0 / 8%);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  min-width: 20rem;
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--app-shell-bg);
+  color: var(--mat-sys-on-surface);
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+pf-root {
+  display: block;
+  height: 100%;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+}
+
+.project-menu {
+  width: min(23rem, calc(100vw - 2rem));
+  max-width: none !important;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-lg) !important;
+  background: var(--mat-sys-surface-container-high) !important;
+}
+
+::selection {
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+}
+
+* {
+  scrollbar-color: var(--mat-sys-outline-variant) transparent;
+  scrollbar-width: thin;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

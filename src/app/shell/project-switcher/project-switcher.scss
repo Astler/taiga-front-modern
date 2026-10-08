@@ -1,0 +1,134 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.project-trigger {
+  display: flex;
+  height: 3rem;
+  max-width: min(22rem, 44vw);
+  padding-inline: 0.5rem 0.625rem;
+  border-radius: var(--app-radius-md);
+  color: var(--mat-sys-on-surface);
+}
+
+.project-mark,
+.menu-project-mark {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  background: color-mix(in srgb, var(--project-accent) 18%, var(--mat-sys-surface-container));
+  color: var(--project-accent);
+  font-weight: 750;
+  letter-spacing: 0.03em;
+}
+
+.project-mark {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid color-mix(in srgb, var(--project-accent) 34%, transparent);
+  border-radius: 0.625rem;
+  font-size: 0.6875rem;
+}
+
+.project-copy {
+  display: grid;
+  min-width: 0;
+  margin-inline: 0.625rem 0.35rem;
+  text-align: left;
+}
+
+.project-overline {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-small);
+  line-height: 1;
+}
+
+.project-name {
+  overflow: hidden;
+  font: var(--mat-sys-title-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron {
+  width: 1.125rem;
+  height: 1.125rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+@media (max-width: 599px) {
+  .project-trigger {
+    max-width: 56vw;
+  }
+
+  .project-overline {
+    display: none;
+  }
+
+  .project-copy {
+    align-content: center;
+  }
+}
+
+@media (max-width: 399px) {
+  .project-copy {
+    display: none;
+  }
+}
+
+.menu-project-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  padding-block: 0.25rem;
+}
+
+.menu-heading {
+  padding: 0.625rem 0.75rem 0.5rem;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-medium);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.menu-project-mark {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.75rem;
+  font-size: 0.6875rem;
+}
+
+.menu-project-copy {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.menu-project-name {
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-label-large);
+}
+
+.menu-project-description {
+  overflow: hidden;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selected-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  fill: none;
+  stroke: var(--mat-sys-primary);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.1;
+}

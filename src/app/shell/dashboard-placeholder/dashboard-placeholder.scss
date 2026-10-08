@@ -1,0 +1,198 @@
+:host {
+  display: block;
+}
+
+.dashboard {
+  width: min(100%, 90rem);
+  box-sizing: border-box;
+  margin-inline: auto;
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+}
+
+.page-header,
+.card-header,
+.metric-heading,
+.progress-copy,
+.focus-item,
+.activity-item,
+.page-actions {
+  display: flex;
+  align-items: center;
+}
+
+.page-header {
+  justify-content: space-between;
+  gap: 2rem;
+  margin-block-end: 2rem;
+}
+
+.page-header h1 {
+  margin: 0.5rem 0 0.375rem;
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-display-small);
+  font-weight: 650;
+  letter-spacing: -0.035em;
+}
+
+.page-header p {
+  max-width: 46rem;
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-large);
+}
+
+.page-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--mat-sys-primary);
+  font: var(--mat-sys-label-medium);
+}
+
+.page-eyebrow > span:first-child {
+  display: grid;
+  width: 1.65rem;
+  height: 1.65rem;
+  place-items: center;
+  border-radius: 0.5rem;
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+  font: var(--mat-sys-label-small);
+  font-weight: 750;
+}
+
+.preview-badge {
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-full);
+  background: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface-variant);
+  padding: 0.2rem 0.5rem;
+}
+
+.page-actions {
+  flex: 0 0 auto;
+  gap: 0.5rem;
+}
+
+.page-actions svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 2;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-block-end: 1rem;
+}
+
+.metric-card,
+.focus-card,
+.activity-card {
+  border: 1px solid var(--app-border-color);
+  background: var(--app-card-bg);
+  box-shadow: var(--app-card-shadow);
+}
+
+.metric-card {
+  display: grid;
+  min-height: 8.5rem;
+  align-content: space-between;
+  border-radius: var(--app-radius-xl);
+  padding: 1.125rem 1.25rem;
+}
+
+.metric-heading {
+  gap: 0.5rem;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-large);
+}
+
+.metric-indicator {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--metric-color, var(--mat-sys-primary));
+  box-shadow: 0 0 0 0.3rem
+    color-mix(in srgb, var(--metric-color, var(--mat-sys-primary)) 12%, transparent);
+}
+
+.metric-card[data-tone='tertiary'] {
+  --metric-color: var(--mat-sys-tertiary);
+}
+
+.metric-card[data-tone='warning'] {
+  --metric-color: var(--app-warning);
+}
+
+.metric-card > strong {
+  margin-block-start: 1.25rem;
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-headline-medium);
+  font-weight: 650;
+}
+
+.metric-card > small {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(20rem, 0.8fr);
+  gap: 1rem;
+}
+
+.focus-card,
+.activity-card {
+  min-width: 0;
+  border-radius: var(--app-radius-xl);
+  padding: 1.25rem;
+}
+
+.card-header {
+  min-height: 3rem;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.card-header h2 {
+  margin: 0.2rem 0 0;
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-title-large);
+  font-weight: 650;
+}
+
+.section-label {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-medium);
+}
+
+.milestone-date,
+.item-tag {
+  border-radius: var(--app-radius-full);
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+  padding: 0.35rem 0.625rem;
+  font: var(--mat-sys-label-medium);
+}
+
+.progress-copy {
+  justify-content: space-between;
+  margin-block: 1.5rem 0.5rem;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+
+.progress-copy strong {
+  color: var(--mat-sys-on-surface);
+}
+
+mat-progress-bar {
+  overflow: hidden;
+  border-radius: var(--app-radius-full);
+}

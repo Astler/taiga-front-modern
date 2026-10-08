@@ -1,0 +1,51 @@
+<button
+  class="project-trigger"
+  data-testid="project-switcher-trigger"
+  mat-button
+  type="button"
+  [matMenuTriggerFor]="projectMenu"
+  [attr.aria-label]="'Switch project. Current project: ' + selectedProject().name"
+>
+  <span class="project-mark" aria-hidden="true" [style.--project-accent]="selectedProject().accent">
+    {{ selectedProject().code }}
+  </span>
+  <span class="project-copy">
+    <span class="project-overline">Project</span>
+    <span class="project-name">{{ selectedProject().name }}</span>
+  </span>
+  <svg class="chevron" aria-hidden="true" viewBox="0 0 24 24">
+    <path d="m7 10 5 5 5-5" />
+  </svg>
+</button>
+
+<mat-menu #projectMenu="matMenu" class="project-menu" xPosition="after">
+  <div class="menu-heading" aria-hidden="true">Switch project</div>
+  @for (project of projects(); track project.id) {
+    <button
+      mat-menu-item
+      type="button"
+      [attr.aria-current]="project.id === selectedProject().id ? 'true' : null"
+      [attr.data-testid]="'project-option-' + project.slug"
+      (click)="selectProject(project)"
+    >
+      <span class="menu-project-row">
+        <span
+          class="menu-project-mark"
+          aria-hidden="true"
+          [style.--project-accent]="project.accent"
+        >
+          {{ project.code }}
+        </span>
+        <span class="menu-project-copy">
+          <span class="menu-project-name">{{ project.name }}</span>
+          <span class="menu-project-description">{{ project.description }}</span>
+        </span>
+        @if (project.id === selectedProject().id) {
+          <svg class="selected-icon" aria-hidden="true" viewBox="0 0 24 24">
+            <path d="m5 12 4 4L19 6" />
+          </svg>
+        }
+      </span>
+    </button>
+  }
+</mat-menu>

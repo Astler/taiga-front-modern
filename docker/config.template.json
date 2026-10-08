@@ -1,0 +1,6 @@
+{
+  "api": "${TAIGA_API_URL}",
+  "eventsUrl": "${TAIGA_EVENTS_URL}",
+  "baseHref": "/",
+  "legacyUrl": "${TAIGA_LEGACY_URL}"
+}

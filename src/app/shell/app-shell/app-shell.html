@@ -1,0 +1,22 @@
+<a class="skip-link" href="#main-content">Skip to content</a>
+
+<mat-sidenav-container class="shell-container" [hasBackdrop]="compactViewport()">
+  <mat-sidenav
+    id="primary-navigation"
+    class="shell-navigation"
+    position="start"
+    [disableClose]="!compactViewport()"
+    [mode]="compactViewport() ? 'over' : 'side'"
+    [opened]="navigationOpen()"
+    (openedChange)="navigationOpen.set($event)"
+  >
+    <pf-sidebar (navigationSelected)="closeCompactNavigation()" />
+  </mat-sidenav>
+
+  <mat-sidenav-content class="shell-main">
+    <pf-topbar [navigationExpanded]="navigationOpen()" (navigationToggle)="toggleNavigation()" />
+    <main #routeContent id="main-content" class="route-content" tabindex="-1">
+      <router-outlet (activate)="routeActivated()" />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

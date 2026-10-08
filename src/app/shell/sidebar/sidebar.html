@@ -1,0 +1,80 @@
+<div class="brand-row">
+  <span class="brand-mark" aria-hidden="true">
+    <svg viewBox="0 0 36 36">
+      <path
+        d="M18 2.5 22 12l9.5-4-4 9.5L34 22l-10.5 1.5 1.5 10-7-7-7 7 1.5-10L2 22l6.5-4.5-4-9.5 9.5 4L18 2.5Z"
+      />
+      <circle cx="18" cy="18" r="4.5" />
+    </svg>
+  </span>
+  <span class="brand-copy">
+    <strong>Taiga</strong>
+    <small>Modern workspace</small>
+  </span>
+</div>
+
+<div class="active-project">
+  <span
+    class="active-project-mark"
+    aria-hidden="true"
+    [style.--project-accent]="projectContext.selectedProject().accent"
+  >
+    {{ projectContext.selectedProject().code }}
+  </span>
+  <span>
+    <small>Active project</small>
+    <strong>{{ projectContext.selectedProject().name }}</strong>
+  </span>
+</div>
+
+<nav aria-label="Project navigation">
+  <span class="navigation-label">Workspace</span>
+  @for (item of primaryNavigation; track item.route) {
+    <a
+      class="navigation-item"
+      [routerLink]="item.route"
+      routerLinkActive="navigation-item-active"
+      ariaCurrentWhenActive="page"
+      (click)="navigationSelected.emit()"
+    >
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path [attr.d]="item.iconPath" />
+      </svg>
+      <span>{{ item.label }}</span>
+    </a>
+  }
+
+  <mat-divider />
+
+  <span class="navigation-label navigation-label-secondary">Manage</span>
+  @for (item of secondaryNavigation; track item.route) {
+    <a
+      class="navigation-item"
+      [routerLink]="item.route"
+      routerLinkActive="navigation-item-active"
+      ariaCurrentWhenActive="page"
+      (click)="navigationSelected.emit()"
+    >
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path [attr.d]="item.iconPath" />
+      </svg>
+      <span>{{ item.label }}</span>
+    </a>
+  }
+</nav>
+
+<div class="sidebar-footer">
+  <div class="workspace-status">
+    <span class="status-indicator" aria-hidden="true"></span>
+    <span>
+      <strong>All systems operational</strong>
+      <small>Synced just now</small>
+    </span>
+  </div>
+  <button mat-button type="button" matTooltip="Collapse arrives in M2" disabled>
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="m14 7-5 5 5 5" />
+    </svg>
+    Collapse in M2
+  </button>
+</div>

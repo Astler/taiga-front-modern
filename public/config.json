@@ -1,0 +1,13 @@
+{
+  "api": "http://localhost:8000/api/v1/",
+  "eventsUrl": null,
+  "baseHref": "/",
+  "legacyUrl": "/legacy/",
+  "debug": false,
+  "defaultLanguage": "en",
+  "defaultTheme": "taiga",
+  "themes": ["taiga"],
+  "defaultLoginEnabled": true,
+  "publicRegisterEnabled": true,
+  "maxUploadFileSize": null
+}
