@@ -1,0 +1,262 @@
+:host {
+  display: block;
+  min-height: 100%;
+  background: var(--app-shell-bg);
+}
+
+.login-page {
+  display: grid;
+  min-height: 100dvh;
+  grid-template-columns: minmax(22rem, 0.9fr) minmax(30rem, 1.1fr);
+}
+
+.brand-panel {
+  position: relative;
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  padding: clamp(2rem, 5vw, 4.5rem);
+  border-right: 1px solid var(--app-border-color);
+  background:
+    radial-gradient(
+      circle at 12% 88%,
+      color-mix(in srgb, var(--mat-sys-tertiary) 16%, transparent),
+      transparent 36%
+    ),
+    radial-gradient(
+      circle at 86% 14%,
+      color-mix(in srgb, var(--mat-sys-primary) 22%, transparent),
+      transparent 34%
+    ),
+    var(--mat-sys-surface-container-low);
+}
+
+.brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  color: var(--mat-sys-on-surface);
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+
+  strong {
+    color: var(--mat-sys-primary);
+    font-weight: 650;
+  }
+}
+
+.brand-mark {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border-radius: 0.9rem;
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+
+  svg {
+    width: 1.8rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.6;
+  }
+}
+
+.brand-message {
+  position: relative;
+  z-index: 1;
+  max-width: 34rem;
+  padding-block: 5rem;
+
+  .eyebrow {
+    color: var(--mat-sys-primary);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  h2 {
+    margin: 1.15rem 0 1.35rem;
+    color: var(--mat-sys-on-surface);
+    font-size: clamp(3rem, 6vw, 5.75rem);
+    font-weight: 570;
+    letter-spacing: -0.065em;
+    line-height: 0.96;
+  }
+
+  p {
+    max-width: 29rem;
+    margin: 0;
+    color: var(--mat-sys-on-surface-variant);
+    font-size: clamp(1rem, 1.5vw, 1.2rem);
+    line-height: 1.65;
+  }
+}
+
+.brand-detail {
+  display: flex;
+  gap: 0.5rem;
+
+  span {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--mat-sys-outline-variant);
+
+    &:first-child {
+      width: 2.5rem;
+      border-radius: var(--app-radius-full);
+      background: var(--mat-sys-primary);
+    }
+  }
+}
+
+.form-panel {
+  display: grid;
+  place-items: center;
+  padding: clamp(1.5rem, 5vw, 5rem);
+}
+
+.login-card {
+  width: min(100%, 28rem);
+
+  header {
+    margin-bottom: 2rem;
+  }
+
+  h1 {
+    margin: 0;
+    color: var(--mat-sys-on-surface);
+    font-size: clamp(2.1rem, 4vw, 2.85rem);
+    font-weight: 580;
+    letter-spacing: -0.045em;
+    line-height: 1.1;
+  }
+
+  header p {
+    margin: 0.8rem 0 0;
+    color: var(--mat-sys-on-surface-variant);
+    line-height: 1.55;
+  }
+
+  form {
+    display: grid;
+    gap: 1.2rem;
+  }
+
+  mat-form-field {
+    width: 100%;
+  }
+
+  footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    margin-top: 1.5rem;
+    color: var(--mat-sys-on-surface-variant);
+    font-size: 0.75rem;
+
+    svg {
+      width: 1rem;
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 1.7;
+    }
+  }
+}
+
+.mobile-brand {
+  display: none;
+  margin-bottom: 2rem;
+  color: var(--mat-sys-primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.server-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  margin-bottom: 1.25rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--mat-sys-error) 45%, transparent);
+  border-radius: var(--app-radius-md);
+  outline: none;
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+  font-size: 0.88rem;
+  line-height: 1.45;
+
+  &:focus-visible {
+    outline: 2px solid var(--mat-sys-error);
+    outline-offset: 2px;
+  }
+
+  svg {
+    width: 1.25rem;
+    flex: 0 0 auto;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.8;
+  }
+}
+
+button[matIconButton] svg,
+.submit-button svg {
+  width: 1.25rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.submit-button {
+  min-height: 3.15rem;
+  margin-top: 0.35rem;
+  border-radius: var(--app-radius-full);
+
+  mat-spinner {
+    display: inline-block;
+    margin-right: 0.45rem;
+    vertical-align: middle;
+  }
+
+  svg {
+    margin-left: 0.55rem;
+    vertical-align: middle;
+  }
+}
+
+@media (max-width: 53rem) {
+  .login-page {
+    grid-template-columns: 1fr;
+  }
+
+  .brand-panel {
+    display: none;
+  }
+
+  .mobile-brand {
+    display: block;
+  }
+}
+
+@media (max-width: 35rem) {
+  .form-panel {
+    align-items: start;
+    padding: 3rem 1.25rem 2rem;
+  }
+}

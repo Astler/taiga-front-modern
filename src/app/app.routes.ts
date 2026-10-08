@@ -1,8 +1,18 @@
 import { Routes } from '@angular/router';
+import { anonymousOnlyGuard, authRequiredGuard } from './core/auth';
 
 export const routes: Routes = [
   {
+    path: 'login',
+    canActivate: [anonymousOnlyGuard],
+    loadComponent: () =>
+      import('./features/auth/login-page/login-page').then(({ LoginPage }) => LoginPage),
+    title: 'Sign in · Taiga Modern',
+  },
+  {
     path: '',
+    canActivate: [authRequiredGuard],
+    canActivateChild: [authRequiredGuard],
     loadComponent: () => import('./shell/app-shell/app-shell').then(({ AppShell }) => AppShell),
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
@@ -21,12 +31,17 @@ export const routes: Routes = [
       {
         path: 'kanban',
         loadComponent: () =>
-          import('./shell/dashboard-placeholder/dashboard-placeholder').then(
-            ({ DashboardPlaceholder }) => DashboardPlaceholder,
-          ),
+          import('./features/kanban/kanban-page/kanban-page').then(({ KanbanPage }) => KanbanPage),
         data: {
-          description: 'The new board canvas and drag-and-drop workflow arrive in M2.',
-          title: 'Kanban workspace',
+          title: 'Kanban',
+        },
+      },
+      {
+        path: 'project/:projectSlug/kanban',
+        loadComponent: () =>
+          import('./features/kanban/kanban-page/kanban-page').then(({ KanbanPage }) => KanbanPage),
+        data: {
+          title: 'Kanban',
         },
       },
       {

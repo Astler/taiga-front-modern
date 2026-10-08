@@ -1,0 +1,76 @@
+:host {
+  display: block;
+  min-height: 100%;
+}
+
+.project-loading,
+.project-state {
+  width: min(42rem, calc(100% - 2rem));
+  margin: clamp(1rem, 4vw, 4rem) auto;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-xl);
+  background: var(--app-card-bg);
+  box-shadow: var(--app-card-shadow);
+  padding: 2rem;
+}
+
+.project-loading {
+  display: grid;
+  gap: 1rem;
+  color: var(--mat-sys-on-surface-variant);
+  text-align: center;
+}
+
+.project-state {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.project-state h1,
+.project-state p {
+  margin: 0;
+}
+
+.project-state h1 {
+  font: var(--mat-sys-title-large);
+}
+
+.project-state p {
+  margin-block-start: 0.25rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.project-state button {
+  flex: 0 0 auto;
+  margin-inline-start: auto;
+}
+
+.state-mark {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+  font-weight: 800;
+}
+
+.state-mark-info {
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+}
+
+@media (max-width: 599px) {
+  .project-state {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .project-state button {
+    width: 100%;
+    margin: 0;
+  }
+}

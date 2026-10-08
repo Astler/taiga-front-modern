@@ -1,16 +1,12 @@
 import { HttpContext, HttpErrorResponse, HttpClient } from '@angular/common/http';
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, effect, inject, untracked } from '@angular/core';
 import { Observable, catchError, map, of, tap, throwError } from 'rxjs';
 import type { TaigaUser } from '../../shared/models';
 import { RuntimeConfigService } from '../config';
 import { SKIP_AUTHORIZATION, SKIP_AUTH_REFRESH } from '../http/auth-session.interceptor';
 import { AuthRefreshCoordinator, StaleAuthSessionError } from './auth-refresh.coordinator';
-import type {
-  AuthLoginRequest,
-  AuthLoginResponse,
-  AuthStatus,
-  AuthTokenResponse,
-} from './auth.models';
+import type { AuthLoginRequest, AuthLoginResponse, AuthTokenResponse } from './auth.models';
+import { AuthSessionState } from './auth-session.state';
 import { AuthTokenStorage } from './auth-token.storage';
 
 const PUBLIC_AUTH_CONTEXT = new HttpContext()
@@ -22,21 +18,28 @@ export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly config = inject(RuntimeConfigService);
   private readonly tokenStorage = inject(AuthTokenStorage);
+  private readonly sessionState = inject(AuthSessionState);
   private readonly refreshCoordinator = inject(AuthRefreshCoordinator);
-  private readonly userState = signal<TaigaUser | null>(null);
-  private readonly statusState = signal<AuthStatus>(
-    this.tokenStorage.hasSession() ? 'restoring' : 'anonymous',
-  );
 
-  readonly user = this.userState.asReadonly();
-  readonly status = this.statusState.asReadonly();
-  readonly isAuthenticated = computed(() => Boolean(this.tokenStorage.accessToken()));
+  readonly user = this.sessionState.user;
+  readonly status = this.sessionState.status;
+  readonly isAuthenticated = this.sessionState.isAuthenticated;
+
+  constructor() {
+    effect(() => {
+      const externalRevision = this.tokenStorage.externalSyncRevision();
+      if (externalRevision === 0) {
+        return;
+      }
+
+      untracked(() => {
+        this.restoreSession().subscribe({ error: () => undefined });
+      });
+    });
+  }
 
   login(request: AuthLoginRequest): Observable<TaigaUser> {
-    this.tokenStorage.clear();
-    const loginRevision = this.tokenStorage.revision();
-    this.userState.set(null);
-    this.statusState.set('authenticating');
+    const loginRevision = this.sessionState.beginAuthentication();
 
     const body = { ...request, type: request.type ?? 'normal' };
     return this.http
@@ -50,9 +53,8 @@ export class AuthService {
           return stripAuthTokens(response);
         }),
         tap((user) => {
-          this.userState.set(user);
           this.tokenStorage.setLegacyUser(user);
-          this.statusState.set('authenticated');
+          this.sessionState.authenticate(user);
         }),
         catchError((error: unknown) => {
           if (this.tokenStorage.revision() === loginRevision) {
@@ -68,9 +70,8 @@ export class AuthService {
     return this.http.get<TaigaUser>(this.config.resolveApiPath('users/me')).pipe(
       tap((user) => {
         this.assertCurrentSessionRevision(sessionRevision);
-        this.userState.set(user);
         this.tokenStorage.setLegacyUser(user);
-        this.statusState.set('authenticated');
+        this.sessionState.authenticate(user);
       }),
     );
   }
@@ -80,28 +81,24 @@ export class AuthService {
   }
 
   restoreSession(): Observable<TaigaUser | null> {
-    if (!this.tokenStorage.hasSession()) {
-      this.logout();
+    if (!this.sessionState.beginRestore()) {
       return of(null);
     }
 
-    this.statusState.set('restoring');
     return this.me().pipe(
       catchError((error: unknown) => {
-        if (error instanceof HttpErrorResponse && error.status === 401) {
-          this.logout();
+        if (error instanceof HttpErrorResponse && (error.status === 401 || error.status === 403)) {
+          this.sessionState.invalidate();
           return of(null);
         }
-        this.statusState.set('restore-error');
+        this.sessionState.markRestoreError();
         return throwError(() => error);
       }),
     );
   }
 
   logout(): void {
-    this.tokenStorage.clear();
-    this.userState.set(null);
-    this.statusState.set('anonymous');
+    this.sessionState.invalidate();
   }
 
   private assertCurrentSessionRevision(revision: number): void {

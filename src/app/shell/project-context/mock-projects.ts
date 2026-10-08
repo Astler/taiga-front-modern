@@ -3,6 +3,8 @@ export interface ShellProject {
   readonly code: string;
   readonly description: string;
   readonly id: number;
+  readonly isPinned: boolean;
+  readonly logoUrl: string | null;
   readonly name: string;
   readonly slug: string;
 }
@@ -17,6 +19,8 @@ export const MOCK_SHELL_PROJECTS: readonly ShellProject[] = [
     code: 'PT',
     description: 'Build a calmer, friendlier place to solve puzzles together.',
     id: 1,
+    isPinned: true,
+    logoUrl: null,
     name: 'Puzzles Together',
     slug: 'puzzles-together',
   },
@@ -25,6 +29,8 @@ export const MOCK_SHELL_PROJECTS: readonly ShellProject[] = [
     code: 'AR',
     description: 'A focused workspace for the next generation of the product.',
     id: 2,
+    isPinned: false,
+    logoUrl: null,
     name: 'Aurora',
     slug: 'aurora',
   },
@@ -33,6 +39,8 @@ export const MOCK_SHELL_PROJECTS: readonly ShellProject[] = [
     code: 'OP',
     description: 'Internal planning, release coordination, and operations.',
     id: 3,
+    isPinned: false,
+    logoUrl: null,
     name: 'Orbit Platform',
     slug: 'orbit-platform',
   },

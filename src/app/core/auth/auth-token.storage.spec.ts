@@ -102,6 +102,7 @@ describe('AuthTokenStorage', () => {
 
   it('synchronizes credentials changed by another browser tab', async () => {
     const service = createService();
+    const initialExternalRevision = service.externalSyncRevision();
     browserStorage.setItem('token', JSON.stringify('external-access'));
     browserStorage.setItem('refresh', JSON.stringify('external-refresh'));
 
@@ -113,5 +114,6 @@ describe('AuthTokenStorage', () => {
       accessToken: 'external-access',
       refreshToken: 'external-refresh',
     });
+    expect(service.externalSyncRevision()).toBe(initialExternalRevision + 1);
   });
 });

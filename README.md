@@ -15,6 +15,21 @@ The frontend intentionally starts without NgRx or another global state framework
 and signals are the default; a larger state layer should only be introduced when real cross-feature
 state makes it necessary.
 
+## Current slice
+
+The modern frontend currently provides:
+
+- stable Taiga sign-in, refresh-token restore, logout and protected routes;
+- the real member-project list and full project details from the stable REST API;
+- project pins synchronized through Taiga user storage, with a local fallback;
+- deep-linked read-only Kanban routes at `/project/:projectSlug/kanban`;
+- swimlanes, WIP indicators, multiple assignees, tags, text/tag/assignee filters and explicit
+  loading, empty and error states;
+- links back to the classic story page for editing flows that have not migrated yet.
+
+Card movement and mutations deliberately remain outside this slice. They will use Taiga's existing
+versioned bulk-order API after the read path has been exercised against production data.
+
 ## Local development
 
 Requirements: Node 24 and npm 11 or newer.
@@ -69,7 +84,8 @@ the existing Taiga gateway or Coolify proxy.
 ## Migration milestones
 
 1. Foundation: responsive shell, Material 3 tokens, runtime config, authentication and API client.
-2. Daily work: real project switcher, Kanban, filters, tags and accessible card movement.
+2. Daily work: real project switcher, read-only Kanban, filters and tags. Accessible card movement
+   is the next vertical slice.
 3. Work item details: stories, tasks, issues, comments, attachments and activity.
 4. Planning: epics, backlog, sprints and team views.
 5. Administration and removal of the classic frontend fallback.

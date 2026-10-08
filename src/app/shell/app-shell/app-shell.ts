@@ -4,6 +4,7 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  effect,
   inject,
   signal,
   viewChild,
@@ -12,6 +13,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterOutlet } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { Title } from '@angular/platform-browser';
+import { AuthService } from '../../core/auth';
 import { ShellProjectContext } from '../project-context/shell-project-context';
 import { Sidebar } from '../sidebar/sidebar';
 import { Topbar } from '../topbar/topbar';
@@ -31,12 +33,20 @@ export class AppShell {
   protected readonly navigationOpen = signal(true);
 
   private readonly breakpointObserver = inject(BreakpointObserver);
+  private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly routeContent = viewChild.required<ElementRef<HTMLElement>>('routeContent');
   private readonly router = inject(Router);
   private readonly title = inject(Title);
 
   constructor() {
+    effect(() => {
+      const status = this.auth.status();
+      if (status === 'anonymous' || status === 'restore-error') {
+        void this.router.navigateByUrl('/login', { replaceUrl: true });
+      }
+    });
+
     this.breakpointObserver
       .observe(COMPACT_VIEWPORT_QUERY)
       .pipe(takeUntilDestroyed(this.destroyRef))

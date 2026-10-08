@@ -10,7 +10,10 @@
     [opened]="navigationOpen()"
     (openedChange)="navigationOpen.set($event)"
   >
-    <pf-sidebar (navigationSelected)="closeCompactNavigation()" />
+    <pf-sidebar
+      (collapseRequested)="toggleNavigation()"
+      (navigationSelected)="closeCompactNavigation()"
+    />
   </mat-sidenav>
 
   <mat-sidenav-content class="shell-main">

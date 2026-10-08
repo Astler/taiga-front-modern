@@ -38,4 +38,31 @@ describe('ProjectSwitcher', () => {
     expect(emittedProject).toEqual(MOCK_SHELL_PROJECTS[1]);
     expect(trigger.getAttribute('aria-expanded')).toBe('false');
   });
+
+  it('exposes pin actions as keyboard-operable menu items', async () => {
+    const fixture = TestBed.createComponent(ProjectSwitcher);
+    let pinnedProject: ShellProject | undefined;
+
+    fixture.componentRef.setInput('projects', MOCK_SHELL_PROJECTS);
+    fixture.componentRef.setInput('selectedProject', MOCK_SHELL_PROJECTS[0]);
+    fixture.componentInstance.pinToggled.subscribe((project) => {
+      pinnedProject = project;
+    });
+    fixture.detectChanges();
+
+    const trigger = fixture.nativeElement.querySelector(
+      '[data-testid="project-switcher-trigger"]',
+    ) as HTMLButtonElement;
+    trigger.click();
+    await fixture.whenStable();
+
+    const pinAction = document.querySelector(
+      '[data-testid="pin-project-aurora"]',
+    ) as HTMLButtonElement;
+    expect(pinAction).toBeTruthy();
+    expect(pinAction.getAttribute('role')).toBe('menuitem');
+
+    pinAction.click();
+    expect(pinnedProject).toEqual(MOCK_SHELL_PROJECTS[1]);
+  });
 });

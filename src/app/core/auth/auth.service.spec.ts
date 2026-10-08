@@ -34,14 +34,16 @@ class MemoryStorage implements Storage {
 describe('AuthService', () => {
   let httpTesting: HttpTestingController;
   let service: AuthService;
+  let storage: MemoryStorage;
   let tokenStorage: AuthTokenStorage;
 
   beforeEach(() => {
+    storage = new MemoryStorage();
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(withInterceptors([authSessionInterceptor])),
         provideHttpClientTesting(),
-        { provide: AUTH_STORAGE, useValue: new MemoryStorage() },
+        { provide: AUTH_STORAGE, useValue: storage },
         { provide: TAIGA_SESSION_ID, useValue: 'test-session' },
         {
           provide: RuntimeConfigService,
@@ -162,5 +164,92 @@ describe('AuthService', () => {
       accessToken: 'fresh-access',
       refreshToken: 'fresh-refresh',
     });
+  });
+
+  it.each([401, 403])(
+    'synchronously invalidates the whole session when refresh is rejected with %i',
+    async (status) => {
+      tokenStorage.setTokens({ accessToken: 'expired-access', refreshToken: 'expired-refresh' });
+      const currentUser = firstValueFrom(service.me());
+      httpTesting.expectOne('/api/v1/users/me').flush({
+        id: 9,
+        username: 'grace',
+        full_name_display: 'Grace Hopper',
+        photo: null,
+      });
+      await currentUser;
+
+      const result = firstValueFrom(service.me()).catch((error: unknown) => error);
+      httpTesting
+        .expectOne('/api/v1/users/me')
+        .flush(null, { status: 401, statusText: 'Unauthorized' });
+      httpTesting
+        .expectOne('/api/v1/auth/refresh')
+        .flush(null, { status, statusText: status === 401 ? 'Unauthorized' : 'Forbidden' });
+
+      expect(service.user()).toBeNull();
+      expect(service.status()).toBe('anonymous');
+      expect(service.isAuthenticated()).toBe(false);
+      expect(tokenStorage.tokens()).toEqual({ accessToken: null, refreshToken: null });
+      await expect(result).resolves.toMatchObject({ status });
+    },
+  );
+
+  it('keeps tokens but does not report authentication after a transient restore error', async () => {
+    tokenStorage.setTokens({ accessToken: 'access', refreshToken: 'refresh' });
+    const currentUser = firstValueFrom(service.me());
+    httpTesting.expectOne('/api/v1/users/me').flush({
+      id: 9,
+      username: 'grace',
+      full_name_display: 'Grace Hopper',
+      photo: null,
+    });
+    await currentUser;
+
+    const result = firstValueFrom(service.restoreSession()).catch((error: unknown) => error);
+    httpTesting
+      .expectOne('/api/v1/users/me')
+      .flush(null, { status: 503, statusText: 'Unavailable' });
+
+    await expect(result).resolves.toMatchObject({ status: 503 });
+    expect(tokenStorage.tokens()).toEqual({ accessToken: 'access', refreshToken: 'refresh' });
+    expect(service.user()).toBeNull();
+    expect(service.status()).toBe('restore-error');
+    expect(service.isAuthenticated()).toBe(false);
+  });
+
+  it('restores the new identity when another browser tab replaces the session', async () => {
+    tokenStorage.setTokens({ accessToken: 'user-a-access', refreshToken: 'user-a-refresh' });
+    const firstUser = firstValueFrom(service.me());
+    httpTesting.expectOne('/api/v1/users/me').flush({
+      id: 1,
+      username: 'user-a',
+      full_name_display: 'User A',
+      photo: null,
+    });
+    await firstUser;
+
+    storage.setItem('token', JSON.stringify('user-b-access'));
+    storage.setItem('refresh', JSON.stringify('user-b-refresh'));
+    window.dispatchEvent(new StorageEvent('storage', { key: 'token' }));
+    window.dispatchEvent(new StorageEvent('storage', { key: 'refresh' }));
+    await Promise.resolve();
+
+    expect(service.user()).toBeNull();
+    expect(service.status()).toBe('restoring');
+    TestBed.tick();
+
+    const restoredUser = httpTesting.expectOne('/api/v1/users/me');
+    expect(restoredUser.request.headers.get('Authorization')).toBe('Bearer user-b-access');
+    restoredUser.flush({
+      id: 2,
+      username: 'user-b',
+      full_name_display: 'User B',
+      photo: null,
+    });
+    TestBed.tick();
+
+    expect(service.user()?.username).toBe('user-b');
+    expect(service.status()).toBe('authenticated');
   });
 });

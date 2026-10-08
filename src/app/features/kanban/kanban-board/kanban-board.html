@@ -1,0 +1,176 @@
+<section class="board-page" aria-labelledby="kanban-title">
+  <header class="board-header">
+    <div class="board-heading">
+      <span class="eyebrow">{{ project().name }} · live data</span>
+      <h1 id="kanban-title">Kanban</h1>
+      <p>{{ visibleStories().length }} of {{ store.userStories().length }} open stories</p>
+    </div>
+
+    <a mat-flat-button [href]="config.snapshot().legacyUrl" target="_blank" rel="noopener">
+      Open classic Taiga
+      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8" /></svg>
+    </a>
+  </header>
+
+  <div class="filters" aria-label="Board filters">
+    <label class="search-field">
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="6" />
+        <path d="m16 16 4 4" />
+      </svg>
+      <span class="visually-hidden">Search stories</span>
+      <input
+        type="search"
+        placeholder="Search subject or #reference"
+        [value]="query()"
+        (input)="updateQuery($event)"
+      />
+    </label>
+
+    <label class="select-field">
+      <span>Tag</span>
+      <select [value]="selectedTag() ?? ''" (change)="updateTag($event)">
+        <option value="">All tags</option>
+        @for (tag of tags(); track tag) {
+          <option [value]="tag">{{ tag }}</option>
+        }
+      </select>
+    </label>
+
+    <label class="select-field">
+      <span>Assignee</span>
+      <select [value]="selectedAssigneeId() ?? ''" (change)="updateAssignee($event)">
+        <option value="">Everyone</option>
+        @for (assignee of assignees(); track assignee.id) {
+          <option [value]="assignee.id">{{ assigneeName(assignee) }}</option>
+        }
+      </select>
+    </label>
+
+    @if (hasActiveFilters()) {
+      <button mat-button type="button" (click)="clearFilters()">Clear filters</button>
+    }
+  </div>
+
+  @if (store.isLoading()) {
+    <div class="loading-state" role="status">
+      <mat-progress-bar mode="indeterminate" />
+      <span>Loading {{ project().name }}…</span>
+    </div>
+  } @else if (store.status() === 'error') {
+    <div class="message-state" role="alert">
+      <span class="message-icon">!</span>
+      <div>
+        <h2>Board unavailable</h2>
+        <p>{{ store.error() }}</p>
+      </div>
+      <button mat-flat-button type="button" (click)="store.retry()">Try again</button>
+    </div>
+  } @else if (statuses().length === 0) {
+    <div class="message-state">
+      <div>
+        <h2>No active columns</h2>
+        <p>This project does not have active user story statuses yet.</p>
+      </div>
+    </div>
+  } @else {
+    <div
+      class="board-scroll"
+      tabindex="0"
+      aria-label="Kanban board. Scroll horizontally for more columns."
+    >
+      @for (lane of lanes(); track lane.id ?? 'root') {
+        <section
+          class="swimlane"
+          [attr.aria-labelledby]="lane.name ? 'lane-' + (lane.id ?? 'none') : null"
+        >
+          @if (lane.name) {
+            <header class="swimlane-header">
+              <h2 [id]="'lane-' + (lane.id ?? 'none')">{{ lane.name }}</h2>
+              <span>{{ visibleStories().length }} stories on this board</span>
+            </header>
+          }
+
+          <div class="board-grid" [style.--column-count]="statuses().length">
+            @for (status of statuses(); track status.id) {
+              <article
+                class="board-column"
+                [attr.data-over-limit]="isOverWipLimit(status, lane.id)"
+              >
+                <header class="column-header">
+                  <span class="status-dot" [style.background]="status.color"></span>
+                  <h3>{{ status.name }}</h3>
+                  <span class="story-count">{{ cardsFor(lane.id, status.id).length }}</span>
+                  @let limit = wipLimit(status, lane.id);
+                  @if (limit !== null) {
+                    <span
+                      class="wip-limit"
+                      [class.wip-limit-exceeded]="isOverWipLimit(status, lane.id)"
+                      [matTooltip]="'Work in progress limit: ' + limit"
+                    >
+                      / {{ limit }}
+                    </span>
+                  }
+                </header>
+
+                <div class="column-cards">
+                  @for (story of cardsFor(lane.id, status.id); track story.id) {
+                    <a class="story-card" [href]="storyUrl(story)" target="_blank" rel="noopener">
+                      @if (story.tags.length) {
+                        <div class="story-tags" aria-label="Tags">
+                          @for (tag of story.tags.slice(0, 3); track tag[0]) {
+                            <span class="story-tag" [style.--tag-color]="tag[1] || '#8f8a99'">{{
+                              tag[0]
+                            }}</span>
+                          }
+                        </div>
+                      }
+
+                      <span class="story-subject"
+                        ><strong>#{{ story.ref }}</strong> {{ story.subject }}</span
+                      >
+
+                      <span class="story-meta">
+                        @if (storyAssignees(story); as assignees) {
+                          @if (assignees.length) {
+                            <span class="assignees" aria-label="Assigned people">
+                              @for (assignee of assignees.slice(0, 3); track assignee.id) {
+                                <span class="assignee" [matTooltip]="assigneeName(assignee)">
+                                  @if (assignee.photo) {
+                                    <img [src]="assignee.photo" alt="" />
+                                  } @else {
+                                    <span aria-hidden="true">{{ assigneeInitials(assignee) }}</span>
+                                  }
+                                  <span class="visually-hidden"
+                                    >Assigned to {{ assigneeName(assignee) }}</span
+                                  >
+                                </span>
+                              }
+                              @if (assignees.length > 3) {
+                                <span class="assignee-overflow">+{{ assignees.length - 3 }}</span>
+                              }
+                            </span>
+                          } @else {
+                            <span class="unassigned">Unassigned</span>
+                          }
+                        } @else {
+                          <span class="unassigned">Unassigned</span>
+                        }
+
+                        @if (story.total_points !== undefined && story.total_points !== null) {
+                          <span class="points">{{ story.total_points }} pts</span>
+                        }
+                      </span>
+                    </a>
+                  } @empty {
+                    <div class="empty-column">No matching stories</div>
+                  }
+                </div>
+              </article>
+            }
+          </div>
+        </section>
+      }
+    </div>
+  }
+</section>

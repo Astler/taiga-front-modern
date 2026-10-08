@@ -4,6 +4,7 @@
   mat-button
   type="button"
   [matMenuTriggerFor]="projectMenu"
+  [disabled]="selectedProject().id < 0"
   [attr.aria-label]="'Switch project. Current project: ' + selectedProject().name"
 >
   <span class="project-mark" aria-hidden="true" [style.--project-accent]="selectedProject().accent">
@@ -19,33 +20,98 @@
 </button>
 
 <mat-menu #projectMenu="matMenu" class="project-menu" xPosition="after">
-  <div class="menu-heading" aria-hidden="true">Switch project</div>
-  @for (project of projects(); track project.id) {
-    <button
-      mat-menu-item
-      type="button"
-      [attr.aria-current]="project.id === selectedProject().id ? 'true' : null"
-      [attr.data-testid]="'project-option-' + project.slug"
-      (click)="selectProject(project)"
-    >
-      <span class="menu-project-row">
-        <span
-          class="menu-project-mark"
-          aria-hidden="true"
-          [style.--project-accent]="project.accent"
+  @if (pinnedProjects().length) {
+    <div class="menu-heading" aria-hidden="true">Pinned</div>
+    @for (project of pinnedProjects(); track project.id) {
+      <div class="menu-project-entry" role="presentation">
+        <button
+          mat-menu-item
+          type="button"
+          [attr.aria-current]="project.id === selectedProject().id ? 'true' : null"
+          [attr.data-testid]="'project-option-' + project.slug"
+          (click)="selectProject(project)"
         >
-          {{ project.code }}
-        </span>
-        <span class="menu-project-copy">
-          <span class="menu-project-name">{{ project.name }}</span>
-          <span class="menu-project-description">{{ project.description }}</span>
-        </span>
-        @if (project.id === selectedProject().id) {
-          <svg class="selected-icon" aria-hidden="true" viewBox="0 0 24 24">
-            <path d="m5 12 4 4L19 6" />
+          <ng-container
+            [ngTemplateOutlet]="projectRow"
+            [ngTemplateOutletContext]="{ $implicit: project }"
+          />
+        </button>
+        <button
+          class="pin-action"
+          mat-menu-item
+          type="button"
+          [attr.aria-label]="'Unpin ' + project.name"
+          [attr.data-testid]="'unpin-project-' + project.slug"
+          matTooltip="Unpin project"
+          (click)="togglePin($event, project)"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path
+              d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"
+            />
           </svg>
-        }
-      </span>
-    </button>
+        </button>
+      </div>
+    }
+  }
+
+  @if (otherProjects().length) {
+    <div class="menu-heading" aria-hidden="true">Projects</div>
+    @for (project of otherProjects(); track project.id) {
+      <div class="menu-project-entry" role="presentation">
+        <button
+          mat-menu-item
+          type="button"
+          [attr.aria-current]="project.id === selectedProject().id ? 'true' : null"
+          [attr.data-testid]="'project-option-' + project.slug"
+          (click)="selectProject(project)"
+        >
+          <ng-container
+            [ngTemplateOutlet]="projectRow"
+            [ngTemplateOutletContext]="{ $implicit: project }"
+          />
+        </button>
+        <button
+          class="pin-action"
+          mat-menu-item
+          type="button"
+          [attr.aria-label]="'Pin ' + project.name"
+          [attr.data-testid]="'pin-project-' + project.slug"
+          matTooltip="Pin project"
+          (click)="togglePin($event, project)"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path
+              d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"
+            />
+          </svg>
+        </button>
+      </div>
+    }
+  }
+
+  @if (!projects().length) {
+    <div class="menu-empty">No projects found</div>
   }
 </mat-menu>
+
+<ng-template #projectRow let-project>
+  <span class="menu-project-row">
+    <span class="menu-project-mark" aria-hidden="true" [style.--project-accent]="project.accent">
+      @if (project.logoUrl) {
+        <img [src]="project.logoUrl" alt="" />
+      } @else {
+        {{ project.code }}
+      }
+    </span>
+    <span class="menu-project-copy">
+      <span class="menu-project-name">{{ project.name }}</span>
+      <span class="menu-project-description">{{ project.description }}</span>
+    </span>
+    @if (project.id === selectedProject().id) {
+      <svg class="selected-icon" aria-hidden="true" viewBox="0 0 24 24">
+        <path d="m5 12 4 4L19 6" />
+      </svg>
+    }
+  </span>
+</ng-template>

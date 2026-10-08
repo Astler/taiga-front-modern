@@ -30,7 +30,52 @@ button svg,
 }
 
 .navigation-toggle {
-  display: none;
+  display: inline-flex;
+}
+
+.quick-projects {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-inline-start: 0.25rem;
+}
+
+.quick-project {
+  --mat-icon-button-state-layer-size: 2.5rem;
+  opacity: 0.72;
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+
+.quick-project:hover,
+.quick-project-active {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.quick-project-active {
+  background: var(--mat-sys-secondary-container);
+}
+
+.quick-project img,
+.quick-project-mark {
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  place-items: center;
+  border-radius: 0.55rem;
+}
+
+.quick-project img {
+  object-fit: cover;
+}
+
+.quick-project-mark {
+  background: color-mix(in srgb, var(--project-accent) 18%, transparent);
+  color: var(--project-accent);
+  font: var(--mat-sys-label-small);
+  font-weight: 750;
 }
 
 .global-search {
@@ -136,12 +181,17 @@ button svg,
   height: 2.5rem;
 }
 
+@media (max-width: 1100px) {
+  .quick-projects {
+    display: none;
+  }
+}
+
 @media (max-width: 839px) {
   .topbar {
     padding-inline: 0.5rem;
   }
 
-  .navigation-toggle,
   .compact-search {
     display: inline-flex;
   }

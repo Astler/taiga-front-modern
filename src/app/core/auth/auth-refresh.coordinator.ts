@@ -4,12 +4,14 @@ import { Observable, catchError, finalize, map, shareReplay, throwError } from '
 import { RuntimeConfigService } from '../config';
 import { TAIGA_SESSION_ID } from '../http/session-id.token';
 import type { AuthRefreshRequest, AuthTokenResponse } from './auth.models';
+import { AuthSessionState } from './auth-session.state';
 import { AuthTokenStorage } from './auth-token.storage';
 
 @Injectable({ providedIn: 'root' })
 export class AuthRefreshCoordinator {
   private readonly http = new HttpClient(inject(HttpBackend));
   private readonly config = inject(RuntimeConfigService);
+  private readonly sessionState = inject(AuthSessionState);
   private readonly tokenStorage = inject(AuthTokenStorage);
   private readonly sessionId = inject(TAIGA_SESSION_ID);
   private readonly inFlightBySession = new Map<string, Observable<AuthTokenResponse>>();
@@ -45,7 +47,7 @@ export class AuthRefreshCoordinator {
             this.isCurrentSession(refreshToken, sessionRevision) &&
             isDefinitiveAuthRejection(error)
           ) {
-            this.tokenStorage.clear();
+            this.sessionState.invalidate();
           }
           return throwError(() => error);
         }),

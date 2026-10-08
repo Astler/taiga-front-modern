@@ -18,10 +18,12 @@ export class AuthTokenStorage {
   private readonly destroyRef = inject(DestroyRef);
   private readonly tokensState = signal<AuthTokens>(this.readTokens());
   private readonly revisionState = signal(0);
+  private readonly externalSyncRevisionState = signal(0);
   private storageSyncScheduled = false;
 
   readonly tokens = this.tokensState.asReadonly();
   readonly revision = this.revisionState.asReadonly();
+  readonly externalSyncRevision = this.externalSyncRevisionState.asReadonly();
   readonly accessToken = computed(() => this.tokensState().accessToken);
   readonly refreshToken = computed(() => this.tokensState().refreshToken);
   readonly hasSession = computed(() =>
@@ -175,6 +177,7 @@ export class AuthTokenStorage {
       this.storageSyncScheduled = false;
       this.tokensState.set(this.readTokens());
       this.revisionState.update((revision) => revision + 1);
+      this.externalSyncRevisionState.update((revision) => revision + 1);
     });
   }
 }
