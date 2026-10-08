@@ -41,7 +41,7 @@ export class Sidebar {
         iconPath:
           'M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm2.5 5h7M8.5 13h5M8.5 17h3',
         label: 'Issues',
-        route: '/issues',
+        route: projectSlug ? `/project/${projectSlug}/issues` : '/issues',
       },
       {
         iconPath: 'm12 3 8.5 15H3.5L12 3Zm0 5v4.5m0 3v.2',

@@ -25,6 +25,8 @@ The modern frontend currently provides:
 - deep-linked read-only Kanban routes at `/project/:projectSlug/kanban`;
 - swimlanes, WIP indicators, multiple assignees, tags, text/tag/assignee filters and explicit
   loading, empty and error states;
+- deep-linked read-only Issues routes at `/project/:projectSlug/issues`, backed by Taiga's stable
+  paginated API with server search, sorting, include/exclude filters, and responsive dense rows;
 - links back to the classic story page for editing flows that have not migrated yet.
 
 Card movement and mutations deliberately remain outside this slice. They will use Taiga's existing

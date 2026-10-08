@@ -1,0 +1,262 @@
+<section class="issues-page" aria-labelledby="issues-title">
+  <header class="issues-header">
+    <div>
+      <span class="eyebrow">{{ project().name }} · live data</span>
+      <h1 id="issues-title">Issues</h1>
+      <p>
+        @if (store.page(); as page) {
+          {{ page.total }} issue{{ page.total === 1 ? '' : 's' }} in this view
+        } @else {
+          Search, filter, and triage work without leaving project context.
+        }
+      </p>
+    </div>
+
+    <a
+      mat-flat-button
+      [href]="config.snapshot().legacyUrl + 'project/' + project().slug + '/issues'"
+      target="_blank"
+      rel="noopener"
+    >
+      Open classic issues
+      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8" /></svg>
+    </a>
+  </header>
+
+  <div class="issue-controls">
+    <form class="search-field" role="search" (submit)="submitSearch($event)">
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="6" />
+        <path d="m16 16 4 4" />
+      </svg>
+      <label class="visually-hidden" for="issue-search">Search issues</label>
+      <input
+        id="issue-search"
+        type="search"
+        placeholder="Search subject or #reference"
+        [value]="searchValue()"
+        (input)="updateSearch($event)"
+      />
+    </form>
+
+    <label class="sort-field">
+      <span>Sort</span>
+      <select [value]="store.query().orderBy" (change)="updateSort($event)">
+        <option value="-modified_date">Recently updated</option>
+        <option value="modified_date">Least recently updated</option>
+        <option value="-ref">Newest reference</option>
+        <option value="ref">Oldest reference</option>
+        <option value="priority">Priority</option>
+        <option value="severity">Severity</option>
+        <option value="status">Status</option>
+        <option value="type">Type</option>
+        <option value="assigned_to">Assignee</option>
+        <option value="subject">Subject</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="filter-rail" aria-label="Issue filters">
+    @for (filter of filterDefinitions; track filter.category) {
+      <div class="filter-field" [class.filter-field-active]="selectedValue(filter.category)">
+        <label>
+          <span>{{ filter.label }}</span>
+          <select
+            [attr.aria-label]="filter.label"
+            [value]="selectedValue(filter.category)"
+            (change)="updateFilter(filter, $event)"
+          >
+            <option value="">All</option>
+            @for (option of optionsFor(filter); track option) {
+              <option [value]="optionValue(filter.category, option)">
+                {{ optionLabel(option)
+                }}{{ option.count === undefined ? '' : ' · ' + option.count }}
+              </option>
+            }
+          </select>
+        </label>
+
+        @if (selectedValue(filter.category)) {
+          <div class="filter-mode" [attr.aria-label]="filter.label + ' filter mode'">
+            <button
+              type="button"
+              [class.filter-mode-active]="selectedMode(filter.category) === 'include'"
+              [attr.aria-pressed]="selectedMode(filter.category) === 'include'"
+              (click)="updateFilterMode(filter.category, 'include')"
+            >
+              Include
+            </button>
+            <button
+              type="button"
+              [class.filter-mode-active]="selectedMode(filter.category) === 'exclude'"
+              [attr.aria-pressed]="selectedMode(filter.category) === 'exclude'"
+              (click)="updateFilterMode(filter.category, 'exclude')"
+            >
+              Exclude
+            </button>
+          </div>
+        }
+      </div>
+    }
+
+    @if (store.hasActiveFilters()) {
+      <button mat-button class="clear-filters" type="button" (click)="clearFilters()">
+        Clear filters
+      </button>
+    }
+  </div>
+
+  @if (store.isLoading()) {
+    <mat-progress-bar class="page-progress" mode="indeterminate" />
+  }
+
+  @if (store.status() === 'error') {
+    <div class="message-state" role="alert">
+      <span class="message-icon">!</span>
+      <div>
+        <h2>Issues unavailable</h2>
+        <p>{{ store.error() }}</p>
+      </div>
+      <button mat-flat-button type="button" (click)="store.retry()">Try again</button>
+    </div>
+  } @else if (store.status() === 'loaded' && store.issues().length === 0) {
+    <div class="message-state">
+      <span class="message-icon message-icon-info">i</span>
+      <div>
+        <h2>{{ store.hasActiveFilters() ? 'No matching issues' : 'No issues yet' }}</h2>
+        <p>
+          {{
+            store.hasActiveFilters()
+              ? 'Try removing a filter or using a broader search.'
+              : 'This project does not have any issues yet.'
+          }}
+        </p>
+      </div>
+      @if (store.hasActiveFilters()) {
+        <button mat-button type="button" (click)="clearFilters()">Clear filters</button>
+      }
+    </div>
+  } @else if (store.page(); as page) {
+    <div class="issue-table-wrap" [class.issue-table-updating]="store.isLoading()">
+      <table class="issue-table">
+        <thead>
+          <tr>
+            <th>Issue</th>
+            <th>Status</th>
+            <th>Type</th>
+            <th>Severity</th>
+            <th>Priority</th>
+            <th>Tags</th>
+            <th>Modified</th>
+            <th>Assignee</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (issue of store.issues(); track issue.id) {
+            <tr>
+              <td data-label="Issue" class="issue-main-cell">
+                <a [href]="issueUrl(issue)" target="_blank" rel="noopener">
+                  <span class="issue-reference">#{{ issue.ref }}</span>
+                  <strong>{{ issue.subject }}</strong>
+                </a>
+              </td>
+              <td data-label="Status">
+                <span class="attribute" [style.--attribute-color]="issue.status_extra_info.color">
+                  {{ issue.status_extra_info.name }}
+                </span>
+              </td>
+              <td data-label="Type">{{ issue.type_extra_info.name }}</td>
+              <td data-label="Severity">
+                <span
+                  class="attribute-dot"
+                  [style.background]="issue.severity_extra_info.color"
+                ></span>
+                {{ issue.severity_extra_info.name }}
+              </td>
+              <td data-label="Priority">
+                <span
+                  class="attribute-dot"
+                  [style.background]="issue.priority_extra_info.color"
+                ></span>
+                {{ issue.priority_extra_info.name }}
+              </td>
+              <td data-label="Tags">
+                <div class="issue-tags">
+                  @for (tag of issue.tags.slice(0, 2); track tag[0]) {
+                    <span [style.--tag-color]="tag[1] || '#8f8a99'">{{ tag[0] }}</span>
+                  }
+                  @if (issue.tags.length > 2) {
+                    <span class="tag-overflow" [matTooltip]="issue.tags.slice(2).join(', ')">
+                      +{{ issue.tags.length - 2 }}
+                    </span>
+                  }
+                  @if (issue.tags.length === 0) {
+                    <span class="muted">—</span>
+                  }
+                </div>
+              </td>
+              <td data-label="Modified">
+                <time [attr.datetime]="issue.modified_date">{{
+                  formatDate(issue.modified_date)
+                }}</time>
+              </td>
+              <td data-label="Assignee">
+                @if (issue.assigned_to_extra_info; as assignee) {
+                  <span class="assignee" [matTooltip]="assigneeName(assignee)">
+                    @if (assignee.photo) {
+                      <img [src]="assignee.photo" alt="" />
+                    } @else {
+                      <span aria-hidden="true">{{ assigneeInitials(assignee) }}</span>
+                    }
+                    <span class="assignee-name">{{ assigneeName(assignee) }}</span>
+                  </span>
+                } @else {
+                  <span class="muted">Unassigned</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <footer class="pagination" aria-label="Issue pages">
+      <span>
+        {{ (page.page - 1) * page.pageSize + 1 }}–{{
+          minimum(page.page * page.pageSize, page.total)
+        }}
+        of {{ page.total }}
+      </span>
+      <div>
+        <button
+          mat-button
+          type="button"
+          [disabled]="page.page === 1 || store.isLoading()"
+          (click)="store.setPage(page.page - 1)"
+        >
+          Previous
+        </button>
+        @for (pageNumber of visiblePageNumbers(); track pageNumber) {
+          <button
+            mat-button
+            type="button"
+            [class.current-page]="pageNumber === page.page"
+            [attr.aria-current]="pageNumber === page.page ? 'page' : null"
+            [disabled]="store.isLoading()"
+            (click)="store.setPage(pageNumber)"
+          >
+            {{ pageNumber }}
+          </button>
+        }
+        <button
+          mat-button
+          type="button"
+          [disabled]="page.page === page.totalPages || store.isLoading()"
+          (click)="store.setPage(page.page + 1)"
+        >
+          Next
+        </button>
+      </div>
+    </footer>
+  }
+</section>

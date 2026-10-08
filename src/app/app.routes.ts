@@ -47,13 +47,17 @@ export const routes: Routes = [
       {
         path: 'issues',
         loadComponent: () =>
-          import('./shell/dashboard-placeholder/dashboard-placeholder').then(
-            ({ DashboardPlaceholder }) => DashboardPlaceholder,
-          ),
+          import('./features/issues/issues-page/issues-page').then(({ IssuesPage }) => IssuesPage),
         data: {
-          description:
-            'A clearer, denser issue workspace is being prepared for the next milestone.',
-          title: 'Issues workspace',
+          title: 'Issues',
+        },
+      },
+      {
+        path: 'project/:projectSlug/issues',
+        loadComponent: () =>
+          import('./features/issues/issues-page/issues-page').then(({ IssuesPage }) => IssuesPage),
+        data: {
+          title: 'Issues',
         },
       },
       {
