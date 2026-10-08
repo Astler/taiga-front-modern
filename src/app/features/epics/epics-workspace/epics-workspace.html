@@ -1,0 +1,261 @@
+<section class="epics-page" aria-labelledby="epics-title">
+  <header class="epics-header">
+    <div>
+      <span class="eyebrow">{{ project().name }} · live data</span>
+      <h1 id="epics-title">Epics</h1>
+      <p>
+        @if (store.page(); as page) {
+          {{ page.total }} epic{{ page.total === 1 ? '' : 's' }} shaping this project
+        } @else {
+          Track larger outcomes and the stories moving them forward.
+        }
+      </p>
+    </div>
+
+    <a mat-flat-button [href]="classicEpicsUrl()" target="_blank" rel="noopener">
+      Open classic epics
+      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8" /></svg>
+    </a>
+  </header>
+
+  <div class="epic-controls">
+    <form class="search-field" role="search" (submit)="submitSearch($event)">
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="6" />
+        <path d="m16 16 4 4" />
+      </svg>
+      <label class="visually-hidden" for="epic-search">Search epics</label>
+      <input
+        id="epic-search"
+        type="search"
+        placeholder="Search subject, description, tag, or #reference"
+        [value]="searchValue()"
+        (input)="updateSearch($event)"
+      />
+    </form>
+  </div>
+
+  <div class="filter-rail" aria-label="Epic filters">
+    @for (filter of filterDefinitions; track filter.category) {
+      <div class="filter-field" [class.filter-field-active]="selectedValue(filter.category)">
+        <label>
+          <span>{{ filter.label }}</span>
+          <select
+            [attr.aria-label]="filter.label"
+            [value]="selectedValue(filter.category)"
+            (change)="updateFilter(filter, $event)"
+          >
+            <option value="">All</option>
+            @for (option of optionsFor(filter); track option) {
+              <option [value]="optionValue(filter.category, option)">
+                {{ optionLabel(option)
+                }}{{ option.count === undefined ? '' : ' · ' + option.count }}
+              </option>
+            }
+          </select>
+        </label>
+
+        @if (selectedValue(filter.category)) {
+          <div class="filter-mode" [attr.aria-label]="filter.label + ' filter mode'">
+            <button
+              type="button"
+              [class.filter-mode-active]="selectedMode(filter.category) === 'include'"
+              [attr.aria-pressed]="selectedMode(filter.category) === 'include'"
+              (click)="updateFilterMode(filter.category, 'include')"
+            >
+              Include
+            </button>
+            <button
+              type="button"
+              [class.filter-mode-active]="selectedMode(filter.category) === 'exclude'"
+              [attr.aria-pressed]="selectedMode(filter.category) === 'exclude'"
+              (click)="updateFilterMode(filter.category, 'exclude')"
+            >
+              Exclude
+            </button>
+          </div>
+        }
+      </div>
+    }
+
+    @if (store.hasActiveFilters()) {
+      <button mat-button class="clear-filters" type="button" (click)="clearFilters()">
+        Clear filters
+      </button>
+    }
+  </div>
+
+  @if (store.isLoading()) {
+    <mat-progress-bar class="page-progress" mode="indeterminate" />
+  }
+
+  @if (store.status() === 'error') {
+    <div class="message-state" role="alert">
+      <div>
+        <h2>Epics unavailable</h2>
+        <p>{{ store.error() }}</p>
+      </div>
+      <button mat-flat-button type="button" (click)="store.retry()">Try again</button>
+    </div>
+  } @else if (store.status() === 'loaded' && store.epics().length === 0) {
+    <div class="message-state">
+      <div>
+        <h2>{{ store.hasActiveFilters() ? 'No matching epics' : 'No epics yet' }}</h2>
+        <p>
+          {{
+            store.hasActiveFilters()
+              ? 'Try removing a filter or using a broader search.'
+              : 'This project does not have any epics yet.'
+          }}
+        </p>
+      </div>
+      @if (store.hasActiveFilters()) {
+        <button mat-button type="button" (click)="clearFilters()">Clear filters</button>
+      }
+    </div>
+  } @else if (store.page(); as page) {
+    <div class="epic-table-wrap" [class.epic-table-updating]="store.isLoading()">
+      <table class="epic-table">
+        <thead>
+          <tr>
+            <th>Epic</th>
+            <th>Status</th>
+            <th>Progress</th>
+            <th>Tags</th>
+            <th>Updated</th>
+            <th>Assignee</th>
+            <th>Owner</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (epic of store.epics(); track epic.id) {
+            <tr>
+              <td data-label="Epic" class="epic-main-cell">
+                <a [href]="epicUrl(epic)" target="_blank" rel="noopener">
+                  <span class="epic-color" [style.background]="epic.color"></span>
+                  <span class="epic-reference">#{{ epic.ref }}</span>
+                  <strong>{{ epic.subject }}</strong>
+                </a>
+              </td>
+              <td data-label="Status">
+                @if (epic.status_extra_info; as status) {
+                  <span class="attribute" [style.--attribute-color]="status.color">
+                    {{ status.name }}
+                  </span>
+                } @else {
+                  <span class="muted">No status</span>
+                }
+              </td>
+              <td data-label="Progress">
+                <div class="epic-progress">
+                  <div
+                    class="progress-track"
+                    role="progressbar"
+                    [attr.aria-label]="epic.subject + ' progress'"
+                    [attr.aria-valuenow]="progressPercent(epic)"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                  >
+                    <span [style.width.%]="progressPercent(epic)"></span>
+                  </div>
+                  <span>{{ progressPercent(epic) }}%</span>
+                  <small>
+                    {{ epic.user_stories_counts.progress }}/{{ epic.user_stories_counts.total }}
+                    stories
+                  </small>
+                </div>
+              </td>
+              <td data-label="Tags">
+                <div class="epic-tags">
+                  @for (tag of epic.tags.slice(0, 2); track tag[0]) {
+                    <span [style.--tag-color]="tag[1] || '#8f8a99'">{{ tag[0] }}</span>
+                  }
+                  @if (epic.tags.length > 2) {
+                    <span class="tag-overflow" [matTooltip]="tagOverflowTooltip(epic.tags)">
+                      +{{ epic.tags.length - 2 }}
+                    </span>
+                  }
+                  @if (epic.tags.length === 0) {
+                    <span class="muted">—</span>
+                  }
+                </div>
+              </td>
+              <td data-label="Updated">
+                <time [attr.datetime]="epic.modified_date">{{
+                  formatDate(epic.modified_date)
+                }}</time>
+              </td>
+              <td data-label="Assignee">
+                @if (epic.assigned_to_extra_info; as assignee) {
+                  <span class="person" [matTooltip]="personName(assignee)">
+                    @if (assignee.photo) {
+                      <img [src]="assignee.photo" alt="" />
+                    } @else {
+                      <span aria-hidden="true">{{ personInitials(assignee) }}</span>
+                    }
+                    <span class="person-name">{{ personName(assignee) }}</span>
+                  </span>
+                } @else {
+                  <span class="muted">Unassigned</span>
+                }
+              </td>
+              <td data-label="Owner">
+                @if (epic.owner_extra_info; as owner) {
+                  <span class="person" [matTooltip]="personName(owner)">
+                    @if (owner.photo) {
+                      <img [src]="owner.photo" alt="" />
+                    } @else {
+                      <span aria-hidden="true">{{ personInitials(owner) }}</span>
+                    }
+                    <span class="person-name">{{ personName(owner) }}</span>
+                  </span>
+                } @else {
+                  <span class="muted">Unknown</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <footer class="pagination" aria-label="Epic pages">
+      <span>
+        {{ (page.page - 1) * page.pageSize + 1 }}–{{
+          minimum(page.page * page.pageSize, page.total)
+        }}
+        of {{ page.total }}
+      </span>
+      <div>
+        <button
+          mat-button
+          type="button"
+          [disabled]="page.page === 1 || store.isLoading()"
+          (click)="store.setPage(page.page - 1)"
+        >
+          Previous
+        </button>
+        @for (pageNumber of visiblePageNumbers(); track pageNumber) {
+          <button
+            mat-button
+            type="button"
+            [class.current-page]="pageNumber === page.page"
+            [attr.aria-current]="pageNumber === page.page ? 'page' : null"
+            [disabled]="store.isLoading()"
+            (click)="store.setPage(pageNumber)"
+          >
+            {{ pageNumber }}
+          </button>
+        }
+        <button
+          mat-button
+          type="button"
+          [disabled]="page.page === page.totalPages || store.isLoading()"
+          (click)="store.setPage(page.page + 1)"
+        >
+          Next
+        </button>
+      </div>
+    </footer>
+  }
+</section>

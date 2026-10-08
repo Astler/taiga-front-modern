@@ -1,0 +1,511 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.epics-page {
+  display: grid;
+  min-height: calc(100dvh - var(--app-topbar-height));
+  align-content: start;
+  padding: clamp(1rem, 2vw, 2rem);
+}
+
+.epics-header,
+.epic-controls,
+.filter-rail,
+.pagination,
+.pagination > div,
+.person,
+.epic-tags,
+.epic-progress {
+  display: flex;
+  align-items: center;
+}
+
+.epics-header {
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block-end: 1.25rem;
+}
+
+.epics-header h1 {
+  margin: 0.25rem 0;
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-headline-large);
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+
+.epics-header p {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-medium);
+}
+
+.eyebrow {
+  color: var(--mat-sys-primary);
+  font: var(--mat-sys-label-medium);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.epics-header a svg,
+.search-field svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.8;
+}
+
+.epics-header a svg {
+  margin-inline-start: 0.4rem;
+}
+
+.epic-controls {
+  padding-block-end: 0.75rem;
+}
+
+.search-field,
+.filter-field {
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-md);
+  background: var(--mat-sys-surface-container);
+}
+
+.search-field {
+  display: flex;
+  width: min(38rem, 100%);
+  min-height: 2.875rem;
+  align-items: center;
+  gap: 0.625rem;
+  padding-inline: 0.875rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.search-field input,
+.filter-field select {
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--mat-sys-on-surface);
+  font: inherit;
+}
+
+.search-field input {
+  width: 100%;
+  min-width: 0;
+}
+
+.search-field:focus-within,
+.filter-field:focus-within {
+  border-color: var(--mat-sys-primary);
+}
+
+select option {
+  background: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface);
+}
+
+.filter-rail {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-block-end: 1rem;
+}
+
+.filter-field {
+  position: relative;
+  min-width: 10rem;
+  padding: 0.25rem 0.5rem 0.3rem;
+}
+
+.filter-field-active {
+  border-color: color-mix(in srgb, var(--mat-sys-primary) 70%, var(--app-border-color));
+  background: color-mix(
+    in srgb,
+    var(--mat-sys-primary-container) 32%,
+    var(--mat-sys-surface-container)
+  );
+}
+
+.filter-field label {
+  display: grid;
+}
+
+.filter-field label > span {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-small);
+}
+
+.filter-field select {
+  min-width: 9rem;
+  max-width: 13rem;
+  min-height: 2.25rem;
+  cursor: pointer;
+}
+
+.filter-mode {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.2rem;
+  margin-block-start: 0.25rem;
+  padding-block-start: 0.25rem;
+  border-block-start: 1px solid var(--app-border-color);
+}
+
+.filter-mode button {
+  min-height: 1.625rem;
+  border: 0;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--mat-sys-on-surface-variant);
+  cursor: pointer;
+  font: var(--mat-sys-label-small);
+}
+
+.filter-mode button:hover,
+.filter-mode-active {
+  background: var(--mat-sys-primary-container) !important;
+  color: var(--mat-sys-on-primary-container) !important;
+}
+
+.clear-filters {
+  margin-inline-start: auto;
+}
+
+.epic-table-wrap {
+  min-width: 0;
+  overflow-x: auto;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-xl);
+  background: color-mix(in srgb, var(--mat-sys-surface-container-low) 78%, transparent);
+  box-shadow: var(--app-card-shadow);
+}
+
+.epic-table-updating {
+  opacity: 0.62;
+}
+
+.epic-table {
+  width: 100%;
+  min-width: 70rem;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.epic-table th {
+  height: 2.875rem;
+  background: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-small);
+  letter-spacing: 0.045em;
+  padding-inline: 0.75rem;
+  text-transform: uppercase;
+}
+
+.epic-table td {
+  height: 4.25rem;
+  border-block-start: 1px solid var(--app-border-color);
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+  padding: 0.625rem 0.75rem;
+  vertical-align: middle;
+}
+
+.epic-table tbody tr:hover {
+  background: color-mix(in srgb, var(--mat-sys-primary) 6%, transparent);
+}
+
+.epic-main-cell {
+  width: 29%;
+  min-width: 18rem;
+}
+
+.epic-main-cell a {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--mat-sys-on-surface);
+  text-decoration: none;
+}
+
+.epic-main-cell strong {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.epic-color {
+  width: 0.3rem;
+  height: 1.5rem;
+  border-radius: var(--app-radius-full);
+}
+
+.epic-reference {
+  color: var(--mat-sys-primary);
+  font-weight: 700;
+}
+
+.epic-tags > span:not(.muted) {
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-full);
+  background: var(--mat-sys-surface-container-high);
+  font: var(--mat-sys-label-small);
+  padding: 0.12rem 0.42rem;
+}
+
+.attribute {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--mat-sys-on-surface);
+  font-weight: 600;
+}
+
+.attribute::before {
+  width: 0.5rem;
+  height: 0.5rem;
+  display: inline-block;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--attribute-color);
+  content: '';
+}
+
+.epic-progress {
+  min-width: 11rem;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.progress-track {
+  width: 6.25rem;
+  height: 0.4rem;
+  overflow: hidden;
+  border-radius: var(--app-radius-full);
+  background: var(--mat-sys-surface-container-highest);
+}
+
+.progress-track span {
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: var(--mat-sys-primary);
+}
+
+.epic-progress > span {
+  color: var(--mat-sys-on-surface);
+  font-weight: 650;
+}
+
+.epic-progress small {
+  flex-basis: 100%;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.epic-tags {
+  gap: 0.3rem;
+}
+
+.epic-tags > span:not(.muted) {
+  max-width: 7rem;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--tag-color) 68%, transparent);
+  background: color-mix(in srgb, var(--tag-color) 18%, transparent);
+  color: var(--mat-sys-on-surface);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag-overflow {
+  --tag-color: var(--mat-sys-outline);
+}
+
+.person {
+  min-width: 0;
+  gap: 0.5rem;
+}
+
+.person > span:first-child,
+.person img {
+  width: 1.75rem;
+  height: 1.75rem;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+  font: var(--mat-sys-label-small);
+}
+
+.person img {
+  object-fit: cover;
+}
+
+.person-name {
+  max-width: 8rem;
+  overflow: hidden;
+  color: var(--mat-sys-on-surface);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.muted,
+time {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.pagination {
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.875rem 0.25rem 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+
+.pagination > div {
+  gap: 0.125rem;
+}
+
+.pagination .current-page {
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+}
+
+.message-state {
+  display: flex;
+  min-height: 12rem;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-xl);
+  background: var(--mat-sys-surface-container-low);
+  padding: 2rem;
+}
+
+.message-state h2,
+.message-state p {
+  margin: 0;
+}
+
+.message-state p {
+  margin-block-start: 0.25rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+@media (max-width: 48rem) {
+  .epics-page {
+    min-height: calc(100dvh - var(--app-topbar-height-mobile));
+    padding: 1rem;
+  }
+
+  .epics-header,
+  .pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .epics-header a {
+    align-self: flex-start;
+  }
+
+  .search-field {
+    width: 100%;
+  }
+
+  .filter-rail {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filter-field,
+  .filter-field select {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .clear-filters {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+
+  .epic-table-wrap {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .epic-table,
+  .epic-table tbody,
+  .epic-table tr,
+  .epic-table td {
+    width: 100%;
+    display: block;
+    min-width: 0;
+  }
+
+  .epic-table thead {
+    display: none;
+  }
+
+  .epic-table tbody {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .epic-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border: 1px solid var(--app-border-color);
+    border-radius: var(--app-radius-lg);
+    background: var(--app-card-bg);
+    box-shadow: var(--app-card-shadow);
+    padding: 0.75rem;
+  }
+
+  .epic-table td {
+    height: auto;
+    display: block;
+    border: 0;
+    padding: 0.45rem;
+  }
+
+  .epic-table td::before {
+    display: block;
+    margin-block-end: 0.2rem;
+    color: var(--mat-sys-on-surface-variant);
+    content: attr(data-label);
+    font: var(--mat-sys-label-small);
+    text-transform: uppercase;
+  }
+
+  .epic-main-cell {
+    grid-column: 1 / -1;
+  }
+
+  .epic-main-cell a {
+    font: var(--mat-sys-body-large);
+  }
+
+  .pagination > div {
+    align-self: center;
+  }
+}
+
+@media (max-width: 30rem) {
+  .filter-rail,
+  .epic-table tbody tr {
+    grid-template-columns: 1fr;
+  }
+
+  .epic-main-cell {
+    grid-column: auto;
+  }
+}
