@@ -62,10 +62,6 @@
   text-transform: uppercase;
 }
 
-.settings-header a span {
-  margin-inline-start: 0.35rem;
-}
-
 .access-badge,
 .privacy-badge,
 .summary-count,
@@ -107,16 +103,6 @@
   background: var(--mat-sys-primary-container);
   color: var(--mat-sys-on-primary-container);
   font-weight: 700;
-}
-
-.notice-warning {
-  border-color: color-mix(in srgb, var(--app-warning) 52%, var(--app-border-color));
-  background: color-mix(in srgb, var(--app-warning) 10%, var(--app-card-bg));
-}
-
-.notice-warning .notice-icon {
-  background: color-mix(in srgb, var(--app-warning) 22%, transparent);
-  color: var(--app-warning);
 }
 
 .settings-grid {
@@ -172,8 +158,6 @@
   gap: 0.1rem;
 }
 
-.project-profile strong,
-.project-profile span,
 .module-list strong,
 .module-list div span {
   overflow: hidden;
@@ -239,12 +223,6 @@
   text-decoration: none;
 }
 
-.text-link:hover,
-.classic-link-grid a:hover strong {
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
-}
-
 .module-list,
 .status-list {
   margin: 0;
@@ -267,10 +245,6 @@
   border-block-end: 1px solid var(--app-border-color);
 }
 
-.module-list li:first-child {
-  padding-block-start: 0;
-}
-
 .module-list div span {
   font: var(--mat-sys-body-small);
 }
@@ -282,7 +256,6 @@
   flex: 0 0 auto;
   border-radius: 50%;
   background: var(--mat-sys-tertiary);
-  box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--mat-sys-tertiary) 12%, transparent);
 }
 
 .module-off {
@@ -377,17 +350,9 @@
   padding: 0.6rem 0.75rem;
 }
 
-.status-list .color-dot {
-  box-shadow: none;
-}
-
 .status-list small {
   color: var(--mat-sys-on-surface-variant);
   font: var(--mat-sys-label-small);
-}
-
-.closed-status {
-  opacity: 0.76;
 }
 
 .supporting-copy,
@@ -447,15 +412,8 @@
 }
 
 .classic-link-grid small {
-  overflow: hidden;
   color: var(--mat-sys-on-surface-variant);
   font: var(--mat-sys-body-small);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.classic-link-grid a > span:last-child {
-  color: var(--mat-sys-primary);
 }
 
 @media (max-width: 56rem) {
