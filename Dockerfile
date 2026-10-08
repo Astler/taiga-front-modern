@@ -6,7 +6,33 @@ WORKDIR /app
 
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,id=taiga-front-modern-npm,target=/root/.npm,sharing=locked \
-    npm ci --no-audit --no-fund
+    set -eu; \
+    attempt=1; \
+    last_status=1; \
+    while [ "$attempt" -le 3 ]; do \
+      echo "npm ci attempt ${attempt}/3 (12-minute cap)"; \
+      if timeout -k 15 720 npm ci \
+          --prefer-offline \
+          --no-audit \
+          --no-fund \
+          --maxsockets=2 \
+          --fetch-retries=2 \
+          --fetch-retry-factor=2 \
+          --fetch-retry-mintimeout=10000 \
+          --fetch-retry-maxtimeout=60000 \
+          --fetch-timeout=300000; then \
+        exit 0; \
+      else \
+        last_status=$?; \
+      fi; \
+      if [ "$attempt" -lt 3 ]; then \
+        echo "npm ci attempt $attempt failed; retrying from the package cache..." >&2; \
+        sleep $((attempt * 10)); \
+      fi; \
+      attempt=$((attempt + 1)); \
+    done; \
+    echo "npm ci failed after 3 bounded attempts" >&2; \
+    exit "$last_status"
 
 COPY . .
 RUN npm run build
