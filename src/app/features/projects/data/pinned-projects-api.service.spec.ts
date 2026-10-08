@@ -5,7 +5,11 @@ import { firstValueFrom } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { RuntimeConfigService } from '../../../core/config';
 import { AUTH_STORAGE, AuthTokenStorage } from '../../../core/auth';
-import { PinnedProjectsApiService, normalizeRemotePinnedIds } from './pinned-projects-api.service';
+import {
+  PinnedProjectsApiService,
+  StalePinnedProjectsSessionError,
+  normalizeRemotePinnedIds,
+} from './pinned-projects-api.service';
 
 class MemoryStorage implements Storage {
   private readonly values = new Map<string, string>();
@@ -87,6 +91,17 @@ describe('PinnedProjectsApiService', () => {
 
     httpTesting.expectNone((request) => request.method === 'POST');
     await expect(result).resolves.toMatchObject({ status: 404 });
+  });
+
+  it('does not start a deferred save under a different authentication session', async () => {
+    authTokens.setTokens({ accessToken: 'user-a', refreshToken: 'refresh-a' });
+    const save = service.save([7]);
+
+    authTokens.setTokens({ accessToken: 'user-b', refreshToken: 'refresh-b' });
+    const result = firstValueFrom(save).catch((error: unknown) => error);
+
+    httpTesting.expectNone((request) => request.method === 'PUT' || request.method === 'POST');
+    await expect(result).resolves.toBeInstanceOf(StalePinnedProjectsSessionError);
   });
 
   it('does not create a duplicate record after a non-404 update failure', async () => {

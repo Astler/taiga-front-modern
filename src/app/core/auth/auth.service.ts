@@ -81,12 +81,16 @@ export class AuthService {
   }
 
   restoreSession(): Observable<TaigaUser | null> {
+    const restoreRevision = this.tokenStorage.revision();
     if (!this.sessionState.beginRestore()) {
       return of(null);
     }
 
     return this.me().pipe(
       catchError((error: unknown) => {
+        if (this.tokenStorage.revision() !== restoreRevision) {
+          return throwError(() => error);
+        }
         if (error instanceof HttpErrorResponse && (error.status === 401 || error.status === 403)) {
           this.sessionState.invalidate();
           return of(null);

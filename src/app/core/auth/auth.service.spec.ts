@@ -252,4 +252,31 @@ describe('AuthService', () => {
     expect(service.user()?.username).toBe('user-b');
     expect(service.status()).toBe('authenticated');
   });
+
+  it('does not let a stale restore failure invalidate a newer authenticated identity', async () => {
+    tokenStorage.setTokens({ accessToken: 'user-b-access', refreshToken: 'user-b-refresh' });
+    const userBRestore = firstValueFrom(service.restoreSession()).catch((error: unknown) => error);
+    const userBRequest = httpTesting.expectOne('/api/v1/users/me');
+
+    tokenStorage.setTokens({ accessToken: 'user-c-access', refreshToken: 'user-c-refresh' });
+    const userCRestore = firstValueFrom(service.restoreSession());
+    const userCRequest = httpTesting.expectOne('/api/v1/users/me');
+    userCRequest.flush({
+      id: 3,
+      username: 'user-c',
+      full_name_display: 'User C',
+      photo: null,
+    });
+    await expect(userCRestore).resolves.toMatchObject({ username: 'user-c' });
+
+    userBRequest.flush(null, { status: 401, statusText: 'Unauthorized' });
+    await expect(userBRestore).resolves.toMatchObject({ status: 401 });
+
+    expect(service.user()?.username).toBe('user-c');
+    expect(service.status()).toBe('authenticated');
+    expect(tokenStorage.tokens()).toEqual({
+      accessToken: 'user-c-access',
+      refreshToken: 'user-c-refresh',
+    });
+  });
 });

@@ -1,6 +1,6 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, catchError, map, throwError } from 'rxjs';
+import { Observable, catchError, defer, map, throwError } from 'rxjs';
 import { AuthTokenStorage } from '../../../core/auth';
 import { RuntimeConfigService } from '../../../core/config';
 import { PINNED_PROJECTS_STORAGE_KEY } from './pinned-projects.storage';
@@ -28,16 +28,29 @@ export class PinnedProjectsApiService {
     const sessionRevision = this.authTokens.revision();
     const baseUrl = this.config.resolveApiPath('user-storage');
     const body = { key: PINNED_PROJECTS_STORAGE_KEY, value: normalizeRemotePinnedIds(ids) };
-    return this.http.put<void>(`${baseUrl}/${PINNED_PROJECTS_STORAGE_KEY}`, body).pipe(
-      catchError((error: unknown) =>
-        this.authTokens.revision() === sessionRevision &&
-        error instanceof HttpErrorResponse &&
-        error.status === 404
-          ? this.http.post<void>(baseUrl, body)
-          : throwError(() => error),
-      ),
-      map(() => undefined),
-    );
+    return defer(() => {
+      if (this.authTokens.revision() !== sessionRevision) {
+        return throwError(() => new StalePinnedProjectsSessionError());
+      }
+
+      return this.http.put<void>(`${baseUrl}/${PINNED_PROJECTS_STORAGE_KEY}`, body).pipe(
+        catchError((error: unknown) =>
+          this.authTokens.revision() === sessionRevision &&
+          error instanceof HttpErrorResponse &&
+          error.status === 404
+            ? this.http.post<void>(baseUrl, body)
+            : throwError(() => error),
+        ),
+        map(() => undefined),
+      );
+    });
+  }
+}
+
+export class StalePinnedProjectsSessionError extends Error {
+  constructor() {
+    super('The authentication session changed before pinned projects could be saved.');
+    this.name = 'StalePinnedProjectsSessionError';
   }
 }
 

@@ -100,10 +100,7 @@ export class KanbanBoard {
     const assigneeId = this.selectedAssigneeId();
 
     return this.store.userStories().filter((story) => {
-      if (
-        query &&
-        !`${story.ref} #${story.ref} ${story.subject}`.toLocaleLowerCase().includes(query)
-      ) {
+      if (query && !matchesStoryQuery(story, query)) {
         return false;
       }
       if (tag && !(story.tags ?? []).some(([storyTag]) => storyTag === tag)) {
@@ -258,4 +255,13 @@ export class KanbanBoard {
   private columnKey(laneId: TaigaId | null, statusId: TaigaId): string {
     return `${laneId ?? 'none'}:${statusId}`;
   }
+}
+
+function matchesStoryQuery(story: KanbanUserStory, query: string): boolean {
+  const reference = String(story.ref);
+  const referenceQuery = /^#(\d+)$/.exec(query);
+  if (referenceQuery) {
+    return reference.includes(referenceQuery[1]!);
+  }
+  return reference.includes(query) || story.subject.toLocaleLowerCase().includes(query);
 }

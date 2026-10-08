@@ -284,6 +284,31 @@ describe('ProjectStore', () => {
     expect(store.selectedProject()?.slug).toBe('deep-linked');
   });
 
+  it('preserves a failed deep-link lookup instead of selecting the first listed project', async () => {
+    const list = new Subject<readonly TaigaProjectListItem[]>();
+    const requested = new Subject<TaigaProjectDetail>();
+    const first = projectListItem(1, 'first');
+    pinnedApi.load.mockReturnValue(of([]));
+    api.listByMember.mockReturnValue(list);
+    api.getBySlug.mockReturnValue(requested);
+    createStore();
+
+    const listLoad = store.loadMemberProjects(9);
+    const lookupFailure = new Error('Missing project');
+    const directSelection = store.selectBySlug('missing').catch((error: unknown) => error);
+    requested.error(lookupFailure);
+    await expect(directSelection).resolves.toBe(lookupFailure);
+
+    list.next([first]);
+    list.complete();
+    await listLoad;
+
+    expect(api.getBySlug).toHaveBeenCalledOnce();
+    expect(store.selectedProject()).toBeNull();
+    expect(store.error()).toEqual({ operation: 'select', cause: lookupFailure });
+    expect(store.loading()).toBe(false);
+  });
+
   it('exposes API failures without discarding an existing project list', async () => {
     const project = projectListItem(1, 'first');
     api.listByMember.mockReturnValueOnce(of([project]));

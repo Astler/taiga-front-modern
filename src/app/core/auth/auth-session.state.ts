@@ -7,13 +7,13 @@ import { AuthTokenStorage } from './auth-token.storage';
 export class AuthSessionState {
   private readonly tokenStorage = inject(AuthTokenStorage);
   private readonly userState = signal<TaigaUser | null>(null);
-  private readonly identityExternalRevisionState = signal(this.tokenStorage.externalSyncRevision());
+  private readonly identityRevisionState = signal(this.tokenStorage.revision());
   private readonly statusState = signal<AuthStatus>(
     this.tokenStorage.hasSession() ? 'restoring' : 'anonymous',
   );
 
   readonly status = computed<AuthStatus>(() => {
-    if (this.identityExternalRevisionState() !== this.tokenStorage.externalSyncRevision()) {
+    if (this.identityRevisionState() !== this.tokenStorage.revision()) {
       return this.tokenStorage.hasSession() ? 'restoring' : 'anonymous';
     }
     const status = this.statusState();
@@ -32,14 +32,14 @@ export class AuthSessionState {
 
   beginAuthentication(): number {
     this.tokenStorage.clear();
-    this.bindCurrentExternalRevision();
+    this.bindCurrentRevision();
     this.userState.set(null);
     this.statusState.set('authenticating');
     return this.tokenStorage.revision();
   }
 
   beginRestore(): boolean {
-    this.bindCurrentExternalRevision();
+    this.bindCurrentRevision();
     if (!this.tokenStorage.hasSession()) {
       this.invalidate();
       return false;
@@ -51,7 +51,7 @@ export class AuthSessionState {
   }
 
   authenticate(user: TaigaUser): void {
-    this.bindCurrentExternalRevision();
+    this.bindCurrentRevision();
     this.userState.set(user);
     this.statusState.set('authenticated');
   }
@@ -69,12 +69,12 @@ export class AuthSessionState {
     ) {
       this.tokenStorage.clear();
     }
-    this.bindCurrentExternalRevision();
+    this.bindCurrentRevision();
     this.userState.set(null);
     this.statusState.set('anonymous');
   }
 
-  private bindCurrentExternalRevision(): void {
-    this.identityExternalRevisionState.set(this.tokenStorage.externalSyncRevision());
+  private bindCurrentRevision(): void {
+    this.identityRevisionState.set(this.tokenStorage.revision());
   }
 }

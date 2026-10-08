@@ -58,7 +58,9 @@ export class ProjectStore {
     const revision = ++this.listRevision;
     const memberRevision = this.memberRevision;
     this.beginRequest();
-    this.errorState.set(null);
+    if (this.errorState()?.operation !== 'select') {
+      this.errorState.set(null);
+    }
 
     let projects: readonly TaigaProjectListItem[];
     try {
@@ -93,7 +95,11 @@ export class ProjectStore {
       return projects;
     }
 
-    if (this.selectedProjectState() === null && this.pendingSelectionRequests === 0) {
+    if (
+      this.selectedProjectState() === null &&
+      this.pendingSelectionRequests === 0 &&
+      this.errorState()?.operation !== 'select'
+    ) {
       const firstProject = this.pinnedProjects()[0] ?? projects[0];
       if (firstProject) {
         await this.selectBySlug(firstProject.slug);
@@ -226,6 +232,7 @@ export class ProjectStore {
       this.selectedProjectState.set(null);
       this.projectsState.set([]);
       this.projectsLoadedState.set(false);
+      this.errorState.set(null);
     }
 
     this.memberId = memberId;
