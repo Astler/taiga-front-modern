@@ -74,25 +74,24 @@ describe('KanbanBoard', () => {
     fixture.detectChanges();
 
     const host = fixture.nativeElement as HTMLElement;
+    const search = host.querySelector<HTMLInputElement>('.search-field input[type="search"]')!;
     expect(load).toHaveBeenCalledOnce();
     expect(load).toHaveBeenCalledWith(17);
+    expect(search.getAttribute('aria-label')).toBe('Search stories');
+    expect(search.closest('.search-field')?.textContent?.trim()).toBe('');
     expect(columnNames(host)).toEqual(['Ready', 'Done']);
     expect(cardSubjects(host)).toEqual([
       '#101 Build login',
       '#103 Polish navigation',
       '#102 Fix billing',
     ]);
-    setControlValue(
-      host.querySelector<HTMLInputElement>('input[type="search"]')!,
-      'billing',
-      'input',
-    );
+    setControlValue(search, 'billing', 'input');
     fixture.detectChanges();
     expect(cardSubjects(host)).toEqual(['#102 Fix billing']);
     expect(host.querySelector('.board-heading p')?.textContent).toContain('2 open');
     expect(host.querySelector('.board-heading p')?.textContent).toContain('1 matching');
 
-    setControlValue(host.querySelector<HTMLInputElement>('input[type="search"]')!, '#101', 'input');
+    setControlValue(search, '#101', 'input');
     fixture.detectChanges();
     expect(cardSubjects(host)).toEqual(['#101 Build login']);
 

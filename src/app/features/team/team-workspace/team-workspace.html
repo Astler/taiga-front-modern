@@ -16,14 +16,26 @@
     </div>
 
     <div class="header-actions">
-      <a mat-button [href]="classicTeamUrl()" target="_blank" rel="noopener">
+      <a
+        class="app-icon-button"
+        mat-button
+        [href]="classicTeamUrl()"
+        target="_blank"
+        rel="noopener"
+      >
         <span class="app-button-content">
           <span>Classic team</span>
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8" /></svg>
         </span>
       </a>
       @if (project().i_am_admin) {
-        <a mat-flat-button [href]="classicAdminUrl()" target="_blank" rel="noopener">
+        <a
+          class="app-icon-button"
+          mat-flat-button
+          [href]="classicAdminUrl()"
+          target="_blank"
+          rel="noopener"
+        >
           <span class="app-button-content">
             <span>Manage members</span>
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8" /></svg>
@@ -70,9 +82,9 @@
         <circle cx="11" cy="11" r="6" />
         <path d="m16 16 4 4" />
       </svg>
-      <span class="visually-hidden">Search team</span>
       <input
         type="search"
+        aria-label="Search team"
         placeholder="Search people, email, or role"
         [value]="store.query().search"
         (input)="updateSearch($event)"

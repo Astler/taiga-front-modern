@@ -104,6 +104,21 @@ a {
   margin: 0;
 }
 
+.app-icon-button {
+  height: 2.5rem;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  padding-block: 0;
+}
+
+.app-icon-button .mdc-button__label {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
 pf-root {
   display: block;
   height: 100%;

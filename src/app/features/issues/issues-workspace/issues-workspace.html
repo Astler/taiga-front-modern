@@ -13,6 +13,7 @@
     </div>
 
     <a
+      class="app-icon-button"
       mat-flat-button
       [href]="config.snapshot().legacyUrl + 'project/' + project().slug + '/issues'"
       target="_blank"
@@ -31,10 +32,10 @@
         <circle cx="11" cy="11" r="6" />
         <path d="m16 16 4 4" />
       </svg>
-      <label class="visually-hidden" for="issue-search">Search issues</label>
       <input
         id="issue-search"
         type="search"
+        aria-label="Search issues"
         placeholder="Search subject or #reference"
         [value]="searchValue()"
         (input)="updateSearch($event)"

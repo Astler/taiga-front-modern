@@ -15,6 +15,7 @@
     @if (project(); as activeProject) {
       <div class="page-actions">
         <button
+          class="app-icon-button"
           mat-button
           type="button"
           [disabled]="store.loading() || store.refreshing()"
@@ -27,7 +28,11 @@
             <span>{{ store.refreshing() ? 'Syncing…' : 'Refresh' }}</span>
           </span>
         </button>
-        <a mat-flat-button [routerLink]="['/project', activeProject.slug, 'kanban']">
+        <a
+          class="app-icon-button"
+          mat-flat-button
+          [routerLink]="['/project', activeProject.slug, 'kanban']"
+        >
           <span class="app-button-content">
             <span>Open Kanban</span>
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" /></svg>

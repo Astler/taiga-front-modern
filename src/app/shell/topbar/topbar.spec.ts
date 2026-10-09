@@ -9,6 +9,45 @@ import { ShellProjectContext } from '../project-context/shell-project-context';
 import { Topbar } from './topbar';
 
 describe('Topbar', () => {
+  it('renders one compact search prompt without duplicate visible labels', () => {
+    TestBed.configureTestingModule({
+      imports: [Topbar],
+      providers: [
+        { provide: Router, useValue: { navigate: vi.fn(), url: '/dashboard' } },
+        {
+          provide: ShellProjectContext,
+          useValue: {
+            projects: signal([project]),
+            pinnedProjects: signal([project]),
+            selectedProject: signal(project),
+            selectProject: vi.fn(),
+            togglePin: vi.fn(),
+          },
+        },
+        {
+          provide: RuntimeConfigService,
+          useValue: { snapshot: () => ({ legacyUrl: '/legacy/' }) },
+        },
+        {
+          provide: AuthService,
+          useValue: {
+            logout: vi.fn(),
+            user: signal({ id: 7, username: 'vlady', full_name_display: 'Vlady' }),
+          },
+        },
+      ],
+    });
+    const fixture = TestBed.createComponent(Topbar);
+    fixture.componentRef.setInput('navigationExpanded', true);
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const search = host.querySelector<HTMLInputElement>('.global-search input')!;
+    expect(search.placeholder).toBe('Search');
+    expect(search.getAttribute('aria-label')).toBe('Search Taiga');
+    expect(host.querySelector('.global-search')?.textContent?.trim()).toBe('');
+  });
+
   it.each([
     ['/project/alpha/issues', 'issues'],
     ['/issues?status=1', 'issues'],

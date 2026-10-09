@@ -81,7 +81,7 @@ button svg,
 
 .global-search {
   display: flex;
-  width: clamp(14rem, 23vw, 21rem);
+  width: clamp(12rem, 18vw, 17rem);
   height: 2.75rem;
   align-items: center;
   gap: 0.625rem;
@@ -116,7 +116,7 @@ button svg,
 
 .global-search input::placeholder {
   color: var(--mat-sys-on-surface-variant);
-  opacity: 0.82;
+  opacity: 0.72;
 }
 
 .compact-search {
