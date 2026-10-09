@@ -5,6 +5,7 @@ import type { TaigaId } from '../../../shared/models';
 import { KanbanApiService } from './kanban-api.service';
 import type {
   KanbanCreateRequest,
+  KanbanAttachmentUploadRequest,
   KanbanFiltersData,
   KanbanMilestone,
   KanbanMoveCommand,
@@ -18,10 +19,11 @@ export type KanbanLoadStatus = 'idle' | 'loading' | 'loaded' | 'error';
 export type KanbanCreateResult = 'created' | 'failed' | 'uncertain';
 export type KanbanMoveResult = 'moved' | 'failed' | 'uncertain';
 export type KanbanUpdateResult = 'updated' | 'failed' | 'uncertain';
+export type KanbanAttachmentResult = 'deleted' | 'uploaded' | 'failed';
 export type KanbanStoryDetailStatus = 'idle' | 'loading' | 'loaded' | 'error';
 
 export interface KanbanMutation {
-  readonly kind: 'create' | 'move' | 'update';
+  readonly kind: 'attachment' | 'create' | 'move' | 'update';
   readonly storyIds: readonly TaigaId[];
 }
 
@@ -334,6 +336,108 @@ export class KanbanStore {
         );
       }
       return ambiguous ? 'uncertain' : 'failed';
+    }
+  }
+
+  async uploadAttachment(request: KanbanAttachmentUploadRequest): Promise<KanbanAttachmentResult> {
+    if (
+      this.projectIdState() !== request.projectId ||
+      this.isMutating() ||
+      this.refreshingState() ||
+      this.requiresReconciliationState()
+    ) {
+      return 'failed';
+    }
+
+    const revision = ++this.mutationRevision;
+    this.mutationState.set({ kind: 'attachment', storyIds: [request.storyId] });
+    this.mutationErrorState.set(null);
+    try {
+      const attachment = await firstValueFrom(this.api.uploadAttachment(request));
+      if (!this.isCurrentMutation(revision, request.projectId)) {
+        return 'failed';
+      }
+      this.userStoriesState.update((stories) =>
+        stories.map((story) =>
+          story.id === request.storyId
+            ? {
+                ...story,
+                attachments: [...(story.attachments ?? []), attachment],
+                total_attachments: (story.total_attachments ?? story.attachments?.length ?? 0) + 1,
+              }
+            : story,
+        ),
+      );
+      if (this.selectedStoryState()?.id === request.storyId) {
+        this.selectedStoryState.update((story) =>
+          story
+            ? {
+                ...story,
+                attachments: [...(story.attachments ?? []), attachment],
+                total_attachments: (story.total_attachments ?? story.attachments?.length ?? 0) + 1,
+              }
+            : story,
+        );
+      }
+      this.lastSyncedAtState.set(new Date());
+      this.mutationState.set(null);
+      return 'uploaded';
+    } catch {
+      if (!this.isCurrentMutation(revision, request.projectId)) {
+        return 'failed';
+      }
+      this.mutationState.set(null);
+      this.mutationErrorState.set(`“${request.file.name}” could not be uploaded.`);
+      return 'failed';
+    }
+  }
+
+  async deleteAttachment(
+    projectId: TaigaId,
+    storyId: TaigaId,
+    attachmentId: TaigaId,
+  ): Promise<KanbanAttachmentResult> {
+    if (
+      this.projectIdState() !== projectId ||
+      this.isMutating() ||
+      this.refreshingState() ||
+      this.requiresReconciliationState()
+    ) {
+      return 'failed';
+    }
+
+    const revision = ++this.mutationRevision;
+    this.mutationState.set({ kind: 'attachment', storyIds: [storyId] });
+    this.mutationErrorState.set(null);
+    try {
+      await firstValueFrom(this.api.deleteAttachment(attachmentId));
+      if (!this.isCurrentMutation(revision, projectId)) {
+        return 'failed';
+      }
+      const withoutAttachment = (story: KanbanUserStory): KanbanUserStory => ({
+        ...story,
+        attachments: (story.attachments ?? []).filter(({ id }) => id !== attachmentId),
+        total_attachments: Math.max(
+          0,
+          (story.total_attachments ?? story.attachments?.length ?? 1) - 1,
+        ),
+      });
+      this.userStoriesState.update((stories) =>
+        stories.map((story) => (story.id === storyId ? withoutAttachment(story) : story)),
+      );
+      if (this.selectedStoryState()?.id === storyId) {
+        this.selectedStoryState.update((story) => (story ? withoutAttachment(story) : story));
+      }
+      this.lastSyncedAtState.set(new Date());
+      this.mutationState.set(null);
+      return 'deleted';
+    } catch {
+      if (!this.isCurrentMutation(revision, projectId)) {
+        return 'failed';
+      }
+      this.mutationState.set(null);
+      this.mutationErrorState.set('The file could not be removed.');
+      return 'failed';
     }
   }
 

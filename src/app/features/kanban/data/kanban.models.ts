@@ -54,6 +54,7 @@ export interface KanbanAttachmentSummary {
   readonly url?: string;
   readonly thumbnail_card_url?: string | null;
   readonly size?: number;
+  readonly created_date?: string;
 }
 
 export interface KanbanUserStory {
@@ -142,6 +143,12 @@ export interface KanbanStoryUpdateRequest {
   readonly storyId: TaigaId;
   readonly version?: number;
   readonly changes: KanbanStoryUpdate;
+}
+
+export interface KanbanAttachmentUploadRequest {
+  readonly projectId: TaigaId;
+  readonly storyId: TaigaId;
+  readonly file: File;
 }
 
 export interface KanbanMilestone {

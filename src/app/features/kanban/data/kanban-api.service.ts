@@ -5,6 +5,8 @@ import { RuntimeConfigService } from '../../../core/config';
 import type { TaigaId } from '../../../shared/models';
 import type {
   KanbanCreateRequest,
+  KanbanAttachmentSummary,
+  KanbanAttachmentUploadRequest,
   KanbanFiltersData,
   KanbanMilestone,
   KanbanMoveRequest,
@@ -90,6 +92,24 @@ export class KanbanApiService {
         ...request.changes,
         ...(request.version === undefined ? {} : { version: request.version }),
       },
+    );
+  }
+
+  uploadAttachment(request: KanbanAttachmentUploadRequest): Observable<KanbanAttachmentSummary> {
+    const body = new FormData();
+    body.append('project', String(request.projectId));
+    body.append('object_id', String(request.storyId));
+    body.append('attached_file', request.file, request.file.name);
+    body.append('from_comment', 'false');
+    return this.http.post<KanbanAttachmentSummary>(
+      this.config.resolveApiPath('attachments/us'),
+      body,
+    );
+  }
+
+  deleteAttachment(attachmentId: TaigaId): Observable<void> {
+    return this.http.delete<void>(
+      `${this.config.resolveApiPath('attachments/us')}/${attachmentId}`,
     );
   }
 

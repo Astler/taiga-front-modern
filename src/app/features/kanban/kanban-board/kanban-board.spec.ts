@@ -23,6 +23,8 @@ describe('KanbanBoard', () => {
   const createUserStories = vi.fn();
   const getUserStory = vi.fn();
   const updateUserStory = vi.fn();
+  const uploadAttachment = vi.fn();
+  const deleteAttachment = vi.fn();
   const loadPresets = vi.fn();
   const savePresets = vi.fn();
 
@@ -32,6 +34,8 @@ describe('KanbanBoard', () => {
     createUserStories.mockReset();
     getUserStory.mockReset();
     updateUserStory.mockReset();
+    uploadAttachment.mockReset();
+    deleteAttachment.mockReset();
     loadPresets.mockReset();
     savePresets.mockReset();
     load.mockReturnValue(of({ swimlanes: [], userStories: stories() }));
@@ -47,6 +51,15 @@ describe('KanbanBoard', () => {
         tags: request.changes.tags.map((name: string) => [name, null] as const),
       }),
     );
+    uploadAttachment.mockImplementation((request) =>
+      of({
+        id: 12,
+        name: request.file.name,
+        url: `https://files.example.test/${request.file.name}`,
+        size: request.file.size,
+      }),
+    );
+    deleteAttachment.mockReturnValue(of(undefined));
     loadPresets.mockReturnValue(of([]));
     savePresets.mockReturnValue(of(undefined));
 
@@ -55,7 +68,15 @@ describe('KanbanBoard', () => {
       providers: [
         {
           provide: KanbanApiService,
-          useValue: { load, moveUserStories, createUserStories, getUserStory, updateUserStory },
+          useValue: {
+            load,
+            moveUserStories,
+            createUserStories,
+            getUserStory,
+            updateUserStory,
+            uploadAttachment,
+            deleteAttachment,
+          },
         },
         {
           provide: KanbanFilterPresetsService,
@@ -218,6 +239,36 @@ describe('KanbanBoard', () => {
     );
     expect(host.querySelector('.story-drawer h2')?.textContent).toContain('Build secure login');
     expect(host.querySelector('.story-drawer-footer a')).toBeNull();
+  });
+
+  it('keeps the files block visible and uploads an image pasted into the editor', async () => {
+    const detail = { ...stories()[0]!, attachments: [], total_attachments: 0 };
+    getUserStory.mockReturnValue(of(detail));
+
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', project());
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    host.querySelector<HTMLButtonElement>('.story-subject')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(host.querySelector('.files-section')?.textContent).toContain('No files attached yet.');
+    expect(host.querySelector('.points-control')).toBeTruthy();
+    const file = new File(['image data'], 'clipboard.png', { type: 'image/png' });
+    const paste = new Event('paste', { bubbles: true, cancelable: true });
+    Object.defineProperty(paste, 'clipboardData', { value: { files: [file] } });
+    host.querySelector<HTMLFormElement>('#story-editor')!.dispatchEvent(paste);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(paste.defaultPrevented).toBe(true);
+    expect(uploadAttachment).toHaveBeenCalledWith({ projectId: 17, storyId: 101, file });
+    expect(host.querySelector('.detail-attachment-list')?.textContent).toContain('clipboard.png');
   });
 
   it('applies project-specific saved views', async () => {

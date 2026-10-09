@@ -624,7 +624,12 @@
           <p class="detail-load-error" role="status">{{ detailError }}</p>
         }
 
-        <form id="story-editor" class="story-drawer-content" (submit)="saveStory($event)">
+        <form
+          id="story-editor"
+          class="story-drawer-content"
+          (submit)="saveStory($event)"
+          (paste)="pasteStoryFiles($event)"
+        >
           @if (storyDraft(); as draft) {
             <label class="editor-field editor-field-wide">
               <span>Title</span>
@@ -687,9 +692,12 @@
                 />
               </label>
 
-              <div class="editor-field editor-readonly">
+              <div class="editor-field points-field">
                 <span>Points</span>
-                <strong>{{ detail.total_points ?? 'Not estimated' }}</strong>
+                <div class="points-control">
+                  <span class="points-value">{{ detail.total_points ?? '—' }}</span>
+                  <span>{{ detail.total_points == null ? 'Not estimated' : 'total points' }}</span>
+                </div>
               </div>
             </div>
 
@@ -778,27 +786,107 @@
             </section>
           }
 
-          @if (detail.attachments?.length) {
-            <section class="detail-section">
-              <div class="detail-section-heading">
-                <h3>Attachments</h3>
-                <span>{{ detail.attachments.length }}</span>
+          <section class="detail-section files-section">
+            <div class="detail-section-heading">
+              <div>
+                <h3>Files</h3>
+                <span>{{ detail.attachments?.length ?? 0 }} attached</span>
               </div>
+              @if (canModify()) {
+                <input
+                  #storyFileInput
+                  class="visually-hidden"
+                  type="file"
+                  multiple
+                  (change)="chooseStoryFiles($event)"
+                />
+                <button
+                  mat-button
+                  type="button"
+                  [disabled]="attachmentUploadName() !== null"
+                  (click)="storyFileInput.click()"
+                >
+                  Add files
+                </button>
+              }
+            </div>
+
+            @if (canModify()) {
+              <div
+                class="file-drop-zone"
+                [class.file-drop-zone-active]="attachmentDragActive()"
+                [class.file-drop-zone-busy]="attachmentUploadName()"
+                (dragover)="storyFilesDragOver($event)"
+                (dragleave)="storyFilesDragLeave($event)"
+                (drop)="dropStoryFiles($event)"
+              >
+                @if (attachmentUploadName(); as uploadName) {
+                  <span class="file-upload-spinner" aria-hidden="true"></span>
+                  <strong>Uploading {{ uploadName }}</strong>
+                  <span>Please keep this card open.</span>
+                } @else {
+                  <svg aria-hidden="true" viewBox="0 0 24 24">
+                    <path
+                      d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v4.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V14"
+                    />
+                  </svg>
+                  <strong>Drop files here or paste an image</strong>
+                  <span>Ctrl+V works anywhere while this card is open.</span>
+                }
+              </div>
+            }
+
+            @if (attachmentUploadError(); as uploadError) {
+              <p class="file-upload-error" role="alert">{{ uploadError }}</p>
+            }
+
+            @if (detail.attachments?.length) {
               <ul class="detail-attachment-list">
                 @for (attachment of detail.attachments; track attachment.id) {
                   <li>
-                    @if (attachment.url) {
-                      <a [href]="attachment.url" target="_blank" rel="noopener">
+                    <span class="file-preview" aria-hidden="true">
+                      @if (attachment.thumbnail_card_url) {
+                        <img [src]="attachment.thumbnail_card_url" alt="" />
+                      } @else {
+                        <svg viewBox="0 0 24 24">
+                          <path d="M7 3.5h7l4 4V20H7zM14 3.5V8h4" />
+                        </svg>
+                      }
+                    </span>
+                    <span class="file-copy">
+                      @if (attachment.url) {
+                        <a [href]="attachment.url" target="_blank" rel="noopener">
+                          {{ attachment.name }}
+                        </a>
+                      } @else {
                         {{ attachment.name }}
-                      </a>
-                    } @else {
-                      {{ attachment.name }}
+                      }
+                      @if (formatFileSize(attachment.size)) {
+                        <small>{{ formatFileSize(attachment.size) }}</small>
+                      }
+                    </span>
+                    @if (canModify()) {
+                      <button
+                        class="file-remove"
+                        type="button"
+                        [disabled]="attachmentDeletingId() !== null"
+                        [attr.aria-label]="'Remove ' + attachment.name"
+                        (click)="removeStoryAttachment(attachment)"
+                      >
+                        @if (attachmentDeletingId() === attachment.id) {
+                          <span class="file-upload-spinner" aria-hidden="true"></span>
+                        } @else {
+                          <span aria-hidden="true">×</span>
+                        }
+                      </button>
                     }
                   </li>
                 }
               </ul>
-            </section>
-          }
+            } @else {
+              <p class="files-empty">No files attached yet.</p>
+            }
+          </section>
 
           <section class="detail-section detail-dates">
             <h3>Activity</h3>

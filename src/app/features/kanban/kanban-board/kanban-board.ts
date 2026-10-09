@@ -21,6 +21,7 @@ import type { TaigaId } from '../../../shared/models';
 import {
   KanbanStore,
   KanbanFilterPresetsService,
+  type KanbanAttachmentSummary,
   type KanbanAssignee,
   type KanbanFilterCategory,
   type KanbanFilterClause,
@@ -113,6 +114,10 @@ export class KanbanBoard {
   protected readonly activeStory = signal<KanbanUserStory | null>(null);
   protected readonly storyDraft = signal<StoryEditorDraft | null>(null);
   protected readonly storyDraftDirty = signal(false);
+  protected readonly attachmentDragActive = signal(false);
+  protected readonly attachmentUploadName = signal<string | null>(null);
+  protected readonly attachmentUploadError = signal<string | null>(null);
+  protected readonly attachmentDeletingId = signal<TaigaId | null>(null);
   protected readonly liveAnnouncement = signal('');
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private loadedProjectId: TaigaId | undefined;
@@ -792,6 +797,8 @@ export class KanbanBoard {
   protected closeStoryDetails(): void {
     const storyId = this.store.selectedStory()?.id;
     this.store.closeStoryDetails();
+    this.attachmentDragActive.set(false);
+    this.attachmentUploadError.set(null);
     if (storyId !== undefined) {
       queueMicrotask(() => {
         const trigger = [
@@ -894,6 +901,102 @@ export class KanbanBoard {
       this.storyDraftDirty.set(false);
       this.liveAnnouncement.set(`Story #${detail.ref} saved.`);
     }
+  }
+
+  protected chooseStoryFiles(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = [...(input.files ?? [])];
+    input.value = '';
+    void this.uploadStoryFiles(files);
+  }
+
+  protected pasteStoryFiles(event: ClipboardEvent): void {
+    const files = [...(event.clipboardData?.files ?? [])].filter((file) => file.size > 0);
+    if (files.length === 0) {
+      return;
+    }
+    event.preventDefault();
+    void this.uploadStoryFiles(files);
+  }
+
+  protected storyFilesDragOver(event: DragEvent): void {
+    if (!this.canModify()) {
+      return;
+    }
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'copy';
+    }
+    this.attachmentDragActive.set(true);
+  }
+
+  protected storyFilesDragLeave(event: DragEvent): void {
+    if (!(event.currentTarget as HTMLElement).contains(event.relatedTarget as Node | null)) {
+      this.attachmentDragActive.set(false);
+    }
+  }
+
+  protected dropStoryFiles(event: DragEvent): void {
+    event.preventDefault();
+    this.attachmentDragActive.set(false);
+    void this.uploadStoryFiles([...(event.dataTransfer?.files ?? [])]);
+  }
+
+  protected formatFileSize(value: number | undefined): string {
+    if (value === undefined || value < 0) {
+      return '';
+    }
+    if (value < 1024) {
+      return `${value} B`;
+    }
+    if (value < 1024 * 1024) {
+      return `${(value / 1024).toFixed(1)} KB`;
+    }
+    return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  protected async removeStoryAttachment(attachment: KanbanAttachmentSummary): Promise<void> {
+    const story = this.store.selectedStory();
+    if (!story || !this.canModify() || this.attachmentUploadName() || this.attachmentDeletingId()) {
+      return;
+    }
+    if (!globalThis.confirm(`Remove “${attachment.name}” from this story?`)) {
+      return;
+    }
+
+    this.attachmentUploadError.set(null);
+    this.attachmentDeletingId.set(attachment.id);
+    const result = await this.store.deleteAttachment(this.project().id, story.id, attachment.id);
+    this.attachmentDeletingId.set(null);
+    if (result === 'deleted') {
+      this.liveAnnouncement.set(`${attachment.name} removed from story #${story.ref}.`);
+      return;
+    }
+    this.attachmentUploadError.set(`Could not remove “${attachment.name}”.`);
+  }
+
+  private async uploadStoryFiles(files: readonly File[]): Promise<void> {
+    const story = this.store.selectedStory();
+    const accepted = files.filter((file) => file.size > 0);
+    if (!story || !this.canModify() || accepted.length === 0 || this.attachmentUploadName()) {
+      return;
+    }
+
+    this.attachmentUploadError.set(null);
+    for (const file of accepted) {
+      this.attachmentUploadName.set(file.name);
+      const result = await this.store.uploadAttachment({
+        projectId: this.project().id,
+        storyId: story.id,
+        file,
+      });
+      if (result !== 'uploaded') {
+        this.attachmentUploadError.set(`Could not upload “${file.name}”.`);
+        break;
+      }
+      this.liveAnnouncement.set(`${file.name} attached to story #${story.ref}.`);
+    }
+    this.attachmentUploadName.set(null);
   }
 
   private patchStoryDraft(changes: Partial<StoryEditorDraft>): void {

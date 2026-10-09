@@ -146,6 +146,36 @@ describe('KanbanApiService', () => {
     await expect(result).resolves.toEqual(response);
   });
 
+  it('uploads story files with the stable multipart attachment contract', async () => {
+    const file = new File(['image data'], 'clipboard.png', { type: 'image/png' });
+    const response = { id: 12, name: file.name, url: 'https://files.example.test/clipboard.png' };
+    const result = firstValueFrom(service.uploadAttachment({ projectId: 17, storyId: 101, file }));
+    const request = httpTesting.expectOne('/api/v1/attachments/us');
+
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toBeInstanceOf(FormData);
+    const body = request.request.body as FormData;
+    expect(body.get('project')).toBe('17');
+    expect(body.get('object_id')).toBe('101');
+    expect(body.get('from_comment')).toBe('false');
+    const attachedFile = body.get('attached_file');
+    expect(attachedFile).toBeInstanceOf(File);
+    expect((attachedFile as File).name).toBe('clipboard.png');
+    expect((attachedFile as File).type).toBe('image/png');
+
+    request.flush(response);
+    await expect(result).resolves.toEqual(response);
+  });
+
+  it('deletes a story attachment from the stable endpoint', async () => {
+    const result = firstValueFrom(service.deleteAttachment(12));
+    const request = httpTesting.expectOne('/api/v1/attachments/us/12');
+
+    expect(request.request.method).toBe('DELETE');
+    request.flush(null);
+    await expect(result).resolves.toBeNull();
+  });
+
   it('moves stories with the stable relative-order contract', async () => {
     const result = firstValueFrom(
       service.moveUserStories({

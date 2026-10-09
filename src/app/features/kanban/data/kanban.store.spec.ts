@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { KanbanApiService, type KanbanPayload } from './kanban-api.service';
 import type {
   KanbanCreateRequest,
+  KanbanAttachmentSummary,
+  KanbanAttachmentUploadRequest,
   KanbanMoveRequest,
   KanbanOrderUpdate,
   KanbanSwimlane,
@@ -26,6 +28,10 @@ describe('KanbanStore', () => {
     updateUserStory: ReturnType<
       typeof vi.fn<(request: KanbanStoryUpdateRequest) => Observable<KanbanUserStory>>
     >;
+    uploadAttachment: ReturnType<
+      typeof vi.fn<(request: KanbanAttachmentUploadRequest) => Observable<KanbanAttachmentSummary>>
+    >;
+    deleteAttachment: ReturnType<typeof vi.fn<(attachmentId: number) => Observable<void>>>;
   };
   let store: KanbanStore;
 
@@ -36,6 +42,8 @@ describe('KanbanStore', () => {
       createUserStories: vi.fn(),
       getUserStory: vi.fn(),
       updateUserStory: vi.fn(),
+      uploadAttachment: vi.fn(),
+      deleteAttachment: vi.fn(),
     };
     TestBed.configureTestingModule({
       providers: [KanbanStore, { provide: KanbanApiService, useValue: api }],
@@ -161,6 +169,35 @@ describe('KanbanStore', () => {
     expect(store.userStories()[0]?.subject).toBe('Updated title');
     expect(store.selectedStory()?.description).toBe('Updated body');
     expect(store.mutationError()).toBeNull();
+  });
+
+  it('adds and removes attachments in both the board and open editor', async () => {
+    const original = { ...userStory(1, 1), attachments: [], total_attachments: 0 };
+    const attachment = {
+      id: 12,
+      name: 'clipboard.png',
+      url: 'https://files.example.test/clipboard.png',
+    };
+    const file = new File(['image data'], attachment.name, { type: 'image/png' });
+    api.load.mockReturnValue(of({ swimlanes: [], userStories: [original] }));
+    api.getUserStory.mockReturnValue(of(original));
+    api.uploadAttachment.mockReturnValue(of(attachment));
+    api.deleteAttachment.mockReturnValue(of(undefined));
+    store.load(17);
+    store.openStoryDetails(1);
+
+    await expect(store.uploadAttachment({ projectId: 17, storyId: 1, file })).resolves.toBe(
+      'uploaded',
+    );
+    expect(store.userStories()[0]?.attachments).toEqual([attachment]);
+    expect(store.selectedStory()?.attachments).toEqual([attachment]);
+    expect(store.selectedStory()?.total_attachments).toBe(1);
+
+    await expect(store.deleteAttachment(17, 1, attachment.id)).resolves.toBe('deleted');
+    expect(api.deleteAttachment).toHaveBeenCalledWith(12);
+    expect(store.userStories()[0]?.attachments).toEqual([]);
+    expect(store.selectedStory()?.attachments).toEqual([]);
+    expect(store.selectedStory()?.total_attachments).toBe(0);
   });
 
   it('ignores a stale response when a newer project request has already won', () => {
