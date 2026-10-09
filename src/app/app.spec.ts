@@ -8,6 +8,7 @@ import { RuntimeConfigService } from './core';
 import { AuthService } from './core/auth';
 import { ProjectStore, type TaigaProjectDetail } from './features/projects/data';
 import { DashboardOverviewApiService } from './shell/dashboard-placeholder/dashboard-overview-api.service';
+import { TopbarNotificationsService } from './shell/topbar/topbar-notifications.service';
 
 const project: TaigaProjectDetail = {
   id: 1,
@@ -77,6 +78,14 @@ describe('App', () => {
         {
           provide: DashboardOverviewApiService,
           useValue: { load: () => of({ stories: [], milestones: [] }) },
+        },
+        {
+          provide: TopbarNotificationsService,
+          useValue: {
+            listUnread: () => of({ total: 0, objects: [] }),
+            markAsRead: () => of(undefined),
+            markAllAsRead: () => of(undefined),
+          },
         },
       ],
     }).compileComponents();

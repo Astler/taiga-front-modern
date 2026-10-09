@@ -72,15 +72,23 @@
     class="notification-button"
     mat-icon-button
     type="button"
-    aria-label="Notifications"
+    [attr.aria-label]="
+      notificationsTotal() ? 'Notifications, ' + notificationsTotal() + ' unread' : 'Notifications'
+    "
+    [matMenuTriggerFor]="notificationsMenu"
     matTooltip="Notifications"
+    (menuOpened)="refreshNotifications()"
   >
     <svg aria-hidden="true" viewBox="0 0 24 24">
       <path
         d="M6.7 10.2a5.3 5.3 0 0 1 10.6 0c0 6.2 2.2 6.2 2.2 6.2h-15s2.2 0 2.2-6.2ZM9.8 19a2.4 2.4 0 0 0 4.4 0"
       />
     </svg>
-    <span class="notification-dot" aria-hidden="true"></span>
+    @if (notificationsTotal()) {
+      <span class="notification-count" aria-hidden="true">{{
+        notificationsTotal() > 99 ? '99+' : notificationsTotal()
+      }}</span>
+    }
   </button>
 
   <button
@@ -93,6 +101,70 @@
     <span class="profile-avatar">{{ profileInitials() }}</span>
   </button>
 </mat-toolbar>
+
+<mat-menu #notificationsMenu="matMenu" class="notifications-menu" xPosition="before">
+  <section class="notifications-panel" aria-label="Notifications">
+    <header class="notifications-header">
+      <span>
+        <strong>Notifications</strong>
+        @if (notificationsTotal()) {
+          <small>{{ notificationsTotal() }} unread</small>
+        }
+      </span>
+      @if (notificationsTotal()) {
+        <button type="button" (click)="markAllNotificationsRead($event)">Mark all read</button>
+      }
+    </header>
+
+    <div class="notifications-list">
+      @if (notificationsStatus() === 'loading') {
+        <div class="notification-state" role="status">Loading notifications…</div>
+      } @else if (notificationsStatus() === 'error') {
+        <div class="notification-state notification-state-error" role="alert">
+          <span>Notifications could not be loaded.</span>
+          <button type="button" (click)="refreshNotifications(); $event.stopPropagation()">
+            Try again
+          </button>
+        </div>
+      } @else if (!notifications().length) {
+        <div class="notification-state">
+          <span class="notification-state-icon" aria-hidden="true">✓</span>
+          <strong>You’re all caught up</strong>
+          <small>New activity will appear here.</small>
+        </div>
+      } @else {
+        @for (notification of notifications(); track notification.id) {
+          <button
+            class="notification-entry"
+            mat-menu-item
+            type="button"
+            (click)="openNotification(notification)"
+          >
+            <span class="notification-row">
+              <span class="notification-avatar">
+                @if (notification.data?.user?.photo; as photo) {
+                  <img [src]="photo" alt="" />
+                } @else {
+                  {{ notificationInitials(notification) }}
+                }
+              </span>
+              <span class="notification-copy">
+                <strong>{{ notificationTitle(notification) }}</strong>
+                <small>
+                  {{ notification.data?.project?.name }}
+                  @if (notification.data?.project?.name && notificationTime(notification)) {
+                    ·
+                  }
+                  {{ notificationTime(notification) }}
+                </small>
+              </span>
+            </span>
+          </button>
+        }
+      }
+    </div>
+  </section>
+</mat-menu>
 
 <mat-menu #profileMenu="matMenu" xPosition="before">
   <div class="profile-summary">
