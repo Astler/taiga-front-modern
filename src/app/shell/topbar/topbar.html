@@ -145,6 +145,30 @@
           My work
         </button>
       }
+      <button
+        class="compact-shortcut-secondary"
+        type="button"
+        [class.compact-shortcut-active]="boardToolbar.activePresetId() === 'builtin:unassigned'"
+        (click)="boardToolbar.applyUnassigned()"
+      >
+        Unassigned
+      </button>
+      <button
+        class="compact-shortcut-secondary"
+        type="button"
+        [class.compact-shortcut-active]="boardToolbar.activePresetId() === 'builtin:blocked'"
+        (click)="boardToolbar.applyBlocked()"
+      >
+        Blocked
+      </button>
+      <button
+        class="compact-shortcut-secondary"
+        type="button"
+        [class.compact-shortcut-active]="boardToolbar.activePresetId() === 'builtin:overdue'"
+        (click)="boardToolbar.applyOverdue()"
+      >
+        Overdue
+      </button>
     </div>
   }
 

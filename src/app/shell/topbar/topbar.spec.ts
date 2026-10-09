@@ -144,7 +144,10 @@ describe('Topbar', () => {
     const selectSort = vi.fn();
     const toggleFilters = vi.fn();
     const applyAllWork = vi.fn();
+    const applyBlocked = vi.fn();
     const applyMyWork = vi.fn();
+    const applyOverdue = vi.fn();
+    const applyUnassigned = vi.fn();
     TestBed.configureTestingModule({
       imports: [Topbar],
       providers: [
@@ -183,7 +186,10 @@ describe('Topbar', () => {
       sortOptions: [{ value: 'manual', label: 'Manual board order' }],
       totalCount: signal(9),
       applyAllWork,
+      applyBlocked,
       applyMyWork,
+      applyOverdue,
+      applyUnassigned,
       selectSort,
       setQuery: (value) => query.set(value),
       toggleFilters,
@@ -206,6 +212,15 @@ describe('Topbar', () => {
     expect(toggleFilters).toHaveBeenCalledOnce();
     host.querySelector<HTMLButtonElement>('.compact-board-shortcuts button')!.click();
     expect(applyAllWork).toHaveBeenCalledOnce();
+    const shortcutButtons = [
+      ...host.querySelectorAll<HTMLButtonElement>('.compact-board-shortcuts button'),
+    ];
+    shortcutButtons.find((button) => button.textContent?.includes('Unassigned'))!.click();
+    shortcutButtons.find((button) => button.textContent?.includes('Blocked'))!.click();
+    shortcutButtons.find((button) => button.textContent?.includes('Overdue'))!.click();
+    expect(applyUnassigned).toHaveBeenCalledOnce();
+    expect(applyBlocked).toHaveBeenCalledOnce();
+    expect(applyOverdue).toHaveBeenCalledOnce();
 
     fixture.destroy();
     disconnect();

@@ -20,7 +20,10 @@ export interface CompactKanbanToolbar {
   readonly sortOptions: readonly CompactKanbanSortOption[];
   readonly totalCount: Signal<number>;
   readonly applyAllWork: () => void;
+  readonly applyBlocked: () => void;
   readonly applyMyWork: () => void;
+  readonly applyOverdue: () => void;
+  readonly applyUnassigned: () => void;
   readonly selectSort: (mode: string) => void;
   readonly setQuery: (query: string) => void;
   readonly toggleFilters: () => void;
