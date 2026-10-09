@@ -50,6 +50,12 @@
   outline: none;
 }
 
+:host-context(html[data-ui-density='compact']) .route-content {
+  height: calc(100dvh - var(--app-topbar-height));
+  min-height: 0;
+  overflow: hidden;
+}
+
 @media (max-width: 839px) {
   .shell-navigation {
     width: min(var(--app-sidebar-width), calc(100vw - 3rem));

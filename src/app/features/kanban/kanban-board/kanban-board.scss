@@ -3,6 +3,11 @@
   min-width: 0;
 }
 
+:host-context(html[data-ui-density='compact']) {
+  height: 100%;
+  min-height: 0;
+}
+
 .board-page {
   position: relative;
   display: flex;
@@ -15,7 +20,7 @@
 }
 
 .board-page.board-page-compact {
-  height: calc(100dvh - 2.5rem);
+  height: 100%;
   padding: 0;
 }
 

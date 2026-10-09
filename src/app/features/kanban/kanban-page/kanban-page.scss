@@ -3,6 +3,16 @@
   min-height: 100%;
 }
 
+:host-context(html[data-ui-density='compact']) {
+  height: 100%;
+  min-height: 0;
+}
+
+:host-context(html[data-ui-density='compact']) pf-kanban-board {
+  display: block;
+  height: 100%;
+}
+
 .project-loading,
 .project-state {
   width: min(42rem, calc(100% - 2rem));
