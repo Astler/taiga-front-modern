@@ -96,6 +96,53 @@ describe('Topbar', () => {
     expect(selectProject).toHaveBeenCalledWith(project);
     expect(navigate).toHaveBeenCalledWith(['/project', 'beta', section]);
   });
+
+  it('opens a notification item and its project through separate routes', () => {
+    const navigate = vi.fn();
+    const selectProject = vi.fn();
+    const markAsRead = vi.fn(() => of(undefined));
+    TestBed.configureTestingModule({
+      imports: [Topbar],
+      providers: [
+        { provide: Router, useValue: { navigate, url: '/dashboard' } },
+        {
+          provide: ShellProjectContext,
+          useValue: {
+            projects: signal([project]),
+            pinnedProjects: signal([]),
+            selectedProject: signal(project),
+            selectProject,
+            togglePin: vi.fn(),
+          },
+        },
+        {
+          provide: RuntimeConfigService,
+          useValue: { snapshot: () => ({ legacyUrl: '/legacy/' }) },
+        },
+        { provide: AuthService, useValue: { user: signal(null) } },
+        {
+          provide: TopbarNotificationsService,
+          useValue: notificationService({ markAsRead }),
+        },
+      ],
+    });
+    const fixture = TestBed.createComponent(Topbar);
+    const component = fixture.componentInstance as unknown as {
+      openNotification(value: TopbarNotification): void;
+      openNotificationProject(value: TopbarNotification): void;
+    };
+
+    component.openNotification(notification);
+    expect(markAsRead).toHaveBeenCalledWith(notification.id);
+    expect(selectProject).toHaveBeenCalledWith(project);
+    expect(navigate).toHaveBeenLastCalledWith(['/project', 'beta', 'kanban'], {
+      queryParams: { story: 91 },
+    });
+
+    navigate.mockClear();
+    component.openNotificationProject(notification);
+    expect(navigate).toHaveBeenCalledWith(['/project', 'beta', 'kanban']);
+  });
 });
 
 const project: ShellProject = {

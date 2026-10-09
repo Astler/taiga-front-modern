@@ -143,11 +143,15 @@ pf-root {
 }
 
 .notifications-menu {
-  width: min(24rem, calc(100vw - 1rem));
+  width: min(32rem, calc(100vw - 1rem));
   max-width: none !important;
   border: 1px solid var(--app-border-color);
   border-radius: var(--app-radius-lg) !important;
   background: var(--mat-sys-surface-container-high) !important;
+}
+
+.notifications-menu .mat-mdc-menu-content {
+  padding: 0 !important;
 }
 
 ::selection {

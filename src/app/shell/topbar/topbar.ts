@@ -102,6 +102,81 @@ export class Topbar {
     }
   }
 
+  protected notificationKind(notification: TopbarNotification): string {
+    switch (notification.event_type) {
+      case 1:
+        return 'Assignment';
+      case 2:
+        return 'Mention';
+      case 3:
+        return 'Watching';
+      case 4:
+        return 'Project invite';
+      case 5:
+        return 'Comment';
+      case 6:
+        return 'Comment mention';
+      default:
+        return 'Update';
+    }
+  }
+
+  protected notificationAction(notification: TopbarNotification): string {
+    switch (notification.event_type) {
+      case 1:
+        return 'assigned this item to you';
+      case 2:
+        return 'mentioned you in the description';
+      case 3:
+        return 'added you as a watcher';
+      case 4:
+        return 'added you to this project';
+      case 5:
+        return 'left a new comment';
+      case 6:
+        return 'mentioned you in a comment';
+      default:
+        return 'updated this item';
+    }
+  }
+
+  protected notificationActor(notification: TopbarNotification): string {
+    return notification.data?.user?.name || notification.data?.user?.username || 'Someone';
+  }
+
+  protected notificationObjectTitle(notification: TopbarNotification): string {
+    return notificationObjectLabel(notification);
+  }
+
+  protected notificationObjectMeta(notification: TopbarNotification): string {
+    const contentType = notification.data?.obj?.content_type;
+    if (!contentType) {
+      return 'Project activity';
+    }
+    return contentType === 'userstory'
+      ? 'User story'
+      : contentType.charAt(0).toLocaleUpperCase() + contentType.slice(1);
+  }
+
+  protected notificationProject(notification: TopbarNotification): NotificationProjectView {
+    const source = notification.data?.project;
+    const knownProject = this.projectContext
+      .projects()
+      .find(({ id, slug }) => id === source?.id || slug === source?.slug);
+    if (knownProject) {
+      return knownProject;
+    }
+
+    const name = source?.name || 'Unknown project';
+    return {
+      accent: '#c9b6ff',
+      code: initials(name),
+      logoUrl: source?.logo_small_url || null,
+      name,
+      slug: source?.slug || '',
+    };
+  }
+
   protected notificationInitials(notification: TopbarNotification): string {
     return initials(notification.data?.user?.name || notification.data?.user?.username || 'Taiga');
   }
@@ -111,10 +186,7 @@ export class Topbar {
   }
 
   protected openNotification(notification: TopbarNotification): void {
-    this.removeNotification(notification.id);
-    void firstValueFrom(this.notificationsApi.markAsRead(notification.id)).catch(() => {
-      this.loadNotifications(true);
-    });
+    this.markNotificationRead(notification);
 
     const projectSlug = notification.data?.project?.slug;
     if (!projectSlug) {
@@ -141,6 +213,19 @@ export class Topbar {
         queryParams: { story: object.id },
       });
       return;
+    }
+    void this.router.navigate(['/project', projectSlug, 'kanban']);
+  }
+
+  protected openNotificationProject(notification: TopbarNotification): void {
+    this.markNotificationRead(notification);
+    const projectSlug = notification.data?.project?.slug;
+    if (!projectSlug) {
+      return;
+    }
+    const project = this.projectContext.projects().find(({ slug }) => slug === projectSlug);
+    if (project) {
+      this.projectContext.selectProject(project);
     }
     void this.router.navigate(['/project', projectSlug, 'kanban']);
   }
@@ -184,9 +269,24 @@ export class Topbar {
     );
     this.notificationsTotal.update((total) => Math.max(0, total - 1));
   }
+
+  private markNotificationRead(notification: TopbarNotification): void {
+    this.removeNotification(notification.id);
+    void firstValueFrom(this.notificationsApi.markAsRead(notification.id)).catch(() => {
+      this.loadNotifications(true);
+    });
+  }
 }
 
 type NotificationsStatus = 'error' | 'idle' | 'loaded' | 'loading';
+
+interface NotificationProjectView {
+  readonly accent: string;
+  readonly code: string;
+  readonly logoUrl: string | null;
+  readonly name: string;
+  readonly slug: string;
+}
 
 type ProjectSection = 'epics' | 'issues' | 'kanban' | 'settings' | 'team';
 

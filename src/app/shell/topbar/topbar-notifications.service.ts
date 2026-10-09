@@ -12,6 +12,7 @@ export interface TopbarNotificationUser {
 
 export interface TopbarNotificationProject {
   readonly id?: number;
+  readonly logo_small_url?: string | null;
   readonly name?: string;
   readonly slug?: string;
 }

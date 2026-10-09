@@ -134,32 +134,83 @@
         </div>
       } @else {
         @for (notification of notifications(); track notification.id) {
-          <button
-            class="notification-entry"
-            mat-menu-item
-            type="button"
-            (click)="openNotification(notification)"
-          >
-            <span class="notification-row">
-              <span class="notification-avatar">
-                @if (notification.data?.user?.photo; as photo) {
-                  <img [src]="photo" alt="" />
-                } @else {
-                  {{ notificationInitials(notification) }}
-                }
+          @let project = notificationProject(notification);
+          <article class="notification-card">
+            <div class="notification-card-heading">
+              <span class="notification-kind">
+                <span aria-hidden="true"></span>
+                {{ notificationKind(notification) }}
               </span>
-              <span class="notification-copy">
-                <strong>{{ notificationTitle(notification) }}</strong>
-                <small>
-                  {{ notification.data?.project?.name }}
-                  @if (notification.data?.project?.name && notificationTime(notification)) {
-                    ·
+              <time [attr.datetime]="notification.created || null">
+                {{ notificationTime(notification) }}
+              </time>
+            </div>
+
+            <button
+              class="notification-entry"
+              mat-menu-item
+              type="button"
+              [attr.aria-label]="'Open ' + notificationObjectTitle(notification)"
+              (click)="openNotification(notification)"
+            >
+              <span class="notification-row">
+                <span class="notification-copy">
+                  <small class="notification-object-type">{{
+                    notificationObjectMeta(notification)
+                  }}</small>
+                  <strong>{{ notificationObjectTitle(notification) }}</strong>
+                  <span class="notification-actor-row">
+                    <span class="notification-avatar">
+                      @if (notification.data?.user?.photo; as photo) {
+                        <img [src]="photo" alt="" />
+                      } @else {
+                        {{ notificationInitials(notification) }}
+                      }
+                    </span>
+                    <span>
+                      <b>{{ notificationActor(notification) }}</b>
+                      {{ notificationAction(notification) }}
+                    </span>
+                  </span>
+                </span>
+                <svg class="notification-open-icon" aria-hidden="true" viewBox="0 0 24 24">
+                  <path d="m9 5 7 7-7 7" />
+                </svg>
+              </span>
+            </button>
+
+            <button
+              class="notification-project-link"
+              mat-menu-item
+              type="button"
+              [attr.aria-label]="'Open project ' + project.name"
+              (click)="openNotificationProject(notification)"
+            >
+              <span class="notification-project-row">
+                <span
+                  class="notification-project-icon"
+                  aria-hidden="true"
+                  [style.--project-accent]="project.accent"
+                >
+                  @if (project.logoUrl) {
+                    <img [src]="project.logoUrl" alt="" />
+                  } @else {
+                    {{ project.code }}
                   }
-                  {{ notificationTime(notification) }}
-                </small>
+                </span>
+                <span class="notification-project-copy">
+                  <small>Project</small>
+                  <strong>{{ project.name }}</strong>
+                </span>
+                <span class="notification-project-action">
+                  Open project
+                  <svg aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M7 17 17 7M9 7h8v8" />
+                  </svg>
+                </span>
               </span>
-            </span>
-          </button>
+            </button>
+          </article>
         }
       }
     </div>
