@@ -18,11 +18,12 @@
 
 .preset-bar {
   display: flex;
+  min-width: 10rem;
   min-height: 2.15rem;
+  flex: 1 1 auto;
   align-items: center;
   gap: 0.4rem;
   overflow-x: auto;
-  padding-block: 0 0.65rem;
   scrollbar-width: none;
 }
 
@@ -95,7 +96,7 @@
 }
 
 .save-view-button {
-  margin-inline-start: auto;
+  margin-inline-start: 0;
   background: transparent;
   color: var(--mat-sys-primary);
 }

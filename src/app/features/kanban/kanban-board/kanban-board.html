@@ -1,35 +1,5 @@
-<section class="board-page" aria-labelledby="kanban-title">
-  <header class="board-header">
-    <div class="board-heading">
-      <span class="eyebrow">{{ project().name }} · Taiga API</span>
-      <h1 id="kanban-title">Kanban</h1>
-      <p>
-        <strong>{{ openStoryCount() }}</strong> open · {{ store.userStories().length }} total
-        @if (hasActiveFilters()) {
-          · <strong>{{ visibleStories().length }}</strong> matching
-        }
-      </p>
-    </div>
-
-    <div class="board-actions">
-      <button
-        class="app-icon-button"
-        mat-button
-        type="button"
-        [disabled]="store.isLoading() || store.isRefreshing() || store.isMutating()"
-        (click)="refresh()"
-      >
-        <span class="app-button-content">
-          <svg aria-hidden="true" viewBox="0 0 24 24">
-            <path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" />
-          </svg>
-          <span class="app-button-text">{{ store.isRefreshing() ? 'Syncing…' : 'Refresh' }}</span>
-        </span>
-      </button>
-    </div>
-  </header>
-
-  <div class="filters" aria-label="Board search and sorting">
+<section class="board-page" aria-label="Kanban board">
+  <div class="board-toolbar" aria-label="Board search, views, and sorting">
     <label class="search-field">
       <svg aria-hidden="true" viewBox="0 0 24 24">
         <circle cx="11" cy="11" r="6" />
@@ -43,6 +13,13 @@
         (input)="updateQuery($event)"
       />
     </label>
+
+    <span class="board-count">
+      <strong>{{ openStoryCount() }}</strong> open · {{ store.userStories().length }} total
+      @if (hasActiveFilters()) {
+        · <strong>{{ visibleStories().length }}</strong> matching
+      }
+    </span>
 
     <label class="select-field">
       <span>Sort</span>
@@ -71,23 +48,21 @@
     </button>
 
     @if (hasActiveFilters()) {
-      <button mat-button type="button" (click)="clearFilters()">Clear filters</button>
-    }
-  </div>
-
-  <div class="preset-bar" aria-label="Saved board views">
-    @for (preset of builtInPresets(); track preset.id) {
       <button
+        class="clear-filters"
+        mat-button
         type="button"
-        class="preset-chip"
-        [class.preset-chip-active]="activePresetId() === preset.id"
-        (click)="applyPreset(preset)"
+        aria-label="Clear filters"
+        (click)="clearFilters()"
       >
-        {{ preset.name }}
+        Clear
       </button>
     }
-    @for (preset of savedPresets(); track preset.id) {
-      <span class="saved-preset">
+
+    <div class="toolbar-divider" aria-hidden="true"></div>
+
+    <div class="preset-bar" aria-label="Saved board views">
+      @for (preset of builtInPresets(); track preset.id) {
         <button
           type="button"
           class="preset-chip"
@@ -96,27 +71,54 @@
         >
           {{ preset.name }}
         </button>
-        <button
-          type="button"
-          class="remove-preset"
-          [attr.aria-label]="'Delete saved view ' + preset.name"
-          [disabled]="presetsSaving()"
-          (click)="removePreset(preset, $event)"
-        >
-          ×
-        </button>
-      </span>
-    }
-    @if (presetsLoading()) {
-      <span class="preset-state">Loading saved views…</span>
-    }
+      }
+      @for (preset of savedPresets(); track preset.id) {
+        <span class="saved-preset">
+          <button
+            type="button"
+            class="preset-chip"
+            [class.preset-chip-active]="activePresetId() === preset.id"
+            (click)="applyPreset(preset)"
+          >
+            {{ preset.name }}
+          </button>
+          <button
+            type="button"
+            class="remove-preset"
+            [attr.aria-label]="'Delete saved view ' + preset.name"
+            [disabled]="presetsSaving()"
+            (click)="removePreset(preset, $event)"
+          >
+            ×
+          </button>
+        </span>
+      }
+      @if (presetsLoading()) {
+        <span class="preset-state">Loading views…</span>
+      }
+    </div>
+
     <button
       type="button"
       class="save-view-button"
       [disabled]="presetsSaving()"
       (click)="presetEditorOpen.set(!presetEditorOpen())"
     >
-      + Save current view
+      + Save view
+    </button>
+
+    <button
+      class="toolbar-refresh"
+      mat-button
+      type="button"
+      [matTooltip]="store.isRefreshing() ? 'Syncing board' : 'Refresh board'"
+      aria-label="Refresh board"
+      [disabled]="store.isLoading() || store.isRefreshing() || store.isMutating()"
+      (click)="refresh()"
+    >
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" />
+      </svg>
     </button>
   </div>
 

@@ -107,6 +107,8 @@ describe('KanbanBoard', () => {
     const search = host.querySelector<HTMLInputElement>('.search-field input[type="search"]')!;
     expect(load).toHaveBeenCalledOnce();
     expect(load).toHaveBeenCalledWith(17);
+    expect(host.querySelector('.board-heading')).toBeNull();
+    expect(host.querySelector('.board-toolbar')).toBeTruthy();
     expect(search.getAttribute('aria-label')).toBe('Search stories');
     expect(search.closest('.search-field')?.textContent?.trim()).toBe('');
     expect(columnNames(host)).toEqual(['Ready', 'Done']);
@@ -118,8 +120,8 @@ describe('KanbanBoard', () => {
     setControlValue(search, 'billing', 'input');
     fixture.detectChanges();
     expect(cardSubjects(host)).toEqual(['#102 Fix billing']);
-    expect(host.querySelector('.board-heading p')?.textContent).toContain('2 open');
-    expect(host.querySelector('.board-heading p')?.textContent).toContain('1 matching');
+    expect(host.querySelector('.board-count')?.textContent).toContain('2 open');
+    expect(host.querySelector('.board-count')?.textContent).toContain('1 matching');
 
     setControlValue(search, '#101', 'input');
     fixture.detectChanges();
@@ -405,7 +407,7 @@ describe('KanbanBoard', () => {
     fixture.detectChanges();
 
     const host = fixture.nativeElement as HTMLElement;
-    expect(host.querySelector('.board-heading p')?.textContent).toContain('1 open');
+    expect(host.querySelector('.board-count')?.textContent).toContain('1 open');
     const cards = [...host.querySelectorAll<HTMLElement>('.story-card')];
     const openTaskCard = cards.find((card) => card.textContent?.includes('#201'))!;
     const closedTaskCard = cards.find((card) => card.textContent?.includes('#202'))!;
@@ -784,9 +786,7 @@ function setControlValue(
 }
 
 function clearFilters(host: HTMLElement): void {
-  const button = [...host.querySelectorAll<HTMLButtonElement>('button')].find((candidate) =>
-    candidate.textContent?.includes('Clear filters'),
-  );
+  const button = host.querySelector<HTMLButtonElement>('button[aria-label="Clear filters"]');
   expect(button).toBeTruthy();
   button!.click();
 }
