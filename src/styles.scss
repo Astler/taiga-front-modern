@@ -188,12 +188,15 @@ pf-kanban-board .board-page-compact {
   }
 
   .board-scroll {
+    border-block: 0;
+    border-inline: 0;
     border-radius: 0;
+    box-shadow: none;
   }
 
   .column-header {
-    min-height: 1.75rem;
-    padding: 0 0.4rem;
+    min-height: 2rem;
+    padding: 0.125rem 0.625rem;
   }
 
   .column-cards {
