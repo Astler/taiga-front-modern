@@ -15,7 +15,7 @@
     </label>
 
     <span class="board-count">
-      <strong>{{ openStoryCount() }}</strong> open · {{ store.userStories().length }} total
+      <strong>{{ openStoryCount() }}</strong> open · {{ totalStoryCount() }} total
       @if (hasActiveFilters()) {
         · <strong>{{ visibleStories().length }}</strong> matching
       }

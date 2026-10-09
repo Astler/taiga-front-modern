@@ -5,6 +5,7 @@ import { of } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RuntimeConfigService } from '../../core';
 import { AuthService } from '../../core/auth';
+import { CompactKanbanToolbarService } from '../../shared/compact-kanban-toolbar.service';
 import type { ShellProject } from '../project-context/mock-projects';
 import { ShellProjectContext } from '../project-context/shell-project-context';
 import { TopbarNotification, TopbarNotificationsService } from './topbar-notifications.service';
@@ -110,6 +111,78 @@ describe('Topbar', () => {
 
     expect(selectProject).toHaveBeenCalledWith(project);
     expect(navigate).toHaveBeenCalledWith(['/project', 'beta', section]);
+  });
+
+  it('moves the live board controls into the topbar in compact mode', () => {
+    globalThis.localStorage?.setItem('taiga-modern:compact-mode', 'true');
+    const query = signal('');
+    const selectSort = vi.fn();
+    const toggleFilters = vi.fn();
+    const applyAllWork = vi.fn();
+    const applyMyWork = vi.fn();
+    TestBed.configureTestingModule({
+      imports: [Topbar],
+      providers: [
+        { provide: Router, useValue: { navigate: vi.fn(), url: '/project/beta/kanban' } },
+        {
+          provide: ShellProjectContext,
+          useValue: {
+            projects: signal([project]),
+            pinnedProjects: signal([project]),
+            selectedProject: signal(project),
+            selectProject: vi.fn(),
+            togglePin: vi.fn(),
+          },
+        },
+        {
+          provide: RuntimeConfigService,
+          useValue: { snapshot: () => ({ legacyUrl: '/legacy/' }) },
+        },
+        { provide: AuthService, useValue: { user: signal(null) } },
+        { provide: TopbarNotificationsService, useValue: notificationService() },
+      ],
+    });
+    const toolbarService = TestBed.inject(CompactKanbanToolbarService);
+    const disconnect = toolbarService.connect({
+      activeFilterCount: signal(2),
+      activePresetId: signal('builtin:mine'),
+      filterPanelOpen: signal(false),
+      hasActiveFilters: signal(true),
+      hasMyWork: signal(true),
+      matchingCount: signal(3),
+      openCount: signal(6),
+      query,
+      sortLabel: signal('Manual board order'),
+      sortMode: signal('manual'),
+      sortOptions: [{ value: 'manual', label: 'Manual board order' }],
+      totalCount: signal(9),
+      applyAllWork,
+      applyMyWork,
+      selectSort,
+      setQuery: (value) => query.set(value),
+      toggleFilters,
+    });
+    const fixture = TestBed.createComponent(Topbar);
+    fixture.componentRef.setInput('navigationExpanded', true);
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const search = host.querySelector<HTMLInputElement>('.compact-board-search input')!;
+    expect(search).toBeTruthy();
+    expect(host.querySelector('.compact-board-count')?.textContent).toContain('6 open · 9 total');
+    expect(host.querySelector('.compact-board-count')?.textContent).toContain('3 shown');
+    expect(host.querySelector('.global-search')).toBeTruthy();
+
+    search.value = 'release';
+    search.dispatchEvent(new Event('input'));
+    expect(query()).toBe('release');
+    host.querySelectorAll<HTMLButtonElement>('.compact-board-control')[1]!.click();
+    expect(toggleFilters).toHaveBeenCalledOnce();
+    host.querySelector<HTMLButtonElement>('.compact-board-shortcuts button')!.click();
+    expect(applyAllWork).toHaveBeenCalledOnce();
+
+    fixture.destroy();
+    disconnect();
   });
 
   it('opens a notification item and its project through separate routes', () => {

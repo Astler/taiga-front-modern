@@ -3,6 +3,7 @@ import { CdkScrollable } from '@angular/cdk/scrolling';
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
   computed,
   effect,
@@ -17,6 +18,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../core/auth';
+import { CompactKanbanToolbarService } from '../../../shared/compact-kanban-toolbar.service';
 import type { TaigaId } from '../../../shared/models';
 import {
   KanbanStore,
@@ -112,6 +114,8 @@ export class KanbanBoard {
   protected readonly store = inject(KanbanStore);
   private readonly auth = inject(AuthService);
   private readonly presetApi = inject(KanbanFilterPresetsService);
+  private readonly compactToolbar = inject(CompactKanbanToolbarService);
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly query = signal('');
   protected readonly sortMode = signal<KanbanSortMode>('manual');
   protected readonly sortOptions = SORT_OPTIONS;
@@ -328,6 +332,8 @@ export class KanbanBoard {
     () => this.store.userStories().filter((story) => !this.isStoryClosed(story)).length,
   );
 
+  protected readonly totalStoryCount = computed(() => this.store.userStories().length);
+
   private readonly statusById = computed(
     () => new Map(this.statuses().map((status) => [status.id, status])),
   );
@@ -387,6 +393,10 @@ export class KanbanBoard {
       )?.id ?? null
     );
   });
+
+  private readonly hasMyWorkPreset = computed(() =>
+    this.builtInPresets().some(({ id }) => id === 'builtin:mine'),
+  );
 
   private readonly projectMembersById = computed(
     () => new Map((this.project().members ?? []).map((member) => [member.id, member])),
@@ -454,6 +464,27 @@ export class KanbanBoard {
   });
 
   constructor() {
+    const disconnectCompactToolbar = this.compactToolbar.connect({
+      activeFilterCount: this.activeFilterCount,
+      activePresetId: this.activePresetId,
+      filterPanelOpen: this.filterPanelOpen,
+      hasActiveFilters: this.hasActiveFilters,
+      hasMyWork: this.hasMyWorkPreset,
+      matchingCount: computed(() => this.visibleStories().length),
+      openCount: this.openStoryCount,
+      query: this.query,
+      sortLabel: this.sortLabel,
+      sortMode: this.sortMode,
+      sortOptions: this.sortOptions,
+      totalCount: this.totalStoryCount,
+      applyAllWork: () => this.applyBuiltInPreset('builtin:all'),
+      applyMyWork: () => this.applyBuiltInPreset('builtin:mine'),
+      selectSort: (mode) => this.selectSort(mode as KanbanSortMode),
+      setQuery: (query) => this.setQuery(query),
+      toggleFilters: () => this.toggleFilterPanel(),
+    });
+    this.destroyRef.onDestroy(disconnectCompactToolbar);
+
     effect(() => {
       const projectId = this.project().id;
       untracked(() => {
@@ -514,7 +545,18 @@ export class KanbanBoard {
   }
 
   protected updateQuery(event: Event): void {
-    this.query.set((event.target as HTMLInputElement).value);
+    this.setQuery((event.target as HTMLInputElement).value);
+  }
+
+  private setQuery(query: string): void {
+    this.query.set(query);
+  }
+
+  private applyBuiltInPreset(id: string): void {
+    const preset = this.builtInPresets().find((candidate) => candidate.id === id);
+    if (preset) {
+      this.applyPreset(preset);
+    }
   }
 
   protected selectSort(mode: KanbanSortMode): void {

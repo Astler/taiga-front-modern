@@ -49,8 +49,8 @@ html {
 
 html[data-ui-density='compact'] {
   --app-sidebar-width: 13.5rem;
-  --app-topbar-height: 2.75rem;
-  --app-topbar-height-mobile: 2.75rem;
+  --app-topbar-height: 2.5rem;
+  --app-topbar-height-mobile: 2.5rem;
 }
 
 *,
@@ -159,12 +159,11 @@ pf-root {
 
 html[data-ui-density='compact'] pf-kanban-board {
   .board-page {
-    padding: 0.25rem 0.35rem;
+    padding: 0;
   }
 
   .board-toolbar {
-    gap: 0.25rem;
-    padding-block-end: 0.25rem;
+    display: none;
   }
 
   .search-field,
@@ -181,7 +180,7 @@ html[data-ui-density='compact'] pf-kanban-board {
   }
 
   .board-scroll {
-    border-radius: var(--app-radius-md);
+    border-radius: 0;
   }
 
   .column-header {

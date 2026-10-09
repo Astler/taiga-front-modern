@@ -18,6 +18,10 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth';
+import {
+  CompactKanbanToolbarService,
+  type CompactKanbanToolbar,
+} from '../../shared/compact-kanban-toolbar.service';
 import { ShellProject } from '../project-context/mock-projects';
 import { ShellProjectContext } from '../project-context/shell-project-context';
 import { ProjectSwitcher } from '../project-switcher/project-switcher';
@@ -52,6 +56,7 @@ export class Topbar {
   protected readonly notificationsStatus = signal<NotificationsStatus>('idle');
   protected readonly notificationsOpen = signal(false);
   protected readonly compactMode = signal(readCompactMode());
+  protected readonly compactKanbanToolbar = inject(CompactKanbanToolbarService);
   protected readonly notificationPositions: ConnectedPosition[] = [
     {
       originX: 'end',
@@ -126,6 +131,10 @@ export class Topbar {
     this.compactMode.set(compact);
     this.applyCompactMode(compact);
     persistCompactMode(compact);
+  }
+
+  protected updateCompactKanbanQuery(toolbar: CompactKanbanToolbar, event: Event): void {
+    toolbar.setQuery((event.target as HTMLInputElement).value);
   }
 
   protected handleNotificationsKeydown(event: KeyboardEvent): void {

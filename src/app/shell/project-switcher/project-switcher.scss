@@ -94,6 +94,32 @@
   stroke-width: 1.8;
 }
 
+:host-context([data-ui-density='compact']) {
+  flex-basis: 13rem;
+  min-width: 9rem;
+
+  .project-trigger {
+    height: 2.25rem;
+    max-width: 16rem;
+    padding-inline: 0.3rem 0.4rem;
+  }
+
+  .project-mark {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 0.5rem;
+  }
+
+  .project-copy {
+    row-gap: 0;
+    margin-inline: 0.45rem 0.25rem;
+  }
+
+  .project-name {
+    font: var(--mat-sys-label-large);
+  }
+}
+
 @media (max-width: 599px) {
   :host {
     flex-basis: 56vw;

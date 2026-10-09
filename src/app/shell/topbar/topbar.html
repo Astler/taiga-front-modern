@@ -44,6 +44,104 @@
     </nav>
   }
 
+  @if (compactMode() && compactKanbanToolbar.toolbar(); as boardToolbar) {
+    <span class="compact-board-divider" aria-hidden="true"></span>
+
+    <label class="compact-board-search">
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="6" />
+        <path d="m16 16 4 4" />
+      </svg>
+      <input
+        type="search"
+        aria-label="Search board cards"
+        placeholder="Search cards"
+        [value]="boardToolbar.query()"
+        (input)="updateCompactKanbanQuery(boardToolbar, $event)"
+      />
+    </label>
+
+    <span class="compact-board-count">
+      <strong>{{ boardToolbar.openCount() }}</strong> open · {{ boardToolbar.totalCount() }} total
+      @if (boardToolbar.hasActiveFilters()) {
+        · <strong>{{ boardToolbar.matchingCount() }}</strong> shown
+      }
+    </span>
+
+    <button
+      class="compact-board-control"
+      type="button"
+      [class.compact-board-control-active]="boardToolbar.sortMode() !== 'manual'"
+      [attr.aria-label]="'Sort cards. Current: ' + boardToolbar.sortLabel()"
+      [matTooltip]="'Sort: ' + boardToolbar.sortLabel()"
+      [matMenuTriggerFor]="compactSortMenu"
+    >
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M4 7h10M4 12h7M4 17h4M18 5v14m0 0-3-3m3 3 3-3" />
+      </svg>
+      @if (boardToolbar.sortMode() !== 'manual') {
+        <span class="compact-control-dot" aria-hidden="true"></span>
+      }
+    </button>
+
+    <mat-menu #compactSortMenu="matMenu" xPosition="after">
+      @for (option of boardToolbar.sortOptions; track option.value) {
+        <button mat-menu-item type="button" (click)="boardToolbar.selectSort(option.value)">
+          <span class="compact-menu-check" aria-hidden="true">
+            {{ boardToolbar.sortMode() === option.value ? '✓' : '' }}
+          </span>
+          <span>{{ option.label }}</span>
+        </button>
+      }
+    </mat-menu>
+
+    <button
+      class="compact-board-control"
+      type="button"
+      [class.compact-board-control-active]="
+        boardToolbar.filterPanelOpen() || boardToolbar.activeFilterCount()
+      "
+      [attr.aria-label]="
+        boardToolbar.activeFilterCount()
+          ? 'Filters, ' + boardToolbar.activeFilterCount() + ' active'
+          : 'Filters'
+      "
+      [attr.aria-expanded]="boardToolbar.filterPanelOpen()"
+      [matTooltip]="
+        boardToolbar.activeFilterCount()
+          ? boardToolbar.activeFilterCount() + ' active filters'
+          : 'Filters'
+      "
+      (click)="boardToolbar.toggleFilters()"
+    >
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M4 6h16M7 12h10M10 18h4" />
+      </svg>
+      @if (boardToolbar.activeFilterCount()) {
+        <span class="compact-filter-count">{{ boardToolbar.activeFilterCount() }}</span>
+      }
+    </button>
+
+    <div class="compact-board-shortcuts" aria-label="Board views">
+      <button
+        type="button"
+        [class.compact-shortcut-active]="boardToolbar.activePresetId() === 'builtin:all'"
+        (click)="boardToolbar.applyAllWork()"
+      >
+        All work
+      </button>
+      @if (boardToolbar.hasMyWork()) {
+        <button
+          type="button"
+          [class.compact-shortcut-active]="boardToolbar.activePresetId() === 'builtin:mine'"
+          (click)="boardToolbar.applyMyWork()"
+        >
+          My work
+        </button>
+      }
+    </div>
+  }
+
   <span class="topbar-spacer"></span>
 
   <label class="global-search" title="Global search is coming next">
