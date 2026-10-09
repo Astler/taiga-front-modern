@@ -991,7 +991,9 @@ export class KanbanBoard {
         file,
       });
       if (result !== 'uploaded') {
-        this.attachmentUploadError.set(`Could not upload “${file.name}”.`);
+        this.attachmentUploadError.set(
+          this.store.mutationError() ?? `Could not upload “${file.name}”.`,
+        );
         break;
       }
       this.liveAnnouncement.set(`${file.name} attached to story #${story.ref}.`);

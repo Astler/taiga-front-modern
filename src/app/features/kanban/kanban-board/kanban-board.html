@@ -795,7 +795,7 @@
               @if (canModify()) {
                 <input
                   #storyFileInput
-                  class="visually-hidden"
+                  hidden
                   type="file"
                   multiple
                   (change)="chooseStoryFiles($event)"

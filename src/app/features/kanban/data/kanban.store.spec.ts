@@ -200,6 +200,29 @@ describe('KanbanStore', () => {
     expect(store.selectedStory()?.total_attachments).toBe(0);
   });
 
+  it('surfaces the attachment validation message returned by Taiga', async () => {
+    api.load.mockReturnValue(of({ swimlanes: [], userStories: [userStory(1, 1)] }));
+    api.uploadAttachment.mockReturnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 400,
+            error: { attached_file: ['This file type is not allowed.'] },
+          }),
+      ),
+    );
+    store.load(17);
+
+    await expect(
+      store.uploadAttachment({
+        projectId: 17,
+        storyId: 1,
+        file: new File(['content'], 'blocked.exe'),
+      }),
+    ).resolves.toBe('failed');
+    expect(store.mutationError()).toContain('This file type is not allowed.');
+  });
+
   it('ignores a stale response when a newer project request has already won', () => {
     const older = new Subject<KanbanPayload>();
     const newer = new Subject<KanbanPayload>();

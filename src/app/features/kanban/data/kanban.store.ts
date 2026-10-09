@@ -382,12 +382,12 @@ export class KanbanStore {
       this.lastSyncedAtState.set(new Date());
       this.mutationState.set(null);
       return 'uploaded';
-    } catch {
+    } catch (error: unknown) {
       if (!this.isCurrentMutation(revision, request.projectId)) {
         return 'failed';
       }
       this.mutationState.set(null);
-      this.mutationErrorState.set(`“${request.file.name}” could not be uploaded.`);
+      this.mutationErrorState.set(attachmentFailureMessage(error, request.file.name));
       return 'failed';
     }
   }
@@ -555,4 +555,37 @@ function isAmbiguousMutationFailure(error: unknown): boolean {
     error.status === 408 ||
     error.status >= 500
   );
+}
+
+function attachmentFailureMessage(error: unknown, fileName: string): string {
+  const fallback = `“${fileName}” could not be uploaded.`;
+  if (!(error instanceof HttpErrorResponse)) {
+    return fallback;
+  }
+  if (error.status === 413) {
+    return `“${fileName}” is larger than the server upload limit.`;
+  }
+
+  const detail = responseErrorDetail(error.error);
+  return detail ? `${fallback} ${detail}` : fallback;
+}
+
+function responseErrorDetail(value: unknown): string | null {
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim();
+  }
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  for (const candidate of [record['_error_message'], record['detail'], record['attached_file']]) {
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim();
+    }
+    if (Array.isArray(candidate) && typeof candidate[0] === 'string') {
+      return candidate[0];
+    }
+  }
+  return null;
 }

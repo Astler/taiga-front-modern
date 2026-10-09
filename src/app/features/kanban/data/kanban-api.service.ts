@@ -102,14 +102,14 @@ export class KanbanApiService {
     body.append('attached_file', request.file, request.file.name);
     body.append('from_comment', 'false');
     return this.http.post<KanbanAttachmentSummary>(
-      this.config.resolveApiPath('attachments/us'),
+      this.config.resolveApiPath('userstories/attachments'),
       body,
     );
   }
 
   deleteAttachment(attachmentId: TaigaId): Observable<void> {
     return this.http.delete<void>(
-      `${this.config.resolveApiPath('attachments/us')}/${attachmentId}`,
+      `${this.config.resolveApiPath('userstories/attachments')}/${attachmentId}`,
     );
   }
 

@@ -150,7 +150,7 @@ describe('KanbanApiService', () => {
     const file = new File(['image data'], 'clipboard.png', { type: 'image/png' });
     const response = { id: 12, name: file.name, url: 'https://files.example.test/clipboard.png' };
     const result = firstValueFrom(service.uploadAttachment({ projectId: 17, storyId: 101, file }));
-    const request = httpTesting.expectOne('/api/v1/attachments/us');
+    const request = httpTesting.expectOne('/api/v1/userstories/attachments');
 
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toBeInstanceOf(FormData);
@@ -169,7 +169,7 @@ describe('KanbanApiService', () => {
 
   it('deletes a story attachment from the stable endpoint', async () => {
     const result = firstValueFrom(service.deleteAttachment(12));
-    const request = httpTesting.expectOne('/api/v1/attachments/us/12');
+    const request = httpTesting.expectOne('/api/v1/userstories/attachments/12');
 
     expect(request.request.method).toBe('DELETE');
     request.flush(null);
