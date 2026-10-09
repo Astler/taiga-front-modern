@@ -5,6 +5,10 @@
   top: 0;
 }
 
+:host > mat-menu {
+  display: none;
+}
+
 .topbar {
   min-width: 0;
   height: var(--app-topbar-height);
