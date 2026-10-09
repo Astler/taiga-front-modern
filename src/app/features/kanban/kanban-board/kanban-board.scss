@@ -33,6 +33,7 @@
   font: var(--mat-sys-body-medium);
 }
 
+.toolbar-icon-control svg,
 .toolbar-refresh svg,
 .search-field svg,
 .story-fact svg,
@@ -44,6 +45,7 @@
   stroke-linejoin: round;
 }
 
+.toolbar-icon-control svg,
 .toolbar-refresh svg,
 .search-field svg {
   width: 1.125rem;
@@ -88,6 +90,7 @@
   flex: 0 0 auto;
 }
 
+.toolbar-icon-control,
 .toolbar-refresh {
   display: grid;
   width: 2.5rem;
@@ -99,8 +102,44 @@
   padding: 0 !important;
 }
 
-.search-field,
-.select-field {
+.toolbar-icon-control {
+  position: relative;
+  border: 1px solid var(--app-border-color);
+  background: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.toolbar-icon-control:hover,
+.toolbar-icon-control:focus-visible {
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface);
+}
+
+.toolbar-icon-active {
+  border-color: color-mix(in srgb, var(--mat-sys-primary) 58%, var(--app-border-color));
+  color: var(--mat-sys-primary);
+}
+
+.sort-state-dot {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  width: 0.42rem;
+  height: 0.42rem;
+  border: 1px solid var(--mat-sys-surface-container);
+  border-radius: 50%;
+  background: var(--mat-sys-primary);
+}
+
+.menu-selection-mark {
+  display: inline-grid;
+  width: 1.25rem;
+  place-items: center;
+  color: var(--mat-sys-primary);
+  font-weight: 750;
+}
+
+.search-field {
   min-height: 2.5rem;
   box-sizing: border-box;
   border: 1px solid var(--app-border-color);
@@ -118,14 +157,12 @@
   padding-inline: 0.875rem;
 }
 
-.search-field:focus-within,
-.select-field:focus-within {
+.search-field:focus-within {
   border-color: var(--mat-sys-primary);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--mat-sys-primary) 18%, transparent);
 }
 
-.search-field input,
-.select-field select {
+.search-field input {
   border: 0;
   outline: 0;
   background: transparent;
@@ -140,29 +177,6 @@
 
 .search-field input::placeholder {
   color: var(--mat-sys-on-surface-variant);
-}
-
-.select-field {
-  display: grid;
-  grid-template-columns: auto minmax(6.5rem, auto);
-  align-items: center;
-  gap: 0.5rem;
-  padding-inline: 0.75rem 0.4rem;
-}
-
-.select-field > span {
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-label-small);
-}
-
-.select-field select {
-  min-height: 2rem;
-  cursor: pointer;
-}
-
-.select-field option {
-  background: var(--mat-sys-surface-container-high);
-  color: var(--mat-sys-on-surface);
 }
 
 .filter-note {
@@ -820,10 +834,6 @@
 
   .search-field {
     min-width: 15rem;
-  }
-
-  .select-field {
-    min-width: max-content;
   }
 }
 

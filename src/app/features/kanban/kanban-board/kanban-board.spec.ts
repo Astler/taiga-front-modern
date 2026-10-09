@@ -120,6 +120,8 @@ describe('KanbanBoard', () => {
     setControlValue(search, 'billing', 'input');
     fixture.detectChanges();
     expect(cardSubjects(host)).toEqual(['#102 Fix billing']);
+    expect(host.querySelector('.filter-count-badge')?.textContent?.trim()).toBe('1');
+    expect(host.querySelector('button[aria-label^="Sort stories"]')).toBeTruthy();
     expect(host.querySelector('.board-count')?.textContent).toContain('2 open');
     expect(host.querySelector('.board-count')?.textContent).toContain('1 matching');
 
@@ -792,9 +794,7 @@ function clearFilters(host: HTMLElement): void {
 }
 
 function openAdvancedFilters(host: HTMLElement, fixture: { detectChanges(): void }): void {
-  const button = [...host.querySelectorAll<HTMLButtonElement>('button')].find(
-    (candidate) => candidate.textContent?.trim() === 'Filters',
-  );
+  const button = host.querySelector<HTMLButtonElement>('.filter-toggle');
   expect(button).toBeTruthy();
   if (button!.getAttribute('aria-expanded') !== 'true') {
     button!.click();

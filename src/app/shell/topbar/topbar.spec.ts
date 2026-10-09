@@ -46,6 +46,7 @@ describe('Topbar', () => {
     expect(search.placeholder).toBe('Search');
     expect(search.getAttribute('aria-label')).toBe('Search Taiga');
     expect(host.querySelector('.global-search')?.textContent?.trim()).toBe('');
+    expect(host.querySelector('button[aria-label="Help"]')).toBeNull();
   });
 
   it.each([

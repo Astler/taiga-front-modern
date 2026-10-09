@@ -43,6 +43,11 @@ interface FilterDefinition {
   readonly label: string;
 }
 
+interface SortOption {
+  readonly value: KanbanSortMode;
+  readonly label: string;
+}
+
 interface StoryEditorDraft {
   readonly id: TaigaId;
   readonly subject: string;
@@ -74,6 +79,15 @@ const FOCUS_OPTIONS: readonly KanbanFilterOption[] = [
   { value: 'attachments', label: 'Has attachments' },
 ];
 
+const SORT_OPTIONS: readonly SortOption[] = [
+  { value: 'manual', label: 'Manual board order' },
+  { value: 'newest', label: 'Newest created' },
+  { value: 'updated', label: 'Recently updated' },
+  { value: 'due', label: 'Due date' },
+  { value: 'points', label: 'Highest points' },
+  { value: 'title', label: 'Title A–Z' },
+];
+
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
@@ -100,6 +114,11 @@ export class KanbanBoard {
   private readonly presetApi = inject(KanbanFilterPresetsService);
   protected readonly query = signal('');
   protected readonly sortMode = signal<KanbanSortMode>('manual');
+  protected readonly sortOptions = SORT_OPTIONS;
+  protected readonly sortLabel = computed(
+    () =>
+      SORT_OPTIONS.find(({ value }) => value === this.sortMode())?.label ?? 'Manual board order',
+  );
   protected readonly filterPanelOpen = signal(false);
   protected readonly filterClauses = signal<readonly KanbanFilterClause[]>([]);
   protected readonly filterDefinitions = FILTER_DEFINITIONS;
@@ -498,8 +517,8 @@ export class KanbanBoard {
     this.query.set((event.target as HTMLInputElement).value);
   }
 
-  protected updateSort(event: Event): void {
-    this.sortMode.set((event.target as HTMLSelectElement).value as KanbanSortMode);
+  protected selectSort(mode: KanbanSortMode): void {
+    this.sortMode.set(mode);
   }
 
   protected toggleFilterPanel(): void {
