@@ -26,6 +26,8 @@ export interface KanbanAssignee {
   readonly username: string;
   readonly full_name_display: string;
   readonly photo: string | null;
+  readonly role?: TaigaId | null;
+  readonly role_name?: string | null;
 }
 
 export type KanbanTag = readonly [name: string, color: string | null];
@@ -33,6 +35,23 @@ export type KanbanTag = readonly [name: string, color: string | null];
 export interface KanbanTaskSummary {
   readonly id: TaigaId;
   readonly is_closed: boolean;
+  readonly subject?: string;
+  readonly ref?: number;
+}
+
+export interface KanbanEpicSummary {
+  readonly id: TaigaId;
+  readonly ref?: number;
+  readonly subject?: string;
+  readonly color?: string | null;
+}
+
+export interface KanbanAttachmentSummary {
+  readonly id: TaigaId;
+  readonly name: string;
+  readonly url?: string;
+  readonly thumbnail_card_url?: string | null;
+  readonly size?: number;
 }
 
 export interface KanbanUserStory {
@@ -47,7 +66,12 @@ export interface KanbanUserStory {
   readonly assigned_to: TaigaId | null;
   readonly assigned_users: readonly TaigaId[];
   readonly assigned_to_extra_info: KanbanAssignee | null;
+  readonly owner?: TaigaId | null;
+  readonly owner_extra_info?: KanbanAssignee | null;
   readonly tags: readonly KanbanTag[];
+  readonly description?: string;
+  readonly created_date?: string;
+  readonly modified_date?: string;
   readonly total_points?: number | null;
   readonly due_date?: string | null;
   readonly due_date_reason?: string;
@@ -62,6 +86,8 @@ export interface KanbanUserStory {
   readonly total_comments?: number;
   readonly watchers?: readonly TaigaId[];
   readonly tasks?: readonly KanbanTaskSummary[];
+  readonly attachments?: readonly KanbanAttachmentSummary[];
+  readonly epics?: readonly KanbanEpicSummary[];
 }
 
 export interface KanbanMoveCommand {
@@ -115,6 +141,54 @@ export interface KanbanFilters {
   readonly query?: string;
   readonly tag?: string;
   readonly assignee?: TaigaId;
+}
+
+export type KanbanFilterCategory =
+  'tags' | 'assigned_users' | 'role' | 'owner' | 'epic' | 'milestone' | 'focus';
+
+export type KanbanFilterMode = 'include' | 'exclude';
+
+export interface KanbanFilterClause {
+  readonly category: KanbanFilterCategory;
+  readonly value: string;
+  readonly label: string;
+  readonly mode: KanbanFilterMode;
+  readonly color?: string | null;
+}
+
+export interface KanbanFilterOption {
+  readonly value: string;
+  readonly label: string;
+  readonly color?: string | null | undefined;
+  readonly count?: number | undefined;
+}
+
+export type KanbanSortMode = 'manual' | 'newest' | 'updated' | 'due' | 'points' | 'title';
+
+export interface KanbanFilterPreset {
+  readonly id: string;
+  readonly name: string;
+  readonly query: string;
+  readonly sort: KanbanSortMode;
+  readonly filters: readonly KanbanFilterClause[];
+}
+
+export interface KanbanFiltersDataOption {
+  readonly id?: TaigaId | null;
+  readonly name?: string;
+  readonly full_name?: string;
+  readonly color?: string | null;
+  readonly count?: number;
+  readonly ref?: number;
+  readonly subject?: string;
+}
+
+export interface KanbanFiltersData {
+  readonly tags?: readonly KanbanFiltersDataOption[];
+  readonly assigned_users?: readonly KanbanFiltersDataOption[];
+  readonly roles?: readonly KanbanFiltersDataOption[];
+  readonly owners?: readonly KanbanFiltersDataOption[];
+  readonly epics?: readonly KanbanFiltersDataOption[];
 }
 
 export interface KanbanLane {

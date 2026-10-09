@@ -30,7 +30,7 @@
     </div>
   </header>
 
-  <div class="filters" aria-label="Board filters">
+  <div class="filters" aria-label="Board search and sorting">
     <label class="search-field">
       <svg aria-hidden="true" viewBox="0 0 24 24">
         <circle cx="11" cy="11" r="6" />
@@ -46,30 +46,182 @@
     </label>
 
     <label class="select-field">
-      <span>Tag</span>
-      <select [value]="selectedTag() ?? ''" (change)="updateTag($event)">
-        <option value="">All tags</option>
-        @for (tag of tags(); track tag) {
-          <option [value]="tag">{{ tag }}</option>
-        }
+      <span>Sort</span>
+      <select [value]="sortMode()" (change)="updateSort($event)">
+        <option value="manual">Manual board order</option>
+        <option value="newest">Newest created</option>
+        <option value="updated">Recently updated</option>
+        <option value="due">Due date</option>
+        <option value="points">Highest points</option>
+        <option value="title">Title A–Z</option>
       </select>
     </label>
 
-    <label class="select-field">
-      <span>Assignee</span>
-      <select [value]="selectedAssigneeId() ?? ''" (change)="updateAssignee($event)">
-        <option value="">Everyone</option>
-        @for (assignee of assignees(); track assignee.id) {
-          <option [value]="assignee.id">{{ assigneeName(assignee) }}</option>
-        }
-      </select>
-    </label>
+    <button
+      mat-stroked-button
+      class="filter-toggle"
+      type="button"
+      [class.filter-toggle-active]="filterPanelOpen() || filterClauses().length"
+      [attr.aria-expanded]="filterPanelOpen()"
+      (click)="toggleFilterPanel()"
+    >
+      Filters
+      @if (activeFilterCount()) {
+        <span>{{ activeFilterCount() }}</span>
+      }
+    </button>
 
     @if (hasActiveFilters()) {
       <button mat-button type="button" (click)="clearFilters()">Clear filters</button>
-      <span class="filter-note">Clear filters to drag cards</span>
     }
   </div>
+
+  <div class="preset-bar" aria-label="Saved board views">
+    @for (preset of builtInPresets(); track preset.id) {
+      <button
+        type="button"
+        class="preset-chip"
+        [class.preset-chip-active]="activePresetId() === preset.id"
+        (click)="applyPreset(preset)"
+      >
+        {{ preset.name }}
+      </button>
+    }
+    @for (preset of savedPresets(); track preset.id) {
+      <span class="saved-preset">
+        <button
+          type="button"
+          class="preset-chip"
+          [class.preset-chip-active]="activePresetId() === preset.id"
+          (click)="applyPreset(preset)"
+        >
+          {{ preset.name }}
+        </button>
+        <button
+          type="button"
+          class="remove-preset"
+          [attr.aria-label]="'Delete saved view ' + preset.name"
+          [disabled]="presetsSaving()"
+          (click)="removePreset(preset, $event)"
+        >
+          ×
+        </button>
+      </span>
+    }
+    @if (presetsLoading()) {
+      <span class="preset-state">Loading saved views…</span>
+    }
+    <button
+      type="button"
+      class="save-view-button"
+      [disabled]="presetsSaving()"
+      (click)="presetEditorOpen.set(!presetEditorOpen())"
+    >
+      + Save current view
+    </button>
+  </div>
+
+  @if (presetEditorOpen()) {
+    <form class="preset-editor" (submit)="savePreset($event)">
+      <label>
+        <span>View name</span>
+        <input
+          type="text"
+          maxlength="60"
+          placeholder="Release, 3D, Dev…"
+          [value]="presetName()"
+          (input)="updatePresetName($event)"
+        />
+      </label>
+      <button mat-flat-button type="submit" [disabled]="!presetName().trim() || presetsSaving()">
+        {{ presetsSaving() ? 'Saving…' : 'Save for this project' }}
+      </button>
+      <button mat-button type="button" (click)="presetEditorOpen.set(false)">Cancel</button>
+    </form>
+  }
+
+  @if (filterPanelOpen()) {
+    <section class="advanced-filters" aria-label="Advanced Kanban filters">
+      <header>
+        <div>
+          <strong>Build a project view</strong>
+          <span>Combine categories; values inside one category use OR.</span>
+        </div>
+        <button type="button" aria-label="Close filters" (click)="filterPanelOpen.set(false)">
+          ×
+        </button>
+      </header>
+
+      <div class="filter-builder">
+        @for (definition of filterDefinitions; track definition.category) {
+          <div class="filter-builder-row">
+            <span>{{ definition.label }}</span>
+            <label>
+              <span class="visually-hidden">Include {{ definition.label }}</span>
+              <select
+                [attr.data-filter-category]="definition.category"
+                data-filter-mode="include"
+                (change)="addFilter(definition.category, 'include', $event)"
+              >
+                <option value="">+ Include…</option>
+                @for (option of optionsFor(definition.category); track option.value) {
+                  <option [value]="option.value">
+                    {{ option.label }}{{ option.count === undefined ? '' : ' · ' + option.count }}
+                  </option>
+                }
+              </select>
+            </label>
+            <label>
+              <span class="visually-hidden">Exclude {{ definition.label }}</span>
+              <select
+                [attr.data-filter-category]="definition.category"
+                data-filter-mode="exclude"
+                (change)="addFilter(definition.category, 'exclude', $event)"
+              >
+                <option value="">− Exclude…</option>
+                @for (option of optionsFor(definition.category); track option.value) {
+                  <option [value]="option.value">
+                    {{ option.label }}{{ option.count === undefined ? '' : ' · ' + option.count }}
+                  </option>
+                }
+              </select>
+            </label>
+          </div>
+        }
+      </div>
+
+      @if (filterClauses().length) {
+        <div class="active-filter-chips" aria-label="Applied filters">
+          @for (filter of filterClauses(); track filter.category + ':' + filter.value) {
+            <span
+              class="active-filter-chip"
+              [class.active-filter-chip-exclude]="filter.mode === 'exclude'"
+            >
+              <button
+                type="button"
+                [attr.aria-label]="'Switch ' + filter.label + ' filter mode'"
+                [matTooltip]="'Click to switch between include and exclude'"
+                (click)="toggleFilterMode(filter)"
+              >
+                {{ filter.mode === 'exclude' ? 'Not' : 'Only' }} {{ filter.label }}
+              </button>
+              <button
+                type="button"
+                [attr.aria-label]="'Remove ' + filter.label + ' filter'"
+                (click)="removeFilter(filter)"
+              >
+                ×
+              </button>
+            </span>
+          }
+        </div>
+      }
+    </section>
+  }
+
+  @if (presetsError(); as presetError) {
+    <div class="preset-error" role="status">{{ presetError }}</div>
+  }
 
   @if (store.mutationError(); as mutationError) {
     <div class="mutation-message" role="alert">
@@ -243,8 +395,6 @@
                               <span class="story-tag-overflow">+{{ story.tags.length - 3 }}</span>
                             }
                           </div>
-                        } @else {
-                          <span></span>
                         }
 
                         <div class="story-actions">
@@ -254,11 +404,7 @@
                               cdkDragHandle
                               aria-hidden="true"
                               [class.drag-handle-disabled]="!canReorder()"
-                              [matTooltip]="
-                                hasActiveFilters()
-                                  ? 'Clear filters to drag cards'
-                                  : 'Drag to move story'
-                              "
+                              matTooltip="Drag to move story"
                             >
                               <svg aria-hidden="true" viewBox="0 0 24 24">
                                 <circle cx="9" cy="7" r="1" />
@@ -289,14 +435,14 @@
                         </div>
                       </div>
 
-                      <a
+                      <button
+                        type="button"
                         class="story-subject"
-                        [href]="storyUrl(story)"
-                        target="_blank"
-                        rel="noopener"
+                        [attr.data-story-details-trigger]="story.id"
+                        (click)="openStoryDetails(story)"
                       >
                         <strong>#{{ story.ref }}</strong> {{ story.subject }}
-                      </a>
+                      </button>
 
                       @if (
                         story.is_blocked ||
@@ -449,6 +595,158 @@
     </div>
   }
 
+  @if (store.selectedStory(); as detail) {
+    <div
+      class="story-drawer-backdrop"
+      role="presentation"
+      tabindex="-1"
+      (click)="closeStoryDetails()"
+      (keydown.escape)="closeStoryDetails()"
+    >
+      <aside
+        class="story-drawer"
+        role="dialog"
+        aria-modal="true"
+        [attr.aria-labelledby]="'story-detail-' + detail.id"
+        (click)="$event.stopPropagation()"
+      >
+        <header class="story-drawer-header">
+          <div class="story-drawer-title">
+            @if (storyStatus(detail); as detailStatus) {
+              <span class="detail-status">
+                <span class="status-dot" [style.background]="detailStatus.color"></span>
+                {{ detailStatus.name }}
+              </span>
+            }
+            <span class="detail-reference">#{{ detail.ref }}</span>
+            <h2 [id]="'story-detail-' + detail.id">{{ detail.subject }}</h2>
+          </div>
+          <button
+            class="drawer-close"
+            type="button"
+            autofocus
+            aria-label="Close story details"
+            (click)="closeStoryDetails()"
+          >
+            ×
+          </button>
+        </header>
+
+        @if (store.selectedStoryStatus() === 'loading') {
+          <mat-progress-bar mode="indeterminate" />
+        }
+        @if (store.selectedStoryError(); as detailError) {
+          <p class="detail-load-error" role="status">{{ detailError }}</p>
+        }
+
+        <div class="story-drawer-content">
+          @if (detail.tags.length) {
+            <div class="detail-tags" aria-label="Tags">
+              @for (tag of detail.tags; track tag[0]) {
+                <span class="story-tag" [style.--tag-color]="tag[1] || '#8f8a99'">
+                  {{ tag[0] }}
+                </span>
+              }
+            </div>
+          }
+
+          <section class="detail-section detail-summary">
+            <h3>Description</h3>
+            <p [class.detail-placeholder]="!detail.description">
+              {{ detail.description || 'No description yet.' }}
+            </p>
+          </section>
+
+          <dl class="detail-grid">
+            <div>
+              <dt>Assignees</dt>
+              <dd>{{ assigneeSummary(detail) }}</dd>
+            </div>
+            <div>
+              <dt>Release</dt>
+              <dd>{{ detail.milestone_name || 'No release' }}</dd>
+            </div>
+            <div>
+              <dt>Points</dt>
+              <dd>{{ detail.total_points ?? 'Not estimated' }}</dd>
+            </div>
+            <div>
+              <dt>Due</dt>
+              <dd>
+                @if (detail.due_date) {
+                  <span [class.overdue]="isOverdue(detail)">
+                    {{ isOverdue(detail) ? 'Overdue · ' : '' }}{{ formatDueDate(detail.due_date) }}
+                  </span>
+                } @else {
+                  No due date
+                }
+              </dd>
+            </div>
+          </dl>
+
+          @if (detail.is_blocked) {
+            <section class="detail-section detail-blocked">
+              <h3>Blocked</h3>
+              <p>{{ detail.blocked_note || 'No reason was provided.' }}</p>
+            </section>
+          }
+
+          @if (detail.tasks?.length) {
+            <section class="detail-section">
+              <div class="detail-section-heading">
+                <h3>Tasks</h3>
+                <span>{{ taskSummary(detail) }} complete</span>
+              </div>
+              <ul class="detail-task-list">
+                @for (task of detail.tasks; track task.id) {
+                  <li [class.task-closed]="task.is_closed">
+                    <span aria-hidden="true">{{ task.is_closed ? '✓' : '○' }}</span>
+                    {{ task.subject || 'Task ' + task.id }}
+                  </li>
+                }
+              </ul>
+            </section>
+          }
+
+          @if (detail.attachments?.length) {
+            <section class="detail-section">
+              <div class="detail-section-heading">
+                <h3>Attachments</h3>
+                <span>{{ detail.attachments.length }}</span>
+              </div>
+              <ul class="detail-attachment-list">
+                @for (attachment of detail.attachments; track attachment.id) {
+                  <li>
+                    @if (attachment.url) {
+                      <a [href]="attachment.url" target="_blank" rel="noopener">
+                        {{ attachment.name }}
+                      </a>
+                    } @else {
+                      {{ attachment.name }}
+                    }
+                  </li>
+                }
+              </ul>
+            </section>
+          }
+
+          <section class="detail-section detail-dates">
+            <h3>Activity</h3>
+            <p>Created {{ formatTimestamp(detail.created_date) }}</p>
+            <p>Updated {{ formatTimestamp(detail.modified_date) }}</p>
+          </section>
+        </div>
+
+        <footer class="story-drawer-footer">
+          <a mat-button [href]="storyUrl(detail)" target="_blank" rel="noopener">
+            Open classic editor
+          </a>
+          <button mat-flat-button type="button" (click)="closeStoryDetails()">Done</button>
+        </footer>
+      </aside>
+    </div>
+  }
+
   <p class="visually-hidden" aria-live="polite">{{ liveAnnouncement() }}</p>
 </section>
 
@@ -486,6 +784,9 @@
         }
       }
     }
+    <button mat-menu-item type="button" (click)="openStoryDetails(selectedStory)">
+      View story details
+    </button>
     <a mat-menu-item [href]="storyUrl(selectedStory)" target="_blank" rel="noopener">
       Open in classic Taiga
     </a>

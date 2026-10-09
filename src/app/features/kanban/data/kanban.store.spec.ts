@@ -21,11 +21,17 @@ describe('KanbanStore', () => {
     createUserStories: ReturnType<
       typeof vi.fn<(request: KanbanCreateRequest) => Observable<readonly KanbanUserStory[]>>
     >;
+    getUserStory: ReturnType<typeof vi.fn<(storyId: number) => Observable<KanbanUserStory>>>;
   };
   let store: KanbanStore;
 
   beforeEach(() => {
-    api = { load: vi.fn(), moveUserStories: vi.fn(), createUserStories: vi.fn() };
+    api = {
+      load: vi.fn(),
+      moveUserStories: vi.fn(),
+      createUserStories: vi.fn(),
+      getUserStory: vi.fn(),
+    };
     TestBed.configureTestingModule({
       providers: [KanbanStore, { provide: KanbanApiService, useValue: api }],
     });
@@ -77,6 +83,41 @@ describe('KanbanStore', () => {
     expect(store.status()).toBe('loaded');
     expect(store.error()).toBeNull();
     expect(store.userStories().map(({ id }) => id)).toEqual([1]);
+  });
+
+  it('hydrates a selected story while keeping the board summary visible', () => {
+    const summary = userStory(1, 1);
+    const detail = { ...summary, description: 'Complete story details' };
+    const request = new Subject<KanbanUserStory>();
+    api.load.mockReturnValue(of({ swimlanes: [], userStories: [summary] }));
+    api.getUserStory.mockReturnValue(request);
+    store.load(17);
+
+    store.openStoryDetails(1);
+
+    expect(store.selectedStory()).toEqual(summary);
+    expect(store.selectedStoryStatus()).toBe('loading');
+    request.next(detail);
+    request.complete();
+    expect(store.selectedStory()).toEqual(detail);
+    expect(store.selectedStoryStatus()).toBe('loaded');
+
+    store.closeStoryDetails();
+    expect(store.selectedStory()).toBeNull();
+    expect(store.selectedStoryStatus()).toBe('idle');
+  });
+
+  it('keeps the summary in the detail drawer when hydration fails', () => {
+    const summary = userStory(1, 1);
+    api.load.mockReturnValue(of({ swimlanes: [], userStories: [summary] }));
+    api.getUserStory.mockReturnValue(throwError(() => new Error('offline')));
+    store.load(17);
+
+    store.openStoryDetails(1);
+
+    expect(store.selectedStory()).toEqual(summary);
+    expect(store.selectedStoryStatus()).toBe('error');
+    expect(store.selectedStoryError()).toContain('board summary');
   });
 
   it('ignores a stale response when a newer project request has already won', () => {
@@ -161,6 +202,28 @@ describe('KanbanStore', () => {
     expect(store.isRefreshing()).toBe(false);
     expect(store.userStories().find(({ id }) => id === 1)?.kanban_order).toBe(8);
     expect(store.userStories().find(({ id }) => id === 3)?.kanban_order).toBe(9);
+  });
+
+  it('honours a visible before-anchor even when filtered-out stories occupy the column', async () => {
+    const original = [userStory(1, 10), userStory(2, 15), userStory(3, 20)];
+    const response = new Subject<readonly KanbanOrderUpdate[]>();
+    api.load.mockReturnValue(of({ swimlanes: [], userStories: original }));
+    api.moveUserStories.mockReturnValue(response);
+    store.load(17);
+
+    const result = store.moveStory({
+      projectId: 17,
+      storyId: 3,
+      statusId: 1,
+      swimlaneId: null,
+      destinationIndex: 0,
+      beforeStoryId: 1,
+    });
+
+    expect(store.userStories().map(({ id }) => id)).toEqual([3, 1, 2]);
+    response.error(new HttpErrorResponse({ status: 400, statusText: 'Rejected for test' }));
+    await expect(result).resolves.toBe('failed');
+    expect(store.userStories().map(({ id }) => id)).toEqual([1, 2, 3]);
   });
 
   it('rolls an optimistic move back when Taiga rejects it', async () => {

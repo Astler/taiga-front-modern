@@ -5,6 +5,7 @@ import type { TaigaId } from '../../../shared/models';
 import { KanbanApiService } from './kanban-api.service';
 import type {
   KanbanCreateRequest,
+  KanbanFiltersData,
   KanbanMoveCommand,
   KanbanOrderUpdate,
   KanbanSwimlane,
@@ -14,6 +15,7 @@ import type {
 export type KanbanLoadStatus = 'idle' | 'loading' | 'loaded' | 'error';
 export type KanbanCreateResult = 'created' | 'failed' | 'uncertain';
 export type KanbanMoveResult = 'moved' | 'failed' | 'uncertain';
+export type KanbanStoryDetailStatus = 'idle' | 'loading' | 'loaded' | 'error';
 
 export interface KanbanMutation {
   readonly kind: 'create' | 'move';
@@ -27,25 +29,34 @@ export class KanbanStore {
   private readonly statusState = signal<KanbanLoadStatus>('idle');
   private readonly userStoriesState = signal<readonly KanbanUserStory[]>([]);
   private readonly swimlanesState = signal<readonly KanbanSwimlane[]>([]);
+  private readonly filtersDataState = signal<KanbanFiltersData | null>(null);
   private readonly errorState = signal<string | null>(null);
   private readonly mutationState = signal<KanbanMutation | null>(null);
   private readonly mutationErrorState = signal<string | null>(null);
   private readonly lastSyncedAtState = signal<Date | null>(null);
   private readonly refreshingState = signal(false);
   private readonly requiresReconciliationState = signal(false);
+  private readonly selectedStoryState = signal<KanbanUserStory | null>(null);
+  private readonly selectedStoryStatusState = signal<KanbanStoryDetailStatus>('idle');
+  private readonly selectedStoryErrorState = signal<string | null>(null);
   private requestRevision = 0;
   private mutationRevision = 0;
+  private storyDetailRevision = 0;
 
   readonly projectId = this.projectIdState.asReadonly();
   readonly status = this.statusState.asReadonly();
   readonly userStories = this.userStoriesState.asReadonly();
   readonly swimlanes = this.swimlanesState.asReadonly();
+  readonly filtersData = this.filtersDataState.asReadonly();
   readonly error = this.errorState.asReadonly();
   readonly mutation = this.mutationState.asReadonly();
   readonly mutationError = this.mutationErrorState.asReadonly();
   readonly lastSyncedAt = this.lastSyncedAtState.asReadonly();
   readonly isRefreshing = this.refreshingState.asReadonly();
   readonly requiresReconciliation = this.requiresReconciliationState.asReadonly();
+  readonly selectedStory = this.selectedStoryState.asReadonly();
+  readonly selectedStoryStatus = this.selectedStoryStatusState.asReadonly();
+  readonly selectedStoryError = this.selectedStoryErrorState.asReadonly();
   readonly isLoading = computed(() => this.statusState() === 'loading');
   readonly isMutating = computed(() => this.mutationState() !== null);
 
@@ -61,10 +72,12 @@ export class KanbanStore {
     this.errorState.set(null);
     this.userStoriesState.set([]);
     this.swimlanesState.set([]);
+    this.filtersDataState.set(null);
     this.mutationState.set(null);
     this.mutationErrorState.set(null);
     this.refreshingState.set(false);
     this.requiresReconciliationState.set(false);
+    this.closeStoryDetails();
 
     this.api
       .load(projectId)
@@ -76,11 +89,12 @@ export class KanbanStore {
         }),
       )
       .subscribe({
-        next: ({ swimlanes, userStories }) => {
+        next: ({ filtersData, swimlanes, userStories }) => {
           if (revision !== this.requestRevision) {
             return;
           }
           this.swimlanesState.set([...swimlanes].sort((a, b) => a.order - b.order));
+          this.filtersDataState.set(filtersData ?? null);
           this.userStoriesState.set(
             [...userStories].sort((a, b) => a.kanban_order - b.kanban_order),
           );
@@ -131,11 +145,12 @@ export class KanbanStore {
         }),
       )
       .subscribe({
-        next: ({ swimlanes, userStories }) => {
+        next: ({ filtersData, swimlanes, userStories }) => {
           if (revision !== this.requestRevision || this.projectIdState() !== projectId) {
             return;
           }
           this.swimlanesState.set([...swimlanes].sort((a, b) => a.order - b.order));
+          this.filtersDataState.set(filtersData ?? this.filtersDataState());
           this.userStoriesState.set(sortStories(userStories));
           this.lastSyncedAtState.set(new Date());
           this.requiresReconciliationState.set(false);
@@ -258,6 +273,44 @@ export class KanbanStore {
     }
   }
 
+  openStoryDetails(storyId: TaigaId): void {
+    const seed = this.userStoriesState().find(({ id }) => id === storyId);
+    if (!seed) {
+      return;
+    }
+
+    const projectId = this.projectIdState();
+    const revision = ++this.storyDetailRevision;
+    this.selectedStoryState.set(seed);
+    this.selectedStoryStatusState.set('loading');
+    this.selectedStoryErrorState.set(null);
+    this.api.getUserStory(storyId).subscribe({
+      next: (story) => {
+        if (revision !== this.storyDetailRevision || this.projectIdState() !== projectId) {
+          return;
+        }
+        this.selectedStoryState.set(story);
+        this.selectedStoryStatusState.set('loaded');
+      },
+      error: () => {
+        if (revision !== this.storyDetailRevision || this.projectIdState() !== projectId) {
+          return;
+        }
+        this.selectedStoryStatusState.set('error');
+        this.selectedStoryErrorState.set(
+          'Some details could not be loaded. The board summary is still available.',
+        );
+      },
+    });
+  }
+
+  closeStoryDetails(): void {
+    ++this.storyDetailRevision;
+    this.selectedStoryState.set(null);
+    this.selectedStoryStatusState.set('idle');
+    this.selectedStoryErrorState.set(null);
+  }
+
   dismissMutationError(): void {
     if (!this.requiresReconciliationState()) {
       this.mutationErrorState.set(null);
@@ -298,7 +351,15 @@ function moveStoryOptimistically(
         candidate.swimlane === command.swimlaneId,
     )
     .sort((left, right) => left.kanban_order - right.kanban_order);
-  destination.splice(Math.max(0, Math.min(command.destinationIndex, destination.length)), 0, {
+  const afterIndex = destination.findIndex(({ id }) => id === command.afterStoryId);
+  const beforeIndex = destination.findIndex(({ id }) => id === command.beforeStoryId);
+  const insertionIndex =
+    afterIndex >= 0
+      ? afterIndex + 1
+      : beforeIndex >= 0
+        ? beforeIndex
+        : Math.max(0, Math.min(command.destinationIndex, destination.length));
+  destination.splice(insertionIndex, 0, {
     ...story,
     status: command.statusId,
     swimlane: command.swimlaneId,

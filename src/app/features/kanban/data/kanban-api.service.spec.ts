@@ -62,6 +62,30 @@ describe('KanbanApiService', () => {
     await expect(result).resolves.toEqual(response);
   });
 
+  it('loads the filter metadata exposed by stable Taiga', async () => {
+    const response = { tags: [{ name: 'frontend', count: 4 }] };
+    const result = firstValueFrom(service.filtersData(17));
+    const request = httpTesting.expectOne(
+      '/api/v1/userstories/filters_data?project=17&status__is_archived=false',
+    );
+
+    expect(request.request.method).toBe('GET');
+    request.flush(response);
+    await expect(result).resolves.toEqual(response);
+  });
+
+  it('loads a complete story projection for the detail drawer', async () => {
+    const response = { ...userStory(101), description: 'Full story' };
+    const result = firstValueFrom(service.getUserStory(101));
+    const request = httpTesting.expectOne(
+      '/api/v1/userstories/101?include_attachments=1&include_tasks=1',
+    );
+
+    expect(request.request.method).toBe('GET');
+    request.flush(response);
+    await expect(result).resolves.toEqual(response);
+  });
+
   it('moves stories with the stable relative-order contract', async () => {
     const result = firstValueFrom(
       service.moveUserStories({
