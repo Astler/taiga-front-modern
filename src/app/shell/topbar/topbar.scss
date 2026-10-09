@@ -150,6 +150,7 @@ button svg,
 
 .density-button-active {
   background: var(--mat-sys-secondary-container);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mat-sys-primary) 55%, transparent);
   color: var(--mat-sys-on-secondary-container);
 }
 
