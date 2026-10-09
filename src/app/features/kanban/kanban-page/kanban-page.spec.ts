@@ -49,6 +49,7 @@ async function configurePage(
         provide: ActivatedRoute,
         useValue: {
           paramMap: of(convertToParamMap(projectSlug ? { projectSlug } : {})),
+          queryParamMap: of(convertToParamMap({})),
         },
       },
       { provide: AuthService, useValue: { user: signal({ id: 7 }) } },

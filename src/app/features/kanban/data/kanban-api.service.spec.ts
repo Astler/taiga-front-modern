@@ -83,11 +83,15 @@ describe('KanbanApiService', () => {
     httpTesting
       .expectOne('/api/v1/userstories/filters_data?project=17')
       .flush(null, { status: 404, statusText: 'Not found' });
+    httpTesting
+      .expectOne('/api/v1/milestones?project=17')
+      .flush(null, { status: 404, statusText: 'Not found' });
 
     await expect(result).resolves.toEqual({
       swimlanes: [swimlane(3)],
       userStories: [userStory(101)],
       filtersData: {},
+      milestones: [],
     });
   });
 
@@ -99,6 +103,45 @@ describe('KanbanApiService', () => {
     );
 
     expect(request.request.method).toBe('GET');
+    request.flush(response);
+    await expect(result).resolves.toEqual(response);
+  });
+
+  it('updates a story with optimistic-concurrency versioning', async () => {
+    const response = { ...userStory(101), subject: 'Updated story', version: 8 };
+    const result = firstValueFrom(
+      service.updateUserStory({
+        projectId: 17,
+        storyId: 101,
+        version: 7,
+        changes: {
+          subject: 'Updated story',
+          description: 'More context',
+          status: 2,
+          assigned_users: [3, 4],
+          milestone: 9,
+          due_date: '2026-10-31',
+          tags: ['release'],
+          is_blocked: false,
+          blocked_note: '',
+        },
+      }),
+    );
+    const request = httpTesting.expectOne('/api/v1/userstories/101');
+
+    expect(request.request.method).toBe('PATCH');
+    expect(request.request.body).toEqual({
+      subject: 'Updated story',
+      description: 'More context',
+      status: 2,
+      assigned_users: [3, 4],
+      milestone: 9,
+      due_date: '2026-10-31',
+      tags: ['release'],
+      is_blocked: false,
+      blocked_note: '',
+      version: 7,
+    });
     request.flush(response);
     await expect(result).resolves.toEqual(response);
   });

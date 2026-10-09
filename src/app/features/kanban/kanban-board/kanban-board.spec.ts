@@ -22,6 +22,7 @@ describe('KanbanBoard', () => {
   const moveUserStories = vi.fn();
   const createUserStories = vi.fn();
   const getUserStory = vi.fn();
+  const updateUserStory = vi.fn();
   const loadPresets = vi.fn();
   const savePresets = vi.fn();
 
@@ -30,6 +31,7 @@ describe('KanbanBoard', () => {
     moveUserStories.mockReset();
     createUserStories.mockReset();
     getUserStory.mockReset();
+    updateUserStory.mockReset();
     loadPresets.mockReset();
     savePresets.mockReset();
     load.mockReturnValue(of({ swimlanes: [], userStories: stories() }));
@@ -37,6 +39,13 @@ describe('KanbanBoard', () => {
     createUserStories.mockReturnValue(of([]));
     getUserStory.mockImplementation((storyId: number) =>
       of(stories().find(({ id }) => id === storyId)),
+    );
+    updateUserStory.mockImplementation((request) =>
+      of({
+        ...stories().find(({ id }) => id === request.storyId)!,
+        ...request.changes,
+        tags: request.changes.tags.map((name: string) => [name, null] as const),
+      }),
     );
     loadPresets.mockReturnValue(of([]));
     savePresets.mockReturnValue(of(undefined));
@@ -46,7 +55,7 @@ describe('KanbanBoard', () => {
       providers: [
         {
           provide: KanbanApiService,
-          useValue: { load, moveUserStories, createUserStories, getUserStory },
+          useValue: { load, moveUserStories, createUserStories, getUserStory, updateUserStory },
         },
         {
           provide: KanbanFilterPresetsService,
@@ -158,14 +167,12 @@ describe('KanbanBoard', () => {
 
     expect(getUserStory).toHaveBeenCalledWith(101);
     expect(host.querySelector('.story-drawer h2')?.textContent).toContain('Build login');
-    expect(host.querySelector('.detail-summary')?.textContent).toContain(
+    expect(host.querySelector<HTMLTextAreaElement>('.editor-field textarea')?.value).toContain(
       'Login work that must ship with the release.',
     );
     expect(host.querySelector('.detail-section-heading span')?.textContent).toContain('1/2');
     expect(host.querySelector('.detail-attachment-list')?.textContent).toContain('login.png');
-    expect(host.querySelector<HTMLAnchorElement>('.story-drawer-footer a')?.href).toBe(
-      'https://legacy.example.test/project/alpha/us/101',
-    );
+    expect(host.querySelector('.story-drawer-footer a')).toBeNull();
 
     host.querySelector<HTMLButtonElement>('.drawer-close')!.click();
     fixture.detectChanges();
@@ -174,6 +181,43 @@ describe('KanbanBoard', () => {
     expect(host.ownerDocument.activeElement).toBe(
       host.querySelector<HTMLButtonElement>('[data-story-details-trigger="101"]'),
     );
+  });
+
+  it('saves story edits from the modern drawer without an external editor', async () => {
+    const detail = { ...stories()[0]!, description: 'Old description', version: 3 };
+    getUserStory.mockReturnValue(of(detail));
+
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', project());
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    host.querySelector<HTMLButtonElement>('.story-subject')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const title = host.querySelector<HTMLInputElement>('.story-drawer input[type="text"]')!;
+    setControlValue(title, 'Build secure login', 'input');
+    fixture.detectChanges();
+    host
+      .querySelector<HTMLFormElement>('#story-editor')!
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(updateUserStory).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: 17,
+        storyId: 101,
+        version: 3,
+        changes: expect.objectContaining({ subject: 'Build secure login' }),
+      }),
+    );
+    expect(host.querySelector('.story-drawer h2')?.textContent).toContain('Build secure login');
+    expect(host.querySelector('.story-drawer-footer a')).toBeNull();
   });
 
   it('applies project-specific saved views', async () => {

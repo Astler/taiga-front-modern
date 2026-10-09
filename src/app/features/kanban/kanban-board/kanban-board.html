@@ -26,18 +26,6 @@
           <span class="app-button-text">{{ store.isRefreshing() ? 'Syncing…' : 'Refresh' }}</span>
         </span>
       </button>
-      <a
-        class="app-icon-button"
-        mat-flat-button
-        [href]="classicBoardUrl()"
-        target="_blank"
-        rel="noopener"
-      >
-        <span class="app-button-content">
-          <span>Open classic Taiga</span>
-          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8" /></svg>
-        </span>
-      </a>
     </div>
   </header>
 
@@ -614,7 +602,9 @@
               </span>
             }
             <span class="detail-reference">#{{ detail.ref }}</span>
-            <h2 [id]="'story-detail-' + detail.id">{{ detail.subject }}</h2>
+            <h2 [id]="'story-detail-' + detail.id">
+              {{ storyDraft()?.subject || detail.subject }}
+            </h2>
           </div>
           <button
             class="drawer-close"
@@ -634,55 +624,140 @@
           <p class="detail-load-error" role="status">{{ detailError }}</p>
         }
 
-        <div class="story-drawer-content">
-          @if (detail.tags.length) {
-            <div class="detail-tags" aria-label="Tags">
-              @for (tag of detail.tags; track tag[0]) {
-                <span class="story-tag" [style.--tag-color]="tag[1] || '#8f8a99'">
-                  {{ tag[0] }}
-                </span>
-              }
-            </div>
-          }
+        <form id="story-editor" class="story-drawer-content" (submit)="saveStory($event)">
+          @if (storyDraft(); as draft) {
+            <label class="editor-field editor-field-wide">
+              <span>Title</span>
+              <input
+                type="text"
+                required
+                maxlength="500"
+                [disabled]="!canModify()"
+                [value]="draft.subject"
+                (input)="updateStoryText('subject', $event)"
+              />
+            </label>
 
-          <section class="detail-section detail-summary">
-            <h3>Description</h3>
-            <p [class.detail-placeholder]="!detail.description">
-              {{ detail.description || 'No description yet.' }}
-            </p>
-          </section>
+            <label class="editor-field editor-field-wide">
+              <span>Description</span>
+              <textarea
+                rows="7"
+                [disabled]="!canModify()"
+                [value]="draft.description"
+                placeholder="Add context, acceptance criteria, links, or notes…"
+                (input)="updateStoryText('description', $event)"
+              ></textarea>
+            </label>
 
-          <dl class="detail-grid">
-            <div>
-              <dt>Assignees</dt>
-              <dd>{{ assigneeSummary(detail) }}</dd>
+            <div class="editor-grid">
+              <label class="editor-field">
+                <span>Status</span>
+                <select
+                  [disabled]="!canModify()"
+                  [value]="draft.status"
+                  (change)="updateStoryStatus($event)"
+                >
+                  @for (status of statuses(); track status.id) {
+                    <option [value]="status.id">{{ status.name }}</option>
+                  }
+                </select>
+              </label>
+
+              <label class="editor-field">
+                <span>Release</span>
+                <select
+                  [disabled]="!canModify()"
+                  [value]="draft.milestone ?? ''"
+                  (change)="updateStoryMilestone($event)"
+                >
+                  <option value="">No release</option>
+                  @for (milestone of store.milestones(); track milestone.id) {
+                    <option [value]="milestone.id">{{ milestone.name }}</option>
+                  }
+                </select>
+              </label>
+
+              <label class="editor-field">
+                <span>Due date</span>
+                <input
+                  type="date"
+                  [disabled]="!canModify()"
+                  [value]="draft.dueDate"
+                  (input)="updateStoryText('dueDate', $event)"
+                />
+              </label>
+
+              <div class="editor-field editor-readonly">
+                <span>Points</span>
+                <strong>{{ detail.total_points ?? 'Not estimated' }}</strong>
+              </div>
             </div>
-            <div>
-              <dt>Release</dt>
-              <dd>{{ detail.milestone_name || 'No release' }}</dd>
-            </div>
-            <div>
-              <dt>Points</dt>
-              <dd>{{ detail.total_points ?? 'Not estimated' }}</dd>
-            </div>
-            <div>
-              <dt>Due</dt>
-              <dd>
-                @if (detail.due_date) {
-                  <span [class.overdue]="isOverdue(detail)">
-                    {{ isOverdue(detail) ? 'Overdue · ' : '' }}{{ formatDueDate(detail.due_date) }}
-                  </span>
-                } @else {
-                  No due date
+
+            <fieldset class="editor-choice-group" [disabled]="!canModify()">
+              <legend>Assignees</legend>
+              <div class="editor-choice-list">
+                @for (assignee of editorAssignees(); track assignee.id) {
+                  <label>
+                    <input
+                      type="checkbox"
+                      [checked]="draft.assignedUsers.includes(assignee.id)"
+                      (change)="toggleStoryAssignee(assignee.id)"
+                    />
+                    @if (assignee.photo) {
+                      <img [src]="assignee.photo" alt="" />
+                    } @else {
+                      <span class="choice-avatar">{{ assigneeInitials(assignee) }}</span>
+                    }
+                    <span>{{ assigneeName(assignee) }}</span>
+                  </label>
                 }
-              </dd>
-            </div>
-          </dl>
+                @if (editorAssignees().length === 0) {
+                  <span class="editor-empty">No project members available.</span>
+                }
+              </div>
+            </fieldset>
 
-          @if (detail.is_blocked) {
-            <section class="detail-section detail-blocked">
-              <h3>Blocked</h3>
-              <p>{{ detail.blocked_note || 'No reason was provided.' }}</p>
+            <fieldset class="editor-choice-group" [disabled]="!canModify()">
+              <legend>Tags</legend>
+              <div class="editor-tag-list">
+                @for (tag of editorTags(); track tag) {
+                  <label [style.--tag-color]="storyTagColor(tag)">
+                    <input
+                      type="checkbox"
+                      [checked]="draft.tags.includes(tag)"
+                      (change)="toggleStoryTag(tag)"
+                    />
+                    <span>{{ tag }}</span>
+                  </label>
+                }
+                @if (editorTags().length === 0) {
+                  <span class="editor-empty">No project tags yet.</span>
+                }
+              </div>
+            </fieldset>
+
+            <section class="detail-section editor-blocked" [class.detail-blocked]="draft.isBlocked">
+              <label class="blocked-toggle">
+                <input
+                  type="checkbox"
+                  [disabled]="!canModify()"
+                  [checked]="draft.isBlocked"
+                  (change)="toggleStoryBlocked($event)"
+                />
+                <span>Mark as blocked</span>
+              </label>
+              @if (draft.isBlocked) {
+                <label class="editor-field">
+                  <span>Blocking reason</span>
+                  <textarea
+                    rows="3"
+                    [disabled]="!canModify()"
+                    [value]="draft.blockedNote"
+                    placeholder="What is preventing progress?"
+                    (input)="updateStoryText('blockedNote', $event)"
+                  ></textarea>
+                </label>
+              }
             </section>
           }
 
@@ -730,13 +805,39 @@
             <p>Created {{ formatTimestamp(detail.created_date) }}</p>
             <p>Updated {{ formatTimestamp(detail.modified_date) }}</p>
           </section>
-        </div>
+        </form>
 
         <footer class="story-drawer-footer">
-          <a mat-button [href]="storyUrl(detail)" target="_blank" rel="noopener">
-            Open classic editor
-          </a>
-          <button mat-flat-button type="button" (click)="closeStoryDetails()">Done</button>
+          @if (store.mutationError(); as saveError) {
+            <span class="editor-save-error" role="alert">{{ saveError }}</span>
+          }
+          <span class="footer-spacer"></span>
+          @if (canModify()) {
+            <button
+              mat-button
+              type="button"
+              [disabled]="!storyDraftDirty() || store.isMutating()"
+              (click)="resetStoryDraft()"
+            >
+              Reset
+            </button>
+            <button
+              mat-flat-button
+              type="submit"
+              form="story-editor"
+              [disabled]="
+                !storyDraftDirty() ||
+                store.isMutating() ||
+                store.isRefreshing() ||
+                store.requiresReconciliation() ||
+                !storyDraft()?.subject?.trim()
+              "
+            >
+              {{ store.mutation()?.kind === 'update' ? 'Saving…' : 'Save changes' }}
+            </button>
+          } @else {
+            <button mat-flat-button type="button" (click)="closeStoryDetails()">Done</button>
+          }
         </footer>
       </aside>
     </div>
@@ -782,8 +883,5 @@
     <button mat-menu-item type="button" (click)="openStoryDetails(selectedStory)">
       View story details
     </button>
-    <a mat-menu-item [href]="storyUrl(selectedStory)" target="_blank" rel="noopener">
-      Open in classic Taiga
-    </a>
   }
 </mat-menu>

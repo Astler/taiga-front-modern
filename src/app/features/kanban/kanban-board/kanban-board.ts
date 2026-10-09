@@ -17,7 +17,6 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../core/auth';
-import { RuntimeConfigService } from '../../../core/config';
 import type { TaigaId } from '../../../shared/models';
 import {
   KanbanStore,
@@ -41,6 +40,19 @@ const ROOT_LANE: KanbanLane = { id: null, name: null };
 interface FilterDefinition {
   readonly category: KanbanFilterCategory;
   readonly label: string;
+}
+
+interface StoryEditorDraft {
+  readonly id: TaigaId;
+  readonly subject: string;
+  readonly description: string;
+  readonly status: TaigaId;
+  readonly assignedUsers: readonly TaigaId[];
+  readonly milestone: TaigaId | null;
+  readonly dueDate: string;
+  readonly tags: readonly string[];
+  readonly isBlocked: boolean;
+  readonly blockedNote: string;
 }
 
 const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
@@ -80,9 +92,9 @@ const FOCUS_OPTIONS: readonly KanbanFilterOption[] = [
 })
 export class KanbanBoard {
   readonly project = input.required<KanbanProjectSnapshot>();
+  readonly storyId = input<TaigaId | null>(null);
 
   protected readonly store = inject(KanbanStore);
-  protected readonly config = inject(RuntimeConfigService);
   private readonly auth = inject(AuthService);
   private readonly presetApi = inject(KanbanFilterPresetsService);
   protected readonly query = signal('');
@@ -99,10 +111,13 @@ export class KanbanBoard {
   protected readonly quickCreateCell = signal<string | null>(null);
   protected readonly quickCreateDraft = signal('');
   protected readonly activeStory = signal<KanbanUserStory | null>(null);
+  protected readonly storyDraft = signal<StoryEditorDraft | null>(null);
+  protected readonly storyDraftDirty = signal(false);
   protected readonly liveAnnouncement = signal('');
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private loadedProjectId: TaigaId | undefined;
   private presetLoadRevision = 0;
+  private consumedStoryLink: string | null = null;
 
   protected readonly statuses = computed(() =>
     [...this.project().us_statuses]
@@ -149,6 +164,20 @@ export class KanbanBoard {
     return [...assignees.values()].sort((a, b) =>
       this.assigneeName(a).localeCompare(this.assigneeName(b)),
     );
+  });
+
+  protected readonly editorAssignees = computed(() =>
+    [...(this.project().members ?? [])].sort((a, b) =>
+      this.assigneeName(a).localeCompare(this.assigneeName(b)),
+    ),
+  );
+
+  protected readonly editorTags = computed(() => {
+    const names = new Set(this.project().tags ?? []);
+    for (const [name] of this.store.selectedStory()?.tags ?? []) {
+      names.add(name);
+    }
+    return [...names].sort((a, b) => a.localeCompare(b));
   });
 
   private readonly filterOptionsByCategory = computed(() => {
@@ -278,11 +307,6 @@ export class KanbanBoard {
   private readonly statusById = computed(
     () => new Map(this.statuses().map((status) => [status.id, status])),
   );
-
-  protected readonly classicBoardUrl = computed(() => {
-    const legacyUrl = this.config.snapshot().legacyUrl.replace(/\/+$/, '');
-    return `${legacyUrl}/project/${encodeURIComponent(this.project().slug)}/kanban`;
-  });
 
   protected readonly builtInPresets = computed<readonly KanbanFilterPreset[]>(() => {
     const presets: KanbanFilterPreset[] = [
@@ -414,6 +438,7 @@ export class KanbanBoard {
         }
 
         this.loadedProjectId = projectId;
+        this.consumedStoryLink = null;
         this.clearFilters();
         this.sortMode.set('manual');
         this.filterPanelOpen.set(false);
@@ -424,6 +449,42 @@ export class KanbanBoard {
         this.activeStory.set(null);
         this.store.load(projectId);
         this.loadPresets(projectId);
+      });
+    });
+
+    effect(() => {
+      const story = this.store.selectedStory();
+      const dirty = this.storyDraftDirty();
+      untracked(() => {
+        if (!story) {
+          this.storyDraft.set(null);
+          this.storyDraftDirty.set(false);
+          return;
+        }
+        if (this.storyDraft()?.id !== story.id || !dirty) {
+          this.storyDraft.set(storyDraftFrom(story));
+        }
+      });
+    });
+
+    effect(() => {
+      const storyId = this.storyId();
+      const projectId = this.project().id;
+      const loaded = this.store.status() === 'loaded';
+      const stories = this.store.userStories();
+      untracked(() => {
+        if (storyId === null || !loaded) {
+          return;
+        }
+        const key = `${projectId}:${storyId}`;
+        if (this.consumedStoryLink === key) {
+          return;
+        }
+        const story = stories.find(({ id }) => id === storyId);
+        if (story) {
+          this.consumedStoryLink = key;
+          this.openStoryDetails(story);
+        }
       });
     });
   }
@@ -595,11 +656,6 @@ export class KanbanBoard {
     return names.length > 0 ? `Assigned to ${names.join(', ')}` : 'Unassigned';
   }
 
-  protected storyUrl(story: KanbanUserStory): string {
-    const legacyUrl = this.config.snapshot().legacyUrl.replace(/\/+$/, '');
-    return `${legacyUrl}/project/${encodeURIComponent(this.project().slug)}/us/${story.ref}`;
-  }
-
   protected startQuickCreate(laneId: TaigaId | null, statusId: TaigaId): void {
     this.quickCreateCell.set(this.columnKey(laneId, statusId));
     this.quickCreateDraft.set('');
@@ -728,6 +784,8 @@ export class KanbanBoard {
   }
 
   protected openStoryDetails(story: KanbanUserStory): void {
+    this.storyDraft.set(storyDraftFrom(story));
+    this.storyDraftDirty.set(false);
     this.store.openStoryDetails(story.id);
   }
 
@@ -744,6 +802,103 @@ export class KanbanBoard {
         trigger?.focus();
       });
     }
+  }
+
+  protected updateStoryText(
+    field: 'subject' | 'description' | 'dueDate' | 'blockedNote',
+    event: Event,
+  ): void {
+    const value = (event.target as HTMLInputElement | HTMLTextAreaElement).value;
+    this.patchStoryDraft({ [field]: value });
+  }
+
+  protected updateStoryStatus(event: Event): void {
+    this.patchStoryDraft({ status: Number((event.target as HTMLSelectElement).value) });
+  }
+
+  protected updateStoryMilestone(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.patchStoryDraft({ milestone: value ? Number(value) : null });
+  }
+
+  protected toggleStoryAssignee(assigneeId: TaigaId): void {
+    const draft = this.storyDraft();
+    if (!draft) {
+      return;
+    }
+    const assignedUsers = draft.assignedUsers.includes(assigneeId)
+      ? draft.assignedUsers.filter((id) => id !== assigneeId)
+      : [...draft.assignedUsers, assigneeId];
+    this.patchStoryDraft({ assignedUsers });
+  }
+
+  protected toggleStoryTag(tag: string): void {
+    const draft = this.storyDraft();
+    if (!draft) {
+      return;
+    }
+    const tags = draft.tags.includes(tag)
+      ? draft.tags.filter((candidate) => candidate !== tag)
+      : [...draft.tags, tag];
+    this.patchStoryDraft({ tags });
+  }
+
+  protected storyTagColor(tag: string): string {
+    return (
+      this.store.selectedStory()?.tags.find(([name]) => name === tag)?.[1] ??
+      this.project().tags_colors?.[tag] ??
+      '#8f8a99'
+    );
+  }
+
+  protected toggleStoryBlocked(event: Event): void {
+    this.patchStoryDraft({ isBlocked: (event.target as HTMLInputElement).checked });
+  }
+
+  protected resetStoryDraft(): void {
+    const story = this.store.selectedStory();
+    if (story) {
+      this.storyDraft.set(storyDraftFrom(story));
+      this.storyDraftDirty.set(false);
+    }
+  }
+
+  protected async saveStory(event: Event): Promise<void> {
+    event.preventDefault();
+    const detail = this.store.selectedStory();
+    const draft = this.storyDraft();
+    if (!detail || !draft || !this.canModify() || !draft.subject.trim()) {
+      return;
+    }
+    const projectId = this.project().id;
+    const result = await this.store.updateStory({
+      projectId,
+      storyId: detail.id,
+      ...(detail.version === undefined ? {} : { version: detail.version }),
+      changes: {
+        subject: draft.subject.trim(),
+        description: draft.description,
+        status: draft.status,
+        assigned_users: draft.assignedUsers,
+        milestone: draft.milestone,
+        due_date: draft.dueDate || null,
+        tags: draft.tags,
+        is_blocked: draft.isBlocked,
+        blocked_note: draft.isBlocked ? draft.blockedNote : '',
+      },
+    });
+    if (this.project().id !== projectId) {
+      return;
+    }
+    if (result === 'updated') {
+      this.storyDraftDirty.set(false);
+      this.liveAnnouncement.set(`Story #${detail.ref} saved.`);
+    }
+  }
+
+  private patchStoryDraft(changes: Partial<StoryEditorDraft>): void {
+    this.storyDraft.update((draft) => (draft ? { ...draft, ...changes } : draft));
+    this.storyDraftDirty.set(true);
   }
 
   protected storyStatus(story: KanbanUserStory): KanbanStatus | null {
@@ -999,6 +1154,25 @@ function matchesStoryQuery(story: KanbanUserStory, query: string): boolean {
     return reference === referenceQuery[1];
   }
   return reference.includes(query) || story.subject.toLocaleLowerCase().includes(query);
+}
+
+function storyDraftFrom(story: KanbanUserStory): StoryEditorDraft {
+  const assignedUsers = [...story.assigned_users];
+  if (story.assigned_to !== null && !assignedUsers.includes(story.assigned_to)) {
+    assignedUsers.unshift(story.assigned_to);
+  }
+  return {
+    id: story.id,
+    subject: story.subject,
+    description: story.description ?? '',
+    status: story.status,
+    assignedUsers,
+    milestone: story.milestone ?? null,
+    dueDate: story.due_date ?? '',
+    tags: story.tags.map(([name]) => name),
+    isBlocked: story.is_blocked ?? false,
+    blockedNote: story.blocked_note ?? '',
+  };
 }
 
 function localDateKey(date: Date): string {

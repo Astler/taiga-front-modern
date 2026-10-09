@@ -11,19 +11,6 @@
         }
       </p>
     </div>
-
-    <a
-      class="app-icon-button"
-      mat-flat-button
-      [href]="config.snapshot().legacyUrl + 'project/' + project().slug + '/issues'"
-      target="_blank"
-      rel="noopener"
-    >
-      <span class="app-button-content">
-        <span>Open classic issues</span>
-        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8" /></svg>
-      </span>
-    </a>
   </header>
 
   <div class="issue-controls">
@@ -158,10 +145,10 @@
           @for (issue of store.issues(); track issue.id) {
             <tr>
               <td data-label="Issue" class="issue-main-cell">
-                <a [href]="issueUrl(issue)" target="_blank" rel="noopener">
+                <div class="issue-title">
                   <span class="issue-reference">#{{ issue.ref }}</span>
                   <strong>{{ issue.subject }}</strong>
-                </a>
+                </div>
               </td>
               <td data-label="Status">
                 <span class="attribute" [style.--attribute-color]="issue.status_extra_info.color">

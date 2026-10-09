@@ -26,6 +26,7 @@ export class KanbanPage {
   protected readonly projects = inject(ProjectStore);
   protected readonly requestedSlug = signal<string | null>(null);
   protected readonly requestedProjectFailed = signal(false);
+  protected readonly requestedStoryId = signal<number | null>(null);
   protected readonly activeProject = computed(() => {
     const project = this.projects.selectedProject();
     const slug = this.requestedSlug();
@@ -38,6 +39,11 @@ export class KanbanPage {
   private requestedProjectRevision = 0;
 
   constructor() {
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const value = Number(params.get('story'));
+      this.requestedStoryId.set(Number.isFinite(value) && value > 0 ? value : null);
+    });
+
     this.route.paramMap
       .pipe(
         map((params) => params.get('projectSlug')),

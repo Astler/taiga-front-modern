@@ -9,6 +9,7 @@ import type {
   KanbanOrderUpdate,
   KanbanSwimlane,
   KanbanUserStory,
+  KanbanStoryUpdateRequest,
 } from './kanban.models';
 import { KanbanStore } from './kanban.store';
 
@@ -22,6 +23,9 @@ describe('KanbanStore', () => {
       typeof vi.fn<(request: KanbanCreateRequest) => Observable<readonly KanbanUserStory[]>>
     >;
     getUserStory: ReturnType<typeof vi.fn<(storyId: number) => Observable<KanbanUserStory>>>;
+    updateUserStory: ReturnType<
+      typeof vi.fn<(request: KanbanStoryUpdateRequest) => Observable<KanbanUserStory>>
+    >;
   };
   let store: KanbanStore;
 
@@ -31,6 +35,7 @@ describe('KanbanStore', () => {
       moveUserStories: vi.fn(),
       createUserStories: vi.fn(),
       getUserStory: vi.fn(),
+      updateUserStory: vi.fn(),
     };
     TestBed.configureTestingModule({
       providers: [KanbanStore, { provide: KanbanApiService, useValue: api }],
@@ -118,6 +123,44 @@ describe('KanbanStore', () => {
     expect(store.selectedStory()).toEqual(summary);
     expect(store.selectedStoryStatus()).toBe('error');
     expect(store.selectedStoryError()).toContain('board summary');
+  });
+
+  it('saves story edits into both the board and open editor', async () => {
+    const original = { ...userStory(1, 1), version: 4 };
+    const updated = {
+      ...original,
+      subject: 'Updated title',
+      description: 'Updated body',
+      version: 5,
+    };
+    api.load.mockReturnValue(of({ swimlanes: [], userStories: [original] }));
+    api.getUserStory.mockReturnValue(of(original));
+    api.updateUserStory.mockReturnValue(of(updated));
+    store.load(17);
+    store.openStoryDetails(1);
+
+    await expect(
+      store.updateStory({
+        projectId: 17,
+        storyId: 1,
+        version: 4,
+        changes: {
+          subject: 'Updated title',
+          description: 'Updated body',
+          status: 1,
+          assigned_users: [],
+          milestone: null,
+          due_date: null,
+          tags: [],
+          is_blocked: false,
+          blocked_note: '',
+        },
+      }),
+    ).resolves.toBe('updated');
+
+    expect(store.userStories()[0]?.subject).toBe('Updated title');
+    expect(store.selectedStory()?.description).toBe('Updated body');
+    expect(store.mutationError()).toBeNull();
   });
 
   it('ignores a stale response when a newer project request has already won', () => {

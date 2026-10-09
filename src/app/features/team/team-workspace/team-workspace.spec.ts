@@ -3,7 +3,6 @@ import { By } from '@angular/platform-browser';
 import { MatTooltip } from '@angular/material/tooltip';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { RuntimeConfigService } from '../../../core/config';
 import type { TaigaProjectDetail } from '../../projects/data';
 import { TeamApiService, type TaigaMembership } from '../data';
 import { TeamWorkspace } from './team-workspace';
@@ -29,17 +28,11 @@ describe('TeamWorkspace', () => {
 
     await TestBed.configureTestingModule({
       imports: [TeamWorkspace],
-      providers: [
-        { provide: TeamApiService, useValue: { listMemberships } },
-        {
-          provide: RuntimeConfigService,
-          useValue: { snapshot: () => ({ legacyUrl: 'https://legacy.example.test/' }) },
-        },
-      ],
+      providers: [{ provide: TeamApiService, useValue: { listMemberships } }],
     }).compileComponents();
   });
 
-  it('renders the live roster with role, access, status, and classic links', async () => {
+  it('renders the live roster with role, access, and status in place', async () => {
     const fixture = TestBed.createComponent(TeamWorkspace);
     fixture.componentRef.setInput('project', project());
     fixture.detectChanges();
@@ -53,15 +46,8 @@ describe('TeamWorkspace', () => {
     expect(host.querySelector('.role-badge')?.textContent).toContain('Developer');
     expect(host.querySelector('.access-badge-owner')?.textContent).toContain('Owner');
     expect(host.querySelectorAll('.status-label')[1]?.textContent).toContain('Invitation pending');
-    expect(host.querySelector<HTMLAnchorElement>('.identity a')?.href).toBe(
-      'https://legacy.example.test/profile/ada',
-    );
-
-    const links = [...host.querySelectorAll<HTMLAnchorElement>('.header-actions a')].map(
-      ({ href }) => href,
-    );
-    expect(links).toContain('https://legacy.example.test/project/alpha/team');
-    expect(links).toContain('https://legacy.example.test/project/alpha/admin/memberships');
+    expect(host.querySelector('.identity a')).toBeNull();
+    expect(host.querySelector('.header-actions')).toBeNull();
   });
 
   it('filters member cards without another API request', async () => {

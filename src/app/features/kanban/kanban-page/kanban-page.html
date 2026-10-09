@@ -1,6 +1,6 @@
 @if (activeProject(); as project) {
   @if (project.is_kanban_activated) {
-    <pf-kanban-board [project]="project" />
+    <pf-kanban-board [project]="project" [storyId]="requestedStoryId()" />
   } @else {
     <section class="project-state">
       <span class="state-mark state-mark-info">i</span>
@@ -24,7 +24,7 @@
     <span class="state-mark state-mark-info">i</span>
     <div>
       <h1>No projects yet</h1>
-      <p>Create or join a project in classic Taiga, then come back to open its board.</p>
+      <p>No accessible project is available for this workspace yet.</p>
     </div>
   </section>
 } @else {

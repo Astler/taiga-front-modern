@@ -3,7 +3,6 @@ import { By } from '@angular/platform-browser';
 import { MatTooltip } from '@angular/material/tooltip';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { RuntimeConfigService } from '../../../core/config';
 import type { TaigaProjectDetail } from '../../projects/data';
 import { IssuesApiService, type IssueFiltersData, type IssueListPage } from '../data';
 import { IssuesWorkspace } from './issues-workspace';
@@ -18,17 +17,11 @@ describe('IssuesWorkspace', () => {
 
     await TestBed.configureTestingModule({
       imports: [IssuesWorkspace],
-      providers: [
-        { provide: IssuesApiService, useValue: { list, filters } },
-        {
-          provide: RuntimeConfigService,
-          useValue: { snapshot: () => ({ legacyUrl: 'https://legacy.example.test/' }) },
-        },
-      ],
+      providers: [{ provide: IssuesApiService, useValue: { list, filters } }],
     }).compileComponents();
   });
 
-  it('renders a dense real issue row and opens the classic detail', async () => {
+  it('renders a dense real issue row without leaving the workspace', async () => {
     const fixture = TestBed.createComponent(IssuesWorkspace);
     fixture.componentRef.setInput('project', project());
     fixture.detectChanges();
@@ -46,9 +39,7 @@ describe('IssuesWorkspace', () => {
     expect(host.querySelector('[data-label="Priority"]')?.textContent).toContain('High');
     expect(host.querySelector('.issue-tags')?.textContent).toContain('frontend');
     expect(host.querySelector('.assignee-name')?.textContent).toContain('Ada Lovelace');
-    expect(host.querySelector<HTMLAnchorElement>('.issue-main-cell a')?.href).toBe(
-      'https://legacy.example.test/project/alpha/issue/38',
-    );
+    expect(host.querySelector('.issue-main-cell a')).toBeNull();
   });
 
   it('shows only tag names in the overflow tooltip', async () => {

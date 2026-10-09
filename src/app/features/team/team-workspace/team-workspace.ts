@@ -9,7 +9,6 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { RuntimeConfigService } from '../../../core/config';
 import type { TaigaId } from '../../../shared/models';
 import type { TaigaProjectDetail } from '../../projects/data';
 import { TeamStore, type TaigaMembership, type TeamStatusFilter } from '../data';
@@ -26,7 +25,6 @@ export class TeamWorkspace {
   readonly project = input.required<TaigaProjectDetail>();
 
   protected readonly store = inject(TeamStore);
-  protected readonly config = inject(RuntimeConfigService);
   private loadedProjectId: TaigaId | null = null;
 
   constructor() {
@@ -85,26 +83,5 @@ export class TeamWorkspace {
       return 'Invitation pending';
     }
     return member.is_user_active ? 'Active' : 'Inactive';
-  }
-
-  protected profileUrl(member: TaigaMembership): string | null {
-    if (!member.username) {
-      return null;
-    }
-    const base = this.config.snapshot().legacyUrl.replace(/\/+$/, '');
-    return `${base}/profile/${encodeURIComponent(member.username)}`;
-  }
-
-  protected classicTeamUrl(): string {
-    return this.classicProjectUrl('team');
-  }
-
-  protected classicAdminUrl(): string {
-    return this.classicProjectUrl('admin/memberships');
-  }
-
-  private classicProjectUrl(section: string): string {
-    const base = this.config.snapshot().legacyUrl.replace(/\/+$/, '');
-    return `${base}/project/${encodeURIComponent(this.project().slug)}/${section}`;
   }
 }

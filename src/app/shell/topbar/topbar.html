@@ -54,8 +54,6 @@
     <input type="search" aria-label="Search Taiga" placeholder="Search" disabled />
   </label>
 
-  <a class="classic-link" mat-button [href]="legacyUrl">Classic Taiga</a>
-
   <button
     class="compact-search"
     mat-icon-button
@@ -111,6 +109,5 @@
       <small>{{ auth.user()?.username }}</small>
     </span>
   </div>
-  <a mat-menu-item [href]="legacyUrl">Open classic Taiga</a>
   <button mat-menu-item type="button" (click)="logout()">Sign out</button>
 </mat-menu>

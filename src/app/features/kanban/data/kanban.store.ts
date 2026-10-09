@@ -6,19 +6,22 @@ import { KanbanApiService } from './kanban-api.service';
 import type {
   KanbanCreateRequest,
   KanbanFiltersData,
+  KanbanMilestone,
   KanbanMoveCommand,
   KanbanOrderUpdate,
   KanbanSwimlane,
   KanbanUserStory,
+  KanbanStoryUpdateRequest,
 } from './kanban.models';
 
 export type KanbanLoadStatus = 'idle' | 'loading' | 'loaded' | 'error';
 export type KanbanCreateResult = 'created' | 'failed' | 'uncertain';
 export type KanbanMoveResult = 'moved' | 'failed' | 'uncertain';
+export type KanbanUpdateResult = 'updated' | 'failed' | 'uncertain';
 export type KanbanStoryDetailStatus = 'idle' | 'loading' | 'loaded' | 'error';
 
 export interface KanbanMutation {
-  readonly kind: 'create' | 'move';
+  readonly kind: 'create' | 'move' | 'update';
   readonly storyIds: readonly TaigaId[];
 }
 
@@ -30,6 +33,7 @@ export class KanbanStore {
   private readonly userStoriesState = signal<readonly KanbanUserStory[]>([]);
   private readonly swimlanesState = signal<readonly KanbanSwimlane[]>([]);
   private readonly filtersDataState = signal<KanbanFiltersData | null>(null);
+  private readonly milestonesState = signal<readonly KanbanMilestone[]>([]);
   private readonly errorState = signal<string | null>(null);
   private readonly mutationState = signal<KanbanMutation | null>(null);
   private readonly mutationErrorState = signal<string | null>(null);
@@ -48,6 +52,7 @@ export class KanbanStore {
   readonly userStories = this.userStoriesState.asReadonly();
   readonly swimlanes = this.swimlanesState.asReadonly();
   readonly filtersData = this.filtersDataState.asReadonly();
+  readonly milestones = this.milestonesState.asReadonly();
   readonly error = this.errorState.asReadonly();
   readonly mutation = this.mutationState.asReadonly();
   readonly mutationError = this.mutationErrorState.asReadonly();
@@ -73,6 +78,7 @@ export class KanbanStore {
     this.userStoriesState.set([]);
     this.swimlanesState.set([]);
     this.filtersDataState.set(null);
+    this.milestonesState.set([]);
     this.mutationState.set(null);
     this.mutationErrorState.set(null);
     this.refreshingState.set(false);
@@ -89,12 +95,13 @@ export class KanbanStore {
         }),
       )
       .subscribe({
-        next: ({ filtersData, swimlanes, userStories }) => {
+        next: ({ filtersData, milestones, swimlanes, userStories }) => {
           if (revision !== this.requestRevision) {
             return;
           }
           this.swimlanesState.set([...swimlanes].sort((a, b) => a.order - b.order));
           this.filtersDataState.set(filtersData ?? null);
+          this.milestonesState.set(milestones ?? []);
           this.userStoriesState.set(
             [...userStories].sort((a, b) => a.kanban_order - b.kanban_order),
           );
@@ -145,12 +152,13 @@ export class KanbanStore {
         }),
       )
       .subscribe({
-        next: ({ filtersData, swimlanes, userStories }) => {
+        next: ({ filtersData, milestones, swimlanes, userStories }) => {
           if (revision !== this.requestRevision || this.projectIdState() !== projectId) {
             return;
           }
           this.swimlanesState.set([...swimlanes].sort((a, b) => a.order - b.order));
           this.filtersDataState.set(filtersData ?? this.filtersDataState());
+          this.milestonesState.set(milestones ?? this.milestonesState());
           this.userStoriesState.set(sortStories(userStories));
           this.lastSyncedAtState.set(new Date());
           this.requiresReconciliationState.set(false);
@@ -267,6 +275,62 @@ export class KanbanStore {
       } else {
         this.mutationErrorState.set(
           'The new story could not be created. Check its title and try again.',
+        );
+      }
+      return ambiguous ? 'uncertain' : 'failed';
+    }
+  }
+
+  async updateStory(request: KanbanStoryUpdateRequest): Promise<KanbanUpdateResult> {
+    if (
+      this.projectIdState() !== request.projectId ||
+      this.isMutating() ||
+      this.refreshingState() ||
+      this.requiresReconciliationState() ||
+      request.changes.subject.trim().length === 0
+    ) {
+      return 'failed';
+    }
+
+    const revision = ++this.mutationRevision;
+    this.mutationState.set({ kind: 'update', storyIds: [request.storyId] });
+    this.mutationErrorState.set(null);
+    try {
+      const updated = await firstValueFrom(this.api.updateUserStory(request));
+      if (!this.isCurrentMutation(revision, request.projectId)) {
+        return 'failed';
+      }
+      this.userStoriesState.update((stories) =>
+        sortStories(
+          stories.map((story) => (story.id === request.storyId ? { ...story, ...updated } : story)),
+        ),
+      );
+      if (this.selectedStoryState()?.id === request.storyId) {
+        this.selectedStoryState.update((story) => (story ? { ...story, ...updated } : story));
+        this.selectedStoryStatusState.set('loaded');
+      }
+      this.lastSyncedAtState.set(new Date());
+      this.mutationState.set(null);
+      return 'updated';
+    } catch (error: unknown) {
+      const ambiguous = isAmbiguousMutationFailure(error);
+      if (!this.isCurrentMutation(revision, request.projectId)) {
+        return 'failed';
+      }
+      this.mutationState.set(null);
+      if (ambiguous) {
+        this.requiresReconciliationState.set(true);
+        this.mutationErrorState.set(
+          'Taiga did not confirm the story update. The board is syncing before another change.',
+        );
+        this.refresh();
+      } else if (error instanceof HttpErrorResponse && error.status === 409) {
+        this.mutationErrorState.set(
+          'This story changed elsewhere. Reopen it to load the latest version before saving again.',
+        );
+      } else {
+        this.mutationErrorState.set(
+          'The story could not be saved. Review the fields and try again.',
         );
       }
       return ambiguous ? 'uncertain' : 'failed';

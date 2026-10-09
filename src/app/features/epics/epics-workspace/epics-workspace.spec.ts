@@ -3,7 +3,6 @@ import { By } from '@angular/platform-browser';
 import { MatTooltip } from '@angular/material/tooltip';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { RuntimeConfigService } from '../../../core/config';
 import type { TaigaProjectDetail } from '../../projects/data';
 import { EpicsApiService, type EpicFiltersData, type EpicListPage, type TaigaEpic } from '../data';
 import { EpicsWorkspace } from './epics-workspace';
@@ -18,17 +17,11 @@ describe('EpicsWorkspace', () => {
 
     await TestBed.configureTestingModule({
       imports: [EpicsWorkspace],
-      providers: [
-        { provide: EpicsApiService, useValue: { list, filters } },
-        {
-          provide: RuntimeConfigService,
-          useValue: { snapshot: () => ({ legacyUrl: 'https://legacy.example.test/' }) },
-        },
-      ],
+      providers: [{ provide: EpicsApiService, useValue: { list, filters } }],
     }).compileComponents();
   });
 
-  it('renders real epic status, story progress, people, and classic detail link', async () => {
+  it('renders real epic status, story progress, and people without leaving the workspace', async () => {
     const fixture = TestBed.createComponent(EpicsWorkspace);
     fixture.componentRef.setInput('project', project());
     fixture.detectChanges();
@@ -43,9 +36,7 @@ describe('EpicsWorkspace', () => {
     expect(host.querySelector('[data-label="Progress"]')?.textContent).toContain('40%');
     expect(host.querySelector('[data-label="Progress"]')?.textContent).toContain('4/10 stories');
     expect(host.querySelector('[data-label="Owner"]')?.textContent).toContain('Ada Lovelace');
-    expect(host.querySelector<HTMLAnchorElement>('.epic-main-cell a')?.href).toBe(
-      'https://legacy.example.test/project/alpha/epic/38',
-    );
+    expect(host.querySelector('.epic-main-cell a')).toBeNull();
   });
 
   it('shows remaining tag names in an accessible overflow tooltip', async () => {

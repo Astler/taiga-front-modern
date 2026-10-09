@@ -12,7 +12,6 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { RuntimeConfigService } from '../../../core/config';
 import type { TaigaProjectDetail } from '../../projects/data';
 import {
   IssuesStore,
@@ -53,7 +52,6 @@ export class IssuesWorkspace implements OnDestroy {
   readonly project = input.required<TaigaProjectDetail>();
 
   protected readonly store = inject(IssuesStore);
-  protected readonly config = inject(RuntimeConfigService);
   protected readonly filterDefinitions = FILTERS;
   protected readonly searchValue = signal('');
   protected readonly visiblePageNumbers = computed(() => {
@@ -153,11 +151,6 @@ export class IssuesWorkspace implements OnDestroy {
       .slice(2)
       .map(([name]) => name)
       .join(', ');
-  }
-
-  protected issueUrl(issue: TaigaIssue): string {
-    const base = this.config.snapshot().legacyUrl.replace(/\/+$/, '');
-    return base + '/project/' + encodeURIComponent(this.project().slug) + '/issue/' + issue.ref;
   }
 
   protected assigneeName(assignee: IssueAssignee | null): string {

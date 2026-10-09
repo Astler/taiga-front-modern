@@ -11,19 +11,6 @@
         }
       </p>
     </div>
-
-    <a
-      class="app-icon-button"
-      mat-flat-button
-      [href]="classicEpicsUrl()"
-      target="_blank"
-      rel="noopener"
-    >
-      <span class="app-button-content">
-        <span>Open classic epics</span>
-        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8" /></svg>
-      </span>
-    </a>
   </header>
 
   <div class="epic-controls">
@@ -139,11 +126,11 @@
           @for (epic of store.epics(); track epic.id) {
             <tr>
               <td data-label="Epic" class="epic-main-cell">
-                <a [href]="epicUrl(epic)" target="_blank" rel="noopener">
+                <div class="epic-title">
                   <span class="epic-color" [style.background]="epic.color"></span>
                   <span class="epic-reference">#{{ epic.ref }}</span>
                   <strong>{{ epic.subject }}</strong>
-                </a>
+                </div>
               </td>
               <td data-label="Status">
                 @if (epic.status_extra_info; as status) {

@@ -4,7 +4,6 @@ import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthService } from '../../core/auth';
-import { RuntimeConfigService } from '../../core/config';
 import type { KanbanUserStory } from '../../features/kanban/data';
 import type { TaigaProjectDetail } from '../../features/projects/data';
 import { ShellProjectContext } from '../project-context/shell-project-context';
@@ -53,10 +52,6 @@ describe('DashboardPlaceholder', () => {
           },
         },
         {
-          provide: RuntimeConfigService,
-          useValue: { snapshot: () => ({ legacyUrl: 'https://classic.example.test/' }) },
-        },
-        {
           provide: ShellProjectContext,
           useValue: {
             store: { selectedProject },
@@ -96,7 +91,7 @@ describe('DashboardPlaceholder', () => {
     expect(host.querySelector('.progress-copy')?.textContent).toContain('33%');
     expect(host.querySelector('.activity-list')?.textContent).toContain('Fix release blocker');
     expect(host.querySelector<HTMLAnchorElement>('.activity-title')?.href).toContain(
-      'https://classic.example.test/project/puzzles-together/us/',
+      '/project/puzzles-together/kanban?story=',
     );
   });
 

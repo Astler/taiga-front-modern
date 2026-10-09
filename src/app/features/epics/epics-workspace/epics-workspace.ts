@@ -12,7 +12,6 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { RuntimeConfigService } from '../../../core/config';
 import type { TaigaProjectDetail } from '../../projects/data';
 import {
   EpicsStore,
@@ -62,7 +61,6 @@ export class EpicsWorkspace implements OnDestroy {
     return Array.from({ length: end - start + 1 }, (_, index) => start + index);
   });
 
-  private readonly config = inject(RuntimeConfigService);
   private loadedProjectId: number | undefined;
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -135,16 +133,6 @@ export class EpicsWorkspace implements OnDestroy {
 
   protected optionLabel(option: EpicFilterOption): string {
     return option.full_name || option.name || 'Unassigned';
-  }
-
-  protected epicUrl(epic: TaigaEpic): string {
-    const base = this.config.snapshot().legacyUrl.replace(/\/+$/, '');
-    return `${base}/project/${encodeURIComponent(this.project().slug)}/epic/${epic.ref}`;
-  }
-
-  protected classicEpicsUrl(): string {
-    const base = this.config.snapshot().legacyUrl.replace(/\/+$/, '');
-    return `${base}/project/${encodeURIComponent(this.project().slug)}/epics`;
   }
 
   protected progressPercent(epic: TaigaEpic): number {

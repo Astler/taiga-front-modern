@@ -4,7 +4,6 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
-import { RuntimeConfigService } from '../../core';
 import { AuthService } from '../../core/auth';
 import { ShellProject } from '../project-context/mock-projects';
 import { ShellProjectContext } from '../project-context/shell-project-context';
@@ -22,7 +21,6 @@ export class Topbar {
   readonly navigationToggle = output<void>();
 
   protected readonly projectContext = inject(ShellProjectContext);
-  protected readonly legacyUrl = inject(RuntimeConfigService).snapshot().legacyUrl;
   protected readonly auth = inject(AuthService);
   protected readonly profileName = computed(
     () => this.auth.user()?.full_name_display || this.auth.user()?.username || 'Taiga user',

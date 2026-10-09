@@ -65,7 +65,6 @@
 .access-badge,
 .privacy-badge,
 .summary-count,
-.classic-mark,
 .module-state {
   border-radius: var(--app-radius-full);
   padding: 0.35rem 0.65rem;
@@ -133,16 +132,10 @@
   font-weight: 650;
 }
 
-.summary-count,
-.classic-mark {
+.summary-count {
   border: 1px solid var(--app-border-color);
   background: var(--mat-sys-surface-container-high);
   color: var(--mat-sys-on-surface-variant);
-}
-
-.classic-mark {
-  border-color: color-mix(in srgb, var(--mat-sys-primary) 45%, var(--app-border-color));
-  color: var(--mat-sys-primary);
 }
 
 .project-profile {
@@ -380,50 +373,9 @@
   color: var(--mat-sys-on-surface-variant);
 }
 
-.classic-card {
-  grid-column: 1 / -1;
-}
-
-.classic-link-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.625rem;
-  margin-block-start: 1rem;
-}
-
-.classic-link-grid a {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  border: 1px solid var(--app-border-color);
-  border-radius: var(--app-radius-lg);
-  background: var(--mat-sys-surface-container);
-  color: var(--mat-sys-on-surface);
-  padding: 0.8rem 0.9rem;
-  text-decoration: none;
-}
-
-.classic-link-grid a > span:first-child {
-  min-width: 0;
-  display: grid;
-  gap: 0.15rem;
-}
-
-.classic-link-grid small {
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-body-small);
-}
-
 @media (max-width: 56rem) {
-  .settings-grid,
-  .classic-link-grid {
+  .settings-grid {
     grid-template-columns: 1fr;
-  }
-
-  .classic-card {
-    grid-column: auto;
   }
 }
 

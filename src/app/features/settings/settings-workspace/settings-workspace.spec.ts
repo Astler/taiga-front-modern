@@ -1,6 +1,5 @@
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { RuntimeConfigService } from '../../../core/config';
 import type { TaigaProjectDetail } from '../../projects/data';
 import { SettingsWorkspace } from './settings-workspace';
 
@@ -8,12 +7,6 @@ describe('SettingsWorkspace', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [SettingsWorkspace],
-      providers: [
-        {
-          provide: RuntimeConfigService,
-          useValue: { snapshot: () => ({ legacyUrl: 'https://classic.example.test/' }) },
-        },
-      ],
     }).compileComponents();
   });
 
@@ -39,41 +32,12 @@ describe('SettingsWorkspace', () => {
     expect(host.querySelector('.summary-count')?.textContent).toContain('4/5 on');
   });
 
-  it('uses the stable classic admin routes for every settings mutation', () => {
+  it('does not send settings mutations to another interface', () => {
     const fixture = TestBed.createComponent(SettingsWorkspace);
     fixture.componentRef.setInput('project', project());
     fixture.detectChanges();
 
-    const links = [...(fixture.nativeElement as HTMLElement).querySelectorAll('a')].map((link) =>
-      link.getAttribute('href'),
-    );
-    expect(links).toContain(
-      'https://classic.example.test/project/delivery-platform/admin/project-profile/details',
-    );
-    expect(links).toContain(
-      'https://classic.example.test/project/delivery-platform/admin/project-profile/default-values',
-    );
-    expect(links).toContain(
-      'https://classic.example.test/project/delivery-platform/admin/project-profile/modules',
-    );
-    expect(links).toContain(
-      'https://classic.example.test/project/delivery-platform/admin/project-values/status',
-    );
-    expect(links).toContain(
-      'https://classic.example.test/project/delivery-platform/admin/project-values/tags',
-    );
-    expect(links).toContain(
-      'https://classic.example.test/project/delivery-platform/admin/memberships',
-    );
-    expect(links).toContain('https://classic.example.test/project/delivery-platform/admin/roles');
-    expect(links).toContain(
-      'https://classic.example.test/project/delivery-platform/admin/third-parties/webhooks',
-    );
-    expect(
-      [...(fixture.nativeElement as HTMLElement).querySelectorAll('a')].every(
-        (link) => link.target === '_blank' && link.rel.includes('noopener'),
-      ),
-    ).toBe(true);
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('a')).toHaveLength(0);
   });
 
   it('makes non-admin projects explicitly read-only and exposes no admin destinations', () => {
@@ -93,7 +57,7 @@ describe('SettingsWorkspace', () => {
     );
     expect(host.querySelector('.access-level')?.textContent).toContain('Project member');
     expect(host.querySelectorAll('a')).toHaveLength(0);
-    expect(host.querySelector('.classic-card')).toBeNull();
+    expect(host.querySelectorAll('a')).toHaveLength(0);
   });
 
   it('updates all summaries when the selected project changes', () => {
@@ -126,12 +90,10 @@ describe('SettingsWorkspace', () => {
     expect(host.querySelector('.workflow-card')?.textContent).toContain(
       'No shared tags have been created',
     );
-    expect(host.querySelector<HTMLAnchorElement>('.settings-header a')?.href).toBe(
-      'https://classic.example.test/project/operations/admin/project-profile/details',
-    );
+    expect(host.querySelector('.settings-header a')).toBeNull();
   });
 
-  it('does not offer archived-only mutation destinations', () => {
+  it('does not offer external mutation destinations for archived projects', () => {
     const fixture = TestBed.createComponent(SettingsWorkspace);
     fixture.componentRef.setInput('project', {
       ...project(),
@@ -140,13 +102,7 @@ describe('SettingsWorkspace', () => {
     fixture.detectChanges();
 
     const host = fixture.nativeElement as HTMLElement;
-    const advancedLinks = [...host.querySelectorAll<HTMLAnchorElement>('.classic-link-grid a')].map(
-      (link) => link.textContent?.trim(),
-    );
-    expect(advancedLinks).toEqual([
-      expect.stringContaining('Project details'),
-      expect.stringContaining('Members'),
-    ]);
+    expect(host.querySelectorAll('a')).toHaveLength(0);
     expect(host.querySelector('.modules-card .text-link')).toBeNull();
     expect(host.querySelector('.workflow-card .text-link')).toBeNull();
     expect(host.querySelector('.notice-warning')?.textContent).toContain('archived');

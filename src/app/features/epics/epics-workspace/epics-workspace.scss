@@ -218,7 +218,7 @@ select option {
   min-width: 18rem;
 }
 
-.epic-main-cell a {
+.epic-main-cell .epic-title {
   display: grid;
   grid-template-columns: auto auto minmax(0, 1fr);
   align-items: center;
@@ -486,7 +486,7 @@ time {
     grid-column: 1 / -1;
   }
 
-  .epic-main-cell a {
+  .epic-main-cell .epic-title {
     font: var(--mat-sys-body-large);
   }
 

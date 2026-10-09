@@ -6,20 +6,7 @@
       <p>Configuration, access and workflow at a glance.</p>
     </div>
 
-    @if (canAdminister()) {
-      <a
-        class="app-icon-button"
-        mat-flat-button
-        [href]="classicSettingsUrl('admin/project-profile/details')"
-        target="_blank"
-        rel="noopener"
-      >
-        <span class="app-button-content">
-          <span>Edit in Classic Taiga</span>
-          <span aria-hidden="true">↗</span>
-        </span>
-      </a>
-    } @else {
+    @if (!canAdminister()) {
       <span class="access-badge">Read only</span>
     }
   </header>
@@ -84,17 +71,6 @@
           <dd>{{ project().is_private ? 'Members only' : 'Visible to everyone' }}</dd>
         </div>
       </dl>
-
-      @if (canAdminister()) {
-        <a
-          class="text-link"
-          [href]="classicSettingsUrl('admin/project-profile/details')"
-          target="_blank"
-          rel="noopener"
-        >
-          Edit project profile <span aria-hidden="true">↗</span>
-        </a>
-      }
     </article>
 
     <article class="settings-card modules-card">
@@ -124,17 +100,6 @@
           </li>
         }
       </ul>
-
-      @if (canAdminister() && !project().archived_code) {
-        <a
-          class="text-link"
-          [href]="classicSettingsUrl('admin/project-profile/modules')"
-          target="_blank"
-          rel="noopener"
-        >
-          Configure modules <span aria-hidden="true">↗</span>
-        </a>
-      }
     </article>
 
     <article class="settings-card access-card">
@@ -165,27 +130,6 @@
         </div>
       } @else {
         <p class="empty-copy">No explicit project permissions were returned for this account.</p>
-      }
-
-      @if (canAdminister()) {
-        <div class="card-links">
-          <a
-            class="text-link"
-            [href]="classicSettingsUrl('admin/memberships')"
-            target="_blank"
-            rel="noopener"
-            >Manage members <span aria-hidden="true">↗</span></a
-          >
-          @if (!project().archived_code) {
-            <a
-              class="text-link"
-              [href]="classicSettingsUrl('admin/roles')"
-              target="_blank"
-              rel="noopener"
-              >Manage roles <span aria-hidden="true">↗</span></a
-            >
-          }
-        </div>
       }
     </article>
 
@@ -238,51 +182,6 @@
           <p class="empty-copy">No shared tags have been created.</p>
         }
       </div>
-
-      @if (canAdminister() && !project().archived_code) {
-        <div class="card-links">
-          <a
-            class="text-link"
-            [href]="classicSettingsUrl('admin/project-values/status')"
-            target="_blank"
-            rel="noopener"
-            >Edit statuses <span aria-hidden="true">↗</span></a
-          >
-          <a
-            class="text-link"
-            [href]="classicSettingsUrl('admin/project-values/tags')"
-            target="_blank"
-            rel="noopener"
-            >Edit tags <span aria-hidden="true">↗</span></a
-          >
-        </div>
-      }
     </article>
-
-    @if (canAdminister()) {
-      <article class="settings-card classic-card">
-        <header class="card-heading">
-          <div>
-            <span class="card-kicker">Administration</span>
-            <h2>Advanced settings</h2>
-          </div>
-          <span class="classic-mark">Classic</span>
-        </header>
-        <p class="supporting-copy">
-          Changes still open in Classic Taiga while their safe editing flows are being migrated.
-        </p>
-        <nav class="classic-link-grid" aria-label="Advanced project settings">
-          @for (link of classicLinks(); track link.path) {
-            <a [href]="classicSettingsUrl(link.path)" target="_blank" rel="noopener">
-              <span>
-                <strong>{{ link.label }}</strong>
-                <small>{{ link.description }}</small>
-              </span>
-              <span aria-hidden="true">↗</span>
-            </a>
-          }
-        </nav>
-      </article>
-    }
   </div>
 </section>

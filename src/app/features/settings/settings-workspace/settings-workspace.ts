@@ -1,6 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { RuntimeConfigService } from '../../../core/config';
 import type { TaigaProjectDetail } from '../../projects/data';
 
 interface ProjectModule {
@@ -9,55 +8,6 @@ interface ProjectModule {
   readonly description: string;
   readonly enabled: boolean;
 }
-
-interface ClassicSettingsLink {
-  readonly label: string;
-  readonly description: string;
-  readonly path: string;
-}
-
-const CLASSIC_SETTINGS_LINKS: readonly ClassicSettingsLink[] = [
-  {
-    label: 'Project details',
-    description: 'Name, description, privacy and ownership',
-    path: 'admin/project-profile/details',
-  },
-  {
-    label: 'Default values',
-    description: 'Defaults used when new work is created',
-    path: 'admin/project-profile/default-values',
-  },
-  {
-    label: 'Modules',
-    description: 'Enable or disable project workspaces',
-    path: 'admin/project-profile/modules',
-  },
-  {
-    label: 'Statuses and workflow',
-    description: 'Edit statuses, ordering and WIP limits',
-    path: 'admin/project-values/status',
-  },
-  {
-    label: 'Tags',
-    description: 'Manage the shared project tag palette',
-    path: 'admin/project-values/tags',
-  },
-  {
-    label: 'Members',
-    description: 'Invite people and change their roles',
-    path: 'admin/memberships',
-  },
-  {
-    label: 'Roles and permissions',
-    description: 'Control what each project role can do',
-    path: 'admin/roles',
-  },
-  {
-    label: 'Integrations',
-    description: 'Webhooks and source control connections',
-    path: 'admin/third-parties/webhooks',
-  },
-];
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -69,16 +19,6 @@ const CLASSIC_SETTINGS_LINKS: readonly ClassicSettingsLink[] = [
 export class SettingsWorkspace {
   readonly project = input.required<TaigaProjectDetail>();
 
-  private readonly config = inject(RuntimeConfigService);
-
-  protected readonly classicLinks = computed(() =>
-    this.project().archived_code
-      ? CLASSIC_SETTINGS_LINKS.filter(
-          (link) =>
-            link.path === 'admin/project-profile/details' || link.path === 'admin/memberships',
-        )
-      : CLASSIC_SETTINGS_LINKS,
-  );
   protected readonly canAdminister = computed(
     () => this.project().i_am_admin || this.project().i_am_owner,
   );
@@ -145,11 +85,6 @@ export class SettingsWorkspace {
   protected readonly hiddenPermissionCount = computed(() =>
     Math.max(0, this.project().my_permissions.length - this.visiblePermissions().length),
   );
-
-  protected classicSettingsUrl(path: string): string {
-    const base = this.config.snapshot().legacyUrl.replace(/\/+$/, '');
-    return `${base}/project/${encodeURIComponent(this.project().slug)}/${path}`;
-  }
 
   protected ownerName(): string {
     const owner = this.project().owner;

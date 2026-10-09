@@ -6,16 +6,19 @@ import type { TaigaId } from '../../../shared/models';
 import type {
   KanbanCreateRequest,
   KanbanFiltersData,
+  KanbanMilestone,
   KanbanMoveRequest,
   KanbanOrderUpdate,
   KanbanSwimlane,
   KanbanUserStory,
+  KanbanStoryUpdateRequest,
 } from './kanban.models';
 
 export interface KanbanPayload {
   readonly swimlanes: readonly KanbanSwimlane[];
   readonly userStories: readonly KanbanUserStory[];
   readonly filtersData?: KanbanFiltersData;
+  readonly milestones?: readonly KanbanMilestone[];
 }
 
 const UNPAGINATED_HEADERS = new HttpHeaders({ 'X-Disable-Pagination': '1' });
@@ -30,6 +33,14 @@ export class KanbanApiService {
       swimlanes: this.listSwimlanes(projectId),
       userStories: this.listUserStories(projectId),
       filtersData: this.filtersData(projectId).pipe(catchError(() => of({}))),
+      milestones: this.listMilestones(projectId).pipe(catchError(() => of([]))),
+    });
+  }
+
+  listMilestones(projectId: TaigaId): Observable<readonly KanbanMilestone[]> {
+    return this.http.get<readonly KanbanMilestone[]>(this.config.resolveApiPath('milestones'), {
+      headers: UNPAGINATED_HEADERS,
+      params: new HttpParams().set('project', projectId),
     });
   }
 
@@ -68,6 +79,16 @@ export class KanbanApiService {
       `${this.config.resolveApiPath('userstories')}/${storyId}`,
       {
         params: new HttpParams().set('include_attachments', 1).set('include_tasks', 1),
+      },
+    );
+  }
+
+  updateUserStory(request: KanbanStoryUpdateRequest): Observable<KanbanUserStory> {
+    return this.http.patch<KanbanUserStory>(
+      `${this.config.resolveApiPath('userstories')}/${request.storyId}`,
+      {
+        ...request.changes,
+        ...(request.version === undefined ? {} : { version: request.version }),
       },
     );
   }

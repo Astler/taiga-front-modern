@@ -10,7 +10,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth';
-import { RuntimeConfigService } from '../../core/config';
 import type { KanbanAssignee, KanbanUserStory } from '../../features/kanban/data';
 import type { TaigaId } from '../../shared/models';
 import { ShellProjectContext } from '../project-context/shell-project-context';
@@ -36,7 +35,6 @@ export class DashboardPlaceholder {
   protected readonly projectContext = inject(ShellProjectContext);
   protected readonly store = inject(DashboardOverviewStore);
   private readonly auth = inject(AuthService);
-  private readonly config = inject(RuntimeConfigService);
 
   protected readonly project = computed(() => this.projectContext.store.selectedProject());
   protected readonly greeting = computed(() => {
@@ -182,10 +180,9 @@ export class DashboardPlaceholder {
         : 'Open';
   }
 
-  protected storyUrl(story: KanbanUserStory): string {
-    const legacyUrl = this.config.snapshot().legacyUrl.replace(/\/+$/, '');
+  protected storyRoute(): readonly string[] {
     const slug = this.project()?.slug ?? this.projectContext.selectedProject().slug;
-    return `${legacyUrl}/project/${encodeURIComponent(slug)}/us/${story.ref}`;
+    return ['/project', slug, 'kanban'];
   }
 
   protected storyPerson(story: KanbanUserStory): KanbanAssignee | null {

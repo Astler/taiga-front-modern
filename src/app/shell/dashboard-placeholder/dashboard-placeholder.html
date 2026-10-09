@@ -120,7 +120,7 @@
                 aria-hidden="true"
               ></span>
               <span class="focus-copy">
-                <a [href]="storyUrl(story)" target="_blank" rel="noopener">
+                <a [routerLink]="storyRoute()" [queryParams]="{ story: story.id }">
                   <strong>#{{ story.ref }} {{ story.subject }}</strong>
                 </a>
                 <small>{{ focusDetail(story) }}</small>
@@ -161,7 +161,11 @@
                 }
               </span>
               <span class="activity-copy">
-                <a class="activity-title" [href]="storyUrl(story)" target="_blank" rel="noopener">
+                <a
+                  class="activity-title"
+                  [routerLink]="storyRoute()"
+                  [queryParams]="{ story: story.id }"
+                >
                   #{{ story.ref }} {{ story.subject }}
                 </a>
                 <span>{{ statusName(story) }} · {{ personName(person) }}</span>

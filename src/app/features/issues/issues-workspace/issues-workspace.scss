@@ -241,7 +241,7 @@ select option {
   min-width: 17rem;
 }
 
-.issue-main-cell a {
+.issue-main-cell .issue-title {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 0.5rem;
@@ -491,7 +491,7 @@ time {
     grid-column: 1 / -1;
   }
 
-  .issue-main-cell a {
+  .issue-main-cell .issue-title {
     font: var(--mat-sys-body-large);
   }
 

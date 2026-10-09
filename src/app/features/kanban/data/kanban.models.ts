@@ -19,6 +19,8 @@ export interface KanbanProjectSnapshot {
   readonly my_permissions?: readonly string[];
   readonly archived_code?: string | null;
   readonly blocked_code?: string | null;
+  readonly tags?: readonly string[];
+  readonly tags_colors?: Readonly<Record<string, string | null>>;
 }
 
 export interface KanbanAssignee {
@@ -121,6 +123,33 @@ export interface KanbanCreateRequest {
   readonly statusId: TaigaId;
   readonly swimlaneId: TaigaId | null;
   readonly subjects: string;
+}
+
+export interface KanbanStoryUpdate {
+  readonly subject: string;
+  readonly description: string;
+  readonly status: TaigaId;
+  readonly assigned_users: readonly TaigaId[];
+  readonly milestone: TaigaId | null;
+  readonly due_date: string | null;
+  readonly tags: readonly string[];
+  readonly is_blocked: boolean;
+  readonly blocked_note: string;
+}
+
+export interface KanbanStoryUpdateRequest {
+  readonly projectId: TaigaId;
+  readonly storyId: TaigaId;
+  readonly version?: number;
+  readonly changes: KanbanStoryUpdate;
+}
+
+export interface KanbanMilestone {
+  readonly id: TaigaId;
+  readonly name: string;
+  readonly closed: boolean;
+  readonly estimated_start?: string | null;
+  readonly estimated_finish?: string | null;
 }
 
 export interface KanbanSwimlaneStatus {
