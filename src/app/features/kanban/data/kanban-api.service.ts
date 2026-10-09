@@ -1,6 +1,6 @@
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, forkJoin } from 'rxjs';
+import { Observable, catchError, forkJoin, of } from 'rxjs';
 import { RuntimeConfigService } from '../../../core/config';
 import type { TaigaId } from '../../../shared/models';
 import type {
@@ -29,7 +29,7 @@ export class KanbanApiService {
     return forkJoin({
       swimlanes: this.listSwimlanes(projectId),
       userStories: this.listUserStories(projectId),
-      filtersData: this.filtersData(projectId),
+      filtersData: this.filtersData(projectId).pipe(catchError(() => of({}))),
     });
   }
 
@@ -58,7 +58,7 @@ export class KanbanApiService {
       this.config.resolveApiPath('userstories/filters_data'),
       {
         headers: UNPAGINATED_HEADERS,
-        params: new HttpParams().set('project', projectId).set('status__is_archived', false),
+        params: new HttpParams().set('project', projectId),
       },
     );
   }

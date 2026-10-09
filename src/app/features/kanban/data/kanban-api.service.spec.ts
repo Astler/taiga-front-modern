@@ -65,13 +65,30 @@ describe('KanbanApiService', () => {
   it('loads the filter metadata exposed by stable Taiga', async () => {
     const response = { tags: [{ name: 'frontend', count: 4 }] };
     const result = firstValueFrom(service.filtersData(17));
-    const request = httpTesting.expectOne(
-      '/api/v1/userstories/filters_data?project=17&status__is_archived=false',
-    );
+    const request = httpTesting.expectOne('/api/v1/userstories/filters_data?project=17');
 
     expect(request.request.method).toBe('GET');
     request.flush(response);
     await expect(result).resolves.toEqual(response);
+  });
+
+  it('keeps the board usable when optional filter metadata is unsupported', async () => {
+    const result = firstValueFrom(service.load(17));
+    httpTesting.expectOne('/api/v1/swimlanes?project=17').flush([swimlane(3)]);
+    httpTesting
+      .expectOne(
+        '/api/v1/userstories?project=17&status__is_archived=false&include_attachments=1&include_tasks=1',
+      )
+      .flush([userStory(101)]);
+    httpTesting
+      .expectOne('/api/v1/userstories/filters_data?project=17')
+      .flush(null, { status: 404, statusText: 'Not found' });
+
+    await expect(result).resolves.toEqual({
+      swimlanes: [swimlane(3)],
+      userStories: [userStory(101)],
+      filtersData: {},
+    });
   });
 
   it('loads a complete story projection for the detail drawer', async () => {
