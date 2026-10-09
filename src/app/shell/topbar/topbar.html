@@ -69,15 +69,18 @@
   </button>
 
   <button
+    #notificationOrigin="cdkOverlayOrigin"
+    cdkOverlayOrigin
     class="notification-button"
     mat-icon-button
     type="button"
     [attr.aria-label]="
       notificationsTotal() ? 'Notifications, ' + notificationsTotal() + ' unread' : 'Notifications'
     "
-    [matMenuTriggerFor]="notificationsMenu"
+    aria-controls="notifications-panel"
+    [attr.aria-expanded]="notificationsOpen()"
     matTooltip="Notifications"
-    (menuOpened)="refreshNotifications()"
+    (click)="toggleNotifications()"
   >
     <svg aria-hidden="true" viewBox="0 0 24 24">
       <path
@@ -102,8 +105,26 @@
   </button>
 </mat-toolbar>
 
-<mat-menu #notificationsMenu="matMenu" [classList]="'notifications-menu'" xPosition="before">
-  <section class="notifications-panel" aria-label="Notifications">
+<ng-template
+  cdk-connected-overlay
+  [cdkConnectedOverlayOrigin]="notificationOrigin"
+  [cdkConnectedOverlayOpen]="notificationsOpen()"
+  [cdkConnectedOverlayHasBackdrop]="true"
+  cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
+  [cdkConnectedOverlayPanelClass]="'notifications-overlay-pane'"
+  [cdkConnectedOverlayPositions]="notificationPositions"
+  [cdkConnectedOverlayPush]="true"
+  [cdkConnectedOverlayViewportMargin]="8"
+  (backdropClick)="closeNotifications()"
+  (detach)="closeNotifications()"
+  (overlayKeydown)="handleNotificationsKeydown($event)"
+>
+  <section
+    id="notifications-panel"
+    class="notifications-panel"
+    aria-label="Notifications"
+    role="dialog"
+  >
     <header class="notifications-header">
       <span>
         <strong>Notifications</strong>
@@ -148,7 +169,6 @@
 
             <button
               class="notification-entry"
-              mat-menu-item
               type="button"
               [attr.aria-label]="'Open ' + notificationObjectTitle(notification)"
               (click)="openNotification(notification)"
@@ -181,7 +201,6 @@
 
             <button
               class="notification-project-link"
-              mat-menu-item
               type="button"
               [attr.aria-label]="'Open project ' + project.name"
               (click)="openNotificationProject(notification)"
@@ -215,7 +234,7 @@
       }
     </div>
   </section>
-</mat-menu>
+</ng-template>
 
 <mat-menu #profileMenu="matMenu" xPosition="before">
   <div class="profile-summary">

@@ -158,8 +158,12 @@ button svg,
 }
 
 .notifications-panel {
-  width: min(32rem, calc(100vw - 1rem));
+  width: 100%;
   overflow: hidden;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-lg);
+  background: var(--mat-sys-surface-container-high);
+  box-shadow: var(--mat-sys-level3);
 }
 
 .notifications-header {
@@ -253,10 +257,30 @@ button svg,
 
 .notification-entry,
 .notification-project-link {
+  display: flex;
   width: 100%;
   height: auto !important;
   min-width: 0;
+  align-items: center;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
   white-space: normal;
+}
+
+.notification-entry:hover,
+.notification-project-link:hover,
+.notification-entry:focus-visible,
+.notification-project-link:focus-visible {
+  background: color-mix(in srgb, var(--mat-sys-on-surface) 8%, transparent);
+}
+
+.notification-entry:focus-visible,
+.notification-project-link:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--mat-sys-primary);
 }
 
 .notification-entry {

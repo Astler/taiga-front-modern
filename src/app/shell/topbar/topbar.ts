@@ -1,3 +1,4 @@
+import { ConnectedPosition, OverlayModule } from '@angular/cdk/overlay';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -23,7 +24,14 @@ import { TopbarNotification, TopbarNotificationsService } from './topbar-notific
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatButtonModule, MatMenuModule, MatToolbarModule, MatTooltipModule, ProjectSwitcher],
+  imports: [
+    MatButtonModule,
+    MatMenuModule,
+    MatToolbarModule,
+    MatTooltipModule,
+    OverlayModule,
+    ProjectSwitcher,
+  ],
   selector: 'pf-topbar',
   styleUrl: './topbar.scss',
   templateUrl: './topbar.html',
@@ -41,6 +49,23 @@ export class Topbar {
   protected readonly notifications = signal<readonly TopbarNotification[]>([]);
   protected readonly notificationsTotal = signal(0);
   protected readonly notificationsStatus = signal<NotificationsStatus>('idle');
+  protected readonly notificationsOpen = signal(false);
+  protected readonly notificationPositions: ConnectedPosition[] = [
+    {
+      originX: 'end',
+      originY: 'bottom',
+      overlayX: 'end',
+      overlayY: 'top',
+      offsetY: 8,
+    },
+    {
+      originX: 'end',
+      originY: 'top',
+      overlayX: 'end',
+      overlayY: 'bottom',
+      offsetY: -8,
+    },
+  ];
   private readonly router = inject(Router);
   private readonly notificationsApi = inject(TopbarNotificationsService);
 
@@ -78,6 +103,25 @@ export class Topbar {
 
   protected refreshNotifications(): void {
     this.loadNotifications(true);
+  }
+
+  protected toggleNotifications(): void {
+    const open = !this.notificationsOpen();
+    this.notificationsOpen.set(open);
+    if (open) {
+      this.refreshNotifications();
+    }
+  }
+
+  protected closeNotifications(): void {
+    this.notificationsOpen.set(false);
+  }
+
+  protected handleNotificationsKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.closeNotifications();
+    }
   }
 
   protected notificationTitle(notification: TopbarNotification): string {
@@ -186,6 +230,7 @@ export class Topbar {
   }
 
   protected openNotification(notification: TopbarNotification): void {
+    this.closeNotifications();
     this.markNotificationRead(notification);
 
     const projectSlug = notification.data?.project?.slug;
@@ -218,6 +263,7 @@ export class Topbar {
   }
 
   protected openNotificationProject(notification: TopbarNotification): void {
+    this.closeNotifications();
     this.markNotificationRead(notification);
     const projectSlug = notification.data?.project?.slug;
     if (!projectSlug) {

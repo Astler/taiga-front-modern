@@ -142,22 +142,13 @@ pf-root {
   background: var(--mat-sys-surface-container-high) !important;
 }
 
-.mat-mdc-menu-panel.notifications-menu {
+.notifications-overlay-pane {
   --notifications-menu-width: min(32rem, calc(100vw - 1rem));
 
   width: var(--notifications-menu-width) !important;
   min-width: var(--notifications-menu-width) !important;
   max-width: var(--notifications-menu-width) !important;
   overflow: hidden !important;
-  border: 1px solid var(--app-border-color);
-  border-radius: var(--app-radius-lg) !important;
-  background: var(--mat-sys-surface-container-high) !important;
-}
-
-.mat-mdc-menu-panel.notifications-menu .mat-mdc-menu-content {
-  width: 100%;
-  overflow: hidden;
-  padding: 0 !important;
 }
 
 ::selection {

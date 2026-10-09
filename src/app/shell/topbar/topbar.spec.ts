@@ -65,7 +65,7 @@ describe('Topbar', () => {
     host.querySelector<HTMLButtonElement>('.notification-button')!.click();
     fixture.detectChanges();
     await fixture.whenStable();
-    expect(document.querySelector('.mat-mdc-menu-panel.notifications-menu')).toBeTruthy();
+    expect(document.querySelector('.notifications-overlay-pane .notifications-panel')).toBeTruthy();
   });
 
   it.each([
