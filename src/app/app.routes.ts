@@ -23,9 +23,7 @@ export const routes: Routes = [
             ({ DashboardPlaceholder }) => DashboardPlaceholder,
           ),
         data: {
-          description:
-            'A focused view of what is moving, what needs attention, and what comes next.',
-          title: 'Good morning, Vlady',
+          title: 'Overview',
         },
       },
       {

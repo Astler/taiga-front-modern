@@ -72,12 +72,23 @@
   font-weight: 750;
 }
 
-.preview-badge {
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   border: 1px solid var(--app-border-color);
   border-radius: var(--app-radius-full);
   background: var(--mat-sys-surface-container-high);
   color: var(--mat-sys-on-surface-variant);
   padding: 0.2rem 0.5rem;
+}
+
+.live-badge i {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--mat-sys-tertiary);
+  box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--mat-sys-tertiary) 13%, transparent);
 }
 
 .page-actions {
@@ -96,7 +107,7 @@
 
 .metrics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
   margin-block-end: 1rem;
 }
@@ -138,6 +149,10 @@
 
 .metric-card[data-tone='warning'] {
   --metric-color: var(--app-warning);
+}
+
+.metric-card[data-tone='error'] {
+  --metric-color: var(--mat-sys-error);
 }
 
 .metric-card > strong {
@@ -190,6 +205,11 @@
   color: var(--mat-sys-on-primary-container);
   padding: 0.35rem 0.625rem;
   font: var(--mat-sys-label-medium);
+}
+
+.milestone-date-muted {
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface-variant);
 }
 
 .progress-copy {
@@ -258,12 +278,24 @@ mat-progress-bar {
   gap: 0.125rem;
 }
 
+.focus-copy a {
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
 .focus-copy strong {
+  display: block;
   overflow: hidden;
   color: var(--mat-sys-on-surface);
   font: var(--mat-sys-title-small);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.focus-copy a:hover strong,
+.focus-copy a:focus-visible strong {
+  color: var(--mat-sys-primary);
 }
 
 .focus-copy small {
@@ -280,6 +312,11 @@ mat-progress-bar {
 .item-tag-muted {
   background: var(--mat-sys-surface-container-highest);
   color: var(--mat-sys-on-surface-variant);
+}
+
+.item-tag-danger {
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
 }
 
 .activity-list {
@@ -309,6 +346,13 @@ mat-progress-bar {
   color: var(--mat-sys-on-secondary-container);
   font: var(--mat-sys-label-small);
   font-weight: 750;
+  overflow: hidden;
+}
+
+.activity-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .activity-copy {
@@ -332,12 +376,97 @@ mat-progress-bar {
   color: var(--mat-sys-primary);
   font: var(--mat-sys-label-large);
   line-height: 1.35;
+  text-decoration: none;
+}
+
+.activity-title:hover,
+.activity-title:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 0.18rem;
 }
 
 .activity-item time {
   color: var(--mat-sys-on-surface-variant);
   font: var(--mat-sys-label-small);
   white-space: nowrap;
+}
+
+.overview-state {
+  display: flex;
+  min-height: 10rem;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-xl);
+  background: var(--app-card-bg);
+  box-shadow: var(--app-card-shadow);
+  padding: 1.5rem;
+}
+
+.overview-state > div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.overview-state strong {
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-title-medium);
+}
+
+.overview-state span {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-medium);
+}
+
+.loading-state {
+  display: grid;
+  grid-template-columns: minmax(8rem, 18rem) auto;
+}
+
+.state-icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container) !important;
+  font-weight: 800 !important;
+}
+
+.refresh-error {
+  margin: 0 0 1rem;
+  border-radius: var(--app-radius-md);
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+  padding: 0.65rem 0.8rem;
+  font: var(--mat-sys-body-small);
+}
+
+.empty-card-state {
+  display: grid;
+  min-height: 7rem;
+  place-items: center;
+  align-content: center;
+  gap: 0.25rem;
+  color: var(--mat-sys-on-surface-variant);
+  text-align: center;
+}
+
+.empty-card-state strong {
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-title-small);
+}
+
+.empty-card-state span {
+  font: var(--mat-sys-body-small);
+}
+
+@media (max-width: 1180px) {
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 1050px) {
@@ -377,6 +506,10 @@ mat-progress-bar {
 
   .metric-card {
     min-height: 7.5rem;
+  }
+
+  .loading-state {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

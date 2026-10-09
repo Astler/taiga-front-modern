@@ -1,11 +1,13 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
+import { of } from 'rxjs';
 import { App } from './app';
 import { routes } from './app.routes';
 import { RuntimeConfigService } from './core';
 import { AuthService } from './core/auth';
 import { ProjectStore, type TaigaProjectDetail } from './features/projects/data';
+import { DashboardOverviewApiService } from './shell/dashboard-placeholder/dashboard-overview-api.service';
 
 const project: TaigaProjectDetail = {
   id: 1,
@@ -72,6 +74,10 @@ describe('App', () => {
             togglePin: () => undefined,
           },
         },
+        {
+          provide: DashboardOverviewApiService,
+          useValue: { load: () => of({ stories: [], milestones: [] }) },
+        },
       ],
     }).compileComponents();
   });
@@ -93,11 +99,13 @@ describe('App', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('pf-app-shell')).toBeTruthy();
-    expect(compiled.querySelector('h1')?.textContent).toContain('Good morning, Vlady');
+    expect(compiled.querySelector('h1')?.textContent).toContain('Vlady');
     expect(compiled.textContent).toContain('Puzzles Together');
+    expect(compiled.textContent).toContain('Live data');
+    expect(compiled.textContent).not.toContain('Preview data');
     expect(compiled.querySelector('.skip-link')?.getAttribute('href')).toBe('#main-content');
     expect(compiled.querySelector('a[aria-current="page"]')?.textContent).toContain('Overview');
-    expect(document.title).toBe('Good morning, Vlady · Taiga Modern');
+    expect(document.title).toBe('Overview · Taiga Modern');
   });
 
   it('leaves an active protected shell as soon as the session is invalidated', async () => {

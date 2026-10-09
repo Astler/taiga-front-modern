@@ -4,100 +4,171 @@
       <div class="page-eyebrow">
         <span>{{ projectContext.selectedProject().code }}</span>
         <span>{{ projectContext.selectedProject().name }}</span>
-        <span class="preview-badge">Preview data</span>
+        @if (store.status() === 'loaded') {
+          <span class="live-badge"><i aria-hidden="true"></i>Live data</span>
+        }
       </div>
-      <h1 id="page-title">{{ pageTitle }}</h1>
-      <p>{{ pageDescription }}</p>
+      <h1 id="page-title">{{ greeting() }}</h1>
+      <p>What needs attention, what is moving, and what comes next.</p>
     </div>
 
-    <div class="page-actions">
-      <button mat-button type="button">View reports</button>
-      <button mat-flat-button type="button">
-        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
-        New work item
-      </button>
-    </div>
+    @if (project(); as activeProject) {
+      <div class="page-actions">
+        <button
+          mat-button
+          type="button"
+          [disabled]="store.loading() || store.refreshing()"
+          (click)="refresh()"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" />
+          </svg>
+          {{ store.refreshing() ? 'Syncing…' : 'Refresh' }}
+        </button>
+        <a mat-flat-button [routerLink]="['/project', activeProject.slug, 'kanban']">
+          Open Kanban
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" /></svg>
+        </a>
+      </div>
+    }
   </header>
 
-  <div class="metrics" aria-label="Project summary">
-    @for (metric of metrics; track metric.label) {
-      <article class="metric-card" [attr.data-tone]="metric.tone">
-        <div class="metric-heading">
-          <span class="metric-indicator" aria-hidden="true"></span>
-          <span>{{ metric.label }}</span>
-        </div>
-        <strong>{{ metric.value }}</strong>
-        <small>{{ metric.change }}</small>
-      </article>
-    }
-  </div>
-
-  <div class="dashboard-grid">
-    <article class="focus-card">
-      <header class="card-header">
-        <div>
-          <span class="section-label">Current milestone</span>
-          <h2>Sound &amp; interaction polish</h2>
-        </div>
-        <span class="milestone-date">Oct 7–18</span>
-      </header>
-
-      <div class="progress-copy">
-        <span>23 of 31 stories completed</span>
-        <strong>74%</strong>
+  @if (store.loading()) {
+    <section class="overview-state loading-state" role="status">
+      <mat-progress-bar mode="indeterminate" />
+      <div>
+        <strong>Building a live project snapshot…</strong>
+        <span>Loading stories, deadlines, and the current milestone.</span>
       </div>
-      <mat-progress-bar mode="determinate" value="74" aria-label="Milestone completion" />
+    </section>
+  } @else if (store.status() === 'error') {
+    <section class="overview-state error-state" role="alert">
+      <span class="state-icon">!</span>
+      <div>
+        <strong>Overview unavailable</strong>
+        <span>{{ store.error() }}</span>
+      </div>
+      <button mat-flat-button type="button" (click)="refresh()">Try again</button>
+    </section>
+  } @else {
+    @if (store.error(); as refreshError) {
+      <p class="refresh-error" role="status">{{ refreshError }} Showing the previous snapshot.</p>
+    }
 
-      <ul class="focus-list">
-        <li class="focus-item">
-          <span class="focus-status focus-status-active" aria-hidden="true"></span>
-          <span class="focus-copy"
-            ><strong>Review the weekly challenges flow</strong
-            ><small>2 tasks · assigned to you</small></span
-          >
-          <span class="item-tag">Today</span>
-        </li>
-        <li class="focus-item">
-          <span class="focus-status" aria-hidden="true"></span>
-          <span class="focus-copy"
-            ><strong>Finish base click audio feedback</strong><small>Ready for test</small></span
-          >
-          <span class="item-tag item-tag-muted">Tomorrow</span>
-        </li>
-        <li class="focus-item">
-          <span class="focus-status" aria-hidden="true"></span>
-          <span class="focus-copy"
-            ><strong>Validate the shared achievement cases</strong
-            ><small>6 linked stories</small></span
-          >
-          <span class="item-tag item-tag-muted">Fri</span>
-        </li>
-      </ul>
-    </article>
+    <div class="metrics" aria-label="Live project summary">
+      @for (metric of metrics(); track metric.label) {
+        <article class="metric-card" [attr.data-tone]="metric.tone">
+          <div class="metric-heading">
+            <span class="metric-indicator" aria-hidden="true"></span>
+            <span>{{ metric.label }}</span>
+          </div>
+          <strong>{{ metric.value }}</strong>
+          <small>{{ metric.change }}</small>
+        </article>
+      }
+    </div>
 
-    <article class="activity-card">
-      <header class="card-header">
-        <div>
-          <span class="section-label">Project pulse</span>
-          <h2>Recent activity</h2>
-        </div>
-        <button mat-button type="button">See all</button>
-      </header>
+    <div class="dashboard-grid">
+      <article class="focus-card">
+        <header class="card-header">
+          <div>
+            @if (currentMilestone(); as milestone) {
+              <span class="section-label">Current milestone</span>
+              <h2>{{ milestone.name }}</h2>
+            } @else {
+              <span class="section-label">Priority queue</span>
+              <h2>What needs attention</h2>
+            }
+          </div>
+          @if (currentMilestone(); as milestone) {
+            <span class="milestone-date">{{ milestoneRange(milestone) }}</span>
+          } @else {
+            <span class="milestone-date milestone-date-muted">No active milestone</span>
+          }
+        </header>
 
-      <ul class="activity-list">
-        @for (activity of activities; track activity.title) {
-          <li class="activity-item">
-            <span class="activity-avatar" aria-hidden="true">{{ activity.initials }}</span>
-            <span class="activity-copy">
-              <span
-                ><strong>{{ activity.actor }}</strong> {{ activity.detail }}</span
-              >
-              <span class="activity-title">{{ activity.title }}</span>
+        @if (currentMilestone()) {
+          <div class="progress-copy">
+            <span>
+              {{ milestoneCompletion().completed }} of {{ milestoneCompletion().total }} stories
+              completed
             </span>
-            <time>{{ activity.time }}</time>
-          </li>
+            <strong>{{ milestoneCompletion().percentage }}%</strong>
+          </div>
+          <mat-progress-bar
+            mode="determinate"
+            [value]="milestoneCompletion().percentage"
+            aria-label="Milestone completion"
+          />
         }
-      </ul>
-    </article>
-  </div>
+
+        <ul class="focus-list">
+          @for (story of focusStories(); track story.id) {
+            <li class="focus-item">
+              <span
+                class="focus-status"
+                [style.background]="statusColor(story)"
+                aria-hidden="true"
+              ></span>
+              <span class="focus-copy">
+                <a [href]="storyUrl(story)" target="_blank" rel="noopener">
+                  <strong>#{{ story.ref }} {{ story.subject }}</strong>
+                </a>
+                <small>{{ focusDetail(story) }}</small>
+              </span>
+              <span class="item-tag" [class.item-tag-danger]="isOverdue(story) || story.is_blocked">
+                {{ focusLabel(story) }}
+              </span>
+            </li>
+          } @empty {
+            <li class="empty-card-state">
+              <strong>Nothing urgent here</strong>
+              <span>Open work will appear as the project moves.</span>
+            </li>
+          }
+        </ul>
+      </article>
+
+      <article class="activity-card">
+        <header class="card-header">
+          <div>
+            <span class="section-label">Project pulse</span>
+            <h2>Recently updated</h2>
+          </div>
+          @if (project(); as activeProject) {
+            <a mat-button [routerLink]="['/project', activeProject.slug, 'kanban']">See board</a>
+          }
+        </header>
+
+        <ul class="activity-list">
+          @for (story of recentStories(); track story.id) {
+            @let person = storyPerson(story);
+            <li class="activity-item">
+              <span class="activity-avatar" [title]="personName(person)">
+                @if (person?.photo) {
+                  <img [src]="person!.photo" alt="" />
+                } @else {
+                  {{ initials(person) }}
+                }
+              </span>
+              <span class="activity-copy">
+                <a class="activity-title" [href]="storyUrl(story)" target="_blank" rel="noopener">
+                  #{{ story.ref }} {{ story.subject }}
+                </a>
+                <span>{{ statusName(story) }} · {{ personName(person) }}</span>
+              </span>
+              <time [attr.datetime]="story.modified_date">{{
+                relativeTime(story.modified_date)
+              }}</time>
+            </li>
+          } @empty {
+            <li class="empty-card-state">
+              <strong>No recent updates</strong>
+              <span>Updated stories will show up here.</span>
+            </li>
+          }
+        </ul>
+      </article>
+    </div>
+  }
 </section>
