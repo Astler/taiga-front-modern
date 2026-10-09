@@ -2,7 +2,7 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { of } from 'rxjs';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RuntimeConfigService } from '../../core';
 import { AuthService } from '../../core/auth';
 import type { ShellProject } from '../project-context/mock-projects';
@@ -11,6 +11,9 @@ import { TopbarNotification, TopbarNotificationsService } from './topbar-notific
 import { Topbar } from './topbar';
 
 describe('Topbar', () => {
+  beforeEach(resetCompactMode);
+  afterEach(resetCompactMode);
+
   it('renders one compact search prompt and the unread notification count', async () => {
     const listUnread = vi.fn(() => of({ total: 1, objects: [notification] }));
     TestBed.configureTestingModule({
@@ -61,6 +64,13 @@ describe('Topbar', () => {
     expect(host.querySelector('.notification-button')?.getAttribute('aria-label')).toContain(
       '1 unread',
     );
+
+    const densityButton = host.querySelector<HTMLButtonElement>('.density-button')!;
+    expect(densityButton.getAttribute('aria-pressed')).toBe('false');
+    densityButton.click();
+    fixture.detectChanges();
+    expect(densityButton.getAttribute('aria-pressed')).toBe('true');
+    expect(document.documentElement.getAttribute('data-ui-density')).toBe('compact');
 
     host.querySelector<HTMLButtonElement>('.notification-button')!.click();
     fixture.detectChanges();
@@ -180,4 +190,13 @@ function notificationService(overrides: Record<string, unknown> = {}): object {
     markAllAsRead: () => of(undefined),
     ...overrides,
   };
+}
+
+function resetCompactMode(): void {
+  document.documentElement.removeAttribute('data-ui-density');
+  try {
+    globalThis.localStorage?.removeItem('taiga-modern:compact-mode');
+  } catch {
+    // jsdom storage can be unavailable under a sandboxed origin.
+  }
 }

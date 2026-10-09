@@ -47,6 +47,12 @@ html {
   --app-card-shadow: 0 1px 1px rgb(0 0 0 / 22%), 0 14px 36px rgb(0 0 0 / 8%);
 }
 
+html[data-ui-density='compact'] {
+  --app-sidebar-width: 14.5rem;
+  --app-topbar-height: 3.25rem;
+  --app-topbar-height-mobile: 3.25rem;
+}
+
 *,
 *::before,
 *::after {
@@ -149,6 +155,109 @@ pf-root {
   min-width: var(--notifications-menu-width) !important;
   max-width: var(--notifications-menu-width) !important;
   overflow: hidden !important;
+}
+
+html[data-ui-density='compact'] pf-kanban-board {
+  .board-page {
+    padding: 0.45rem 0.5rem;
+  }
+
+  .board-toolbar {
+    gap: 0.375rem;
+    padding-block-end: 0.4rem;
+  }
+
+  .search-field,
+  .toolbar-icon-control,
+  .toolbar-refresh {
+    min-height: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .toolbar-icon-control,
+  .toolbar-refresh {
+    width: 2.25rem;
+    min-width: 2.25rem !important;
+  }
+
+  .board-scroll {
+    border-radius: var(--app-radius-md);
+  }
+
+  .column-header {
+    min-height: 2rem;
+    padding: 0.125rem 0.5rem;
+  }
+
+  .column-cards {
+    gap: 0.4rem;
+    padding: 0.4rem;
+  }
+
+  .story-card {
+    gap: 0.25rem;
+    border-radius: 0.65rem;
+    padding: 0.4rem 0.5rem;
+  }
+
+  .story-actions {
+    top: 0.05rem;
+    right: 0.05rem;
+  }
+
+  .story-menu-button {
+    width: 1.65rem;
+    height: 1.65rem;
+  }
+
+  .story-tags {
+    gap: 0.15rem;
+    padding-inline-end: 1.75rem;
+  }
+
+  .story-tag,
+  .story-tag-overflow {
+    padding: 0 0.3rem;
+    font-size: 0.625rem;
+    line-height: 0.95rem;
+  }
+
+  .story-subject {
+    padding-inline-end: 1.75rem;
+    font-size: 0.8rem;
+    line-height: 1.25;
+  }
+
+  .story-facts {
+    gap: 0.15rem 0.45rem;
+  }
+
+  .story-fact {
+    font-size: 0.625rem;
+    line-height: 0.9rem;
+  }
+
+  .story-meta {
+    min-height: 1.25rem;
+  }
+
+  .assignee,
+  .assignee img,
+  .assignee-initials,
+  .assignee-overflow {
+    width: 1.35rem;
+    min-width: 1.35rem;
+    height: 1.35rem;
+    flex-basis: 1.35rem;
+  }
+
+  .story-meta-right {
+    gap: 0.3rem;
+  }
+
+  .milestone {
+    padding: 0 0.3rem;
+  }
 }
 
 ::selection {

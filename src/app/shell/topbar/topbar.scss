@@ -138,6 +138,21 @@ button svg,
   position: relative;
 }
 
+.density-button {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.density-button:hover,
+.density-button:focus-visible {
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface);
+}
+
+.density-button-active {
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+}
+
 .notification-count {
   position: absolute;
   top: 0.1rem;
@@ -531,7 +546,14 @@ button svg,
     height: var(--app-topbar-height-mobile);
   }
 
-  .topbar > button:not(.navigation-toggle, .profile-button, .compact-search, .notification-button) {
+  .topbar
+    > button:not(
+      .navigation-toggle,
+      .profile-button,
+      .compact-search,
+      .density-button,
+      .notification-button
+    ) {
     display: none;
   }
 }

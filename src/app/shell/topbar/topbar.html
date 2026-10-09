@@ -69,6 +69,21 @@
   </button>
 
   <button
+    class="density-button"
+    mat-icon-button
+    type="button"
+    [class.density-button-active]="compactMode()"
+    [attr.aria-label]="compactMode() ? 'Use comfortable spacing' : 'Use compact spacing'"
+    [attr.aria-pressed]="compactMode()"
+    [matTooltip]="compactMode() ? 'Comfortable spacing' : 'Compact spacing'"
+    (click)="toggleCompactMode()"
+  >
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="M5 7h14M5 12h14M5 17h14M9 3l3 3 3-3M9 21l3-3 3 3" />
+    </svg>
+  </button>
+
+  <button
     #notificationOrigin="cdkOverlayOrigin"
     cdkOverlayOrigin
     class="notification-button"
