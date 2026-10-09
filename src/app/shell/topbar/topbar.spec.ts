@@ -61,6 +61,11 @@ describe('Topbar', () => {
     expect(host.querySelector('.notification-button')?.getAttribute('aria-label')).toContain(
       '1 unread',
     );
+
+    host.querySelector<HTMLButtonElement>('.notification-button')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(document.querySelector('.mat-mdc-menu-panel.notifications-menu')).toBeTruthy();
   });
 
   it.each([
