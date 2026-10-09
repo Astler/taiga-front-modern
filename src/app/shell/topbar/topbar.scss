@@ -11,7 +11,7 @@
   gap: 0.25rem;
   border-bottom: 1px solid var(--app-border-color);
   background: color-mix(in srgb, var(--mat-sys-surface-container) 92%, transparent);
-  padding-inline: 0.75rem 1rem;
+  padding-inline: 0.5rem 0.75rem;
   backdrop-filter: blur(18px);
 }
 
@@ -43,20 +43,23 @@ button svg,
 
 .quick-project {
   --mat-icon-button-state-layer-size: 2.5rem;
+  display: grid;
+  width: 2.5rem;
+  min-width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  padding: 0;
   opacity: 0.72;
-  transition:
-    opacity 140ms ease,
-    transform 140ms ease;
+  transition: opacity 140ms ease;
 }
 
 .quick-project:hover,
 .quick-project-active {
   opacity: 1;
-  transform: translateY(-1px);
 }
 
 .quick-project-active {
-  background: var(--mat-sys-secondary-container);
+  background: transparent;
 }
 
 .quick-project img,
@@ -66,6 +69,14 @@ button svg,
   height: 1.75rem;
   place-items: center;
   border-radius: 0.55rem;
+  transition: box-shadow 140ms ease;
+}
+
+.quick-project-active img,
+.quick-project-active .quick-project-mark {
+  box-shadow:
+    0 0 0 2px var(--mat-sys-surface-container),
+    0 0 0 3px color-mix(in srgb, var(--mat-sys-primary) 72%, transparent);
 }
 
 .quick-project img {
@@ -82,7 +93,7 @@ button svg,
 .global-search {
   display: flex;
   width: clamp(12rem, 18vw, 17rem);
-  height: 2.75rem;
+  height: 2.5rem;
   align-items: center;
   gap: 0.625rem;
   box-sizing: border-box;
