@@ -62,6 +62,10 @@
   overflow: hidden;
 }
 
+:host-context(html[data-ui-density='compact']) router-outlet {
+  display: none;
+}
+
 @media (max-width: 839px) {
   .shell-navigation {
     width: min(var(--app-sidebar-width), calc(100vw - 3rem));
