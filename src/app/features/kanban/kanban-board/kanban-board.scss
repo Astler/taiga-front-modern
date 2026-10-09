@@ -86,10 +86,6 @@
   stroke-width: 1.8;
 }
 
-.board-actions svg {
-  margin-inline: 0 0.4rem;
-}
-
 .filters {
   z-index: 3;
   min-width: 0;
@@ -845,8 +841,8 @@
     white-space: nowrap;
   }
 
-  .board-actions button svg {
-    margin: 0;
+  .board-actions .app-button-text {
+    display: none;
   }
 
   .filters {

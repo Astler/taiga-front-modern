@@ -17,13 +17,17 @@
 
     <div class="header-actions">
       <a mat-button [href]="classicTeamUrl()" target="_blank" rel="noopener">
-        Classic team
-        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8" /></svg>
+        <span class="app-button-content">
+          <span>Classic team</span>
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8" /></svg>
+        </span>
       </a>
       @if (project().i_am_admin) {
         <a mat-flat-button [href]="classicAdminUrl()" target="_blank" rel="noopener">
-          Manage members
-          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8" /></svg>
+          <span class="app-button-content">
+            <span>Manage members</span>
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8" /></svg>
+          </span>
         </a>
       }
     </div>

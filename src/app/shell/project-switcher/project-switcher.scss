@@ -1,7 +1,7 @@
 :host {
   display: block;
   flex: 0 1 19rem;
-  min-width: 0;
+  min-width: 11rem;
 }
 
 .project-trigger {
@@ -62,6 +62,8 @@
   display: grid;
   flex: 1 1 auto;
   min-width: 0;
+  align-content: center;
+  row-gap: 0.125rem;
   margin-inline: 0.625rem 0.35rem;
   text-align: left;
 }
@@ -76,6 +78,7 @@
   min-width: 0;
   overflow: hidden;
   font: var(--mat-sys-title-small);
+  line-height: 1.15;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -94,6 +97,7 @@
 @media (max-width: 599px) {
   :host {
     flex-basis: 56vw;
+    min-width: 0;
   }
 
   .project-trigger {

@@ -180,6 +180,7 @@ mat-divider {
 }
 
 .sidebar-footer button {
-  justify-content: flex-start;
+  width: 100%;
+  justify-content: center;
   color: var(--mat-sys-on-surface-variant);
 }

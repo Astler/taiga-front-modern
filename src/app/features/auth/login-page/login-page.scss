@@ -229,14 +229,11 @@ button[matIconButton] svg,
   border-radius: var(--app-radius-full);
 
   mat-spinner {
-    display: inline-block;
-    margin-right: 0.45rem;
-    vertical-align: middle;
+    display: block;
   }
 
   svg {
-    margin-left: 0.55rem;
-    vertical-align: middle;
+    display: block;
   }
 }
 

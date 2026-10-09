@@ -86,6 +86,24 @@ a {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Keep icon/text controls optically centred regardless of the active Material density. */
+.app-button-content {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  line-height: 1.25rem;
+  vertical-align: middle;
+}
+
+.app-button-content > svg,
+.app-button-content > mat-spinner {
+  display: block;
+  flex: 0 0 auto;
+  margin: 0;
+}
+
 pf-root {
   display: block;
   height: 100%;

@@ -7,6 +7,7 @@
 
 .topbar {
   height: var(--app-topbar-height);
+  align-items: center;
   gap: 0.25rem;
   border-bottom: 1px solid var(--app-border-color);
   background: color-mix(in srgb, var(--mat-sys-surface-container) 92%, transparent);
@@ -101,13 +102,16 @@ button svg,
 }
 
 .global-search input {
+  height: 1.5rem;
   min-width: 0;
   flex: 1;
   border: 0;
   outline: 0;
+  padding: 0;
   background: transparent;
   color: var(--mat-sys-on-surface);
   font: var(--mat-sys-body-medium);
+  line-height: 1.5rem;
 }
 
 .global-search input::placeholder {
@@ -120,6 +124,7 @@ button svg,
 }
 
 .classic-link {
+  align-self: center;
   white-space: nowrap;
 }
 
