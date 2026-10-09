@@ -1,6 +1,6 @@
 @if (activeProject(); as project) {
   @if (project.is_epics_activated) {
-    <pf-epics-workspace [project]="project" />
+    <pf-epics-workspace [project]="project" [initialSearch]="requestedSearch()" />
   } @else {
     <section class="project-state">
       <span class="state-mark state-mark-info" aria-hidden="true">i</span>

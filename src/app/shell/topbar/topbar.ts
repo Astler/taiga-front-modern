@@ -2,6 +2,7 @@ import { ConnectedPosition, OverlayModule } from '@angular/cdk/overlay';
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   computed,
   effect,
   inject,
@@ -25,6 +26,11 @@ import { ShellProject } from '../project-context/mock-projects';
 import { ShellProjectContext } from '../project-context/shell-project-context';
 import { ProjectSwitcher } from '../project-switcher/project-switcher';
 import { TopbarNotification, TopbarNotificationsService } from './topbar-notifications.service';
+import {
+  EMPTY_TOPBAR_SEARCH_RESULTS,
+  TopbarSearchService,
+  type TopbarSearchItem,
+} from './topbar-search.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -54,6 +60,33 @@ export class Topbar {
   protected readonly notificationsTotal = signal(0);
   protected readonly notificationsStatus = signal<NotificationsStatus>('idle');
   protected readonly notificationsOpen = signal(false);
+  protected readonly searchQuery = signal('');
+  protected readonly searchResults = signal(EMPTY_TOPBAR_SEARCH_RESULTS);
+  protected readonly searchStatus = signal<SearchStatus>('idle');
+  protected readonly searchOpen = signal(false);
+  protected readonly searchResultCount = computed(() => {
+    const results = this.searchResults();
+    return (
+      this.projectSearchMatches().length +
+      results.userstories.length +
+      results.issues.length +
+      results.epics.length
+    );
+  });
+  protected readonly projectSearchMatches = computed(() => {
+    const query = this.searchQuery().trim().toLocaleLowerCase();
+    if (query.length < 2) {
+      return [];
+    }
+    return this.projectContext
+      .projects()
+      .filter(
+        ({ name, description }) =>
+          name.toLocaleLowerCase().includes(query) ||
+          description.toLocaleLowerCase().includes(query),
+      )
+      .slice(0, 4);
+  });
   protected readonly compactKanbanToolbar = inject(CompactKanbanToolbarService);
   protected readonly compactMode = this.compactKanbanToolbar.compactMode;
   protected readonly notificationPositions: ConnectedPosition[] = [
@@ -72,10 +105,44 @@ export class Topbar {
       offsetY: -8,
     },
   ];
+  protected readonly searchPositions: ConnectedPosition[] = [
+    {
+      originX: 'end',
+      originY: 'bottom',
+      overlayX: 'end',
+      overlayY: 'top',
+      offsetY: 6,
+    },
+    {
+      originX: 'end',
+      originY: 'top',
+      overlayX: 'end',
+      overlayY: 'bottom',
+      offsetY: -6,
+    },
+  ];
   private readonly router = inject(Router);
   private readonly notificationsApi = inject(TopbarNotificationsService);
+  private readonly searchApi = inject(TopbarSearchService);
+  private readonly destroyRef = inject(DestroyRef);
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+  private searchRevision = 0;
+  private searchProjectId: number | null = null;
 
   constructor() {
+    this.destroyRef.onDestroy(() => this.cancelSearchTimer());
+
+    effect(() => {
+      const projectId = this.projectContext.selectedProject().id;
+      untracked(() => {
+        if (this.searchProjectId === projectId) {
+          return;
+        }
+        this.searchProjectId = projectId;
+        this.resetGlobalSearch();
+      });
+    });
+
     effect(() => {
       const userId = this.auth.user()?.id;
       untracked(() => {
@@ -115,6 +182,7 @@ export class Topbar {
     const open = !this.notificationsOpen();
     this.notificationsOpen.set(open);
     if (open) {
+      this.closeGlobalSearch();
       this.refreshNotifications();
     }
   }
@@ -125,6 +193,81 @@ export class Topbar {
 
   protected toggleCompactMode(): void {
     this.compactKanbanToolbar.toggleCompactMode();
+  }
+
+  protected openGlobalSearch(): void {
+    this.closeNotifications();
+    this.searchOpen.set(true);
+  }
+
+  protected closeGlobalSearch(): void {
+    this.searchOpen.set(false);
+  }
+
+  protected updateGlobalSearch(event: Event): void {
+    const query = (event.target as HTMLInputElement).value;
+    this.searchQuery.set(query);
+    this.closeNotifications();
+    this.searchOpen.set(true);
+    this.cancelSearchTimer();
+    ++this.searchRevision;
+
+    if (query.trim().length < 2) {
+      this.searchResults.set(EMPTY_TOPBAR_SEARCH_RESULTS);
+      this.searchStatus.set('idle');
+      return;
+    }
+
+    this.searchStatus.set('loading');
+    this.searchTimer = setTimeout(() => {
+      this.searchTimer = null;
+      this.runGlobalSearch();
+    }, 220);
+  }
+
+  protected submitGlobalSearch(event: Event): void {
+    event.preventDefault();
+    this.cancelSearchTimer();
+    this.runGlobalSearch();
+  }
+
+  protected handleGlobalSearchKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.closeGlobalSearch();
+    }
+  }
+
+  protected retryGlobalSearch(): void {
+    this.runGlobalSearch();
+  }
+
+  protected openSearchProject(project: ShellProject): void {
+    this.projectContext.selectProject(project);
+    this.resetGlobalSearch();
+    void this.router.navigate(['/project', project.slug, 'kanban']);
+  }
+
+  protected openSearchItem(kind: 'epic' | 'issue' | 'userstory', item: TopbarSearchItem): void {
+    const project = this.projectContext.selectedProject();
+    const reference = item.ref ? `#${item.ref}` : item.subject || '';
+    this.resetGlobalSearch();
+
+    if (kind === 'userstory') {
+      void this.router.navigate(['/project', project.slug, 'kanban'], {
+        queryParams: { story: item.id },
+      });
+      return;
+    }
+    void this.router.navigate(['/project', project.slug, kind === 'issue' ? 'issues' : 'epics'], {
+      queryParams: { q: reference },
+    });
+  }
+
+  protected searchItemTitle(item: TopbarSearchItem): string {
+    return [item.ref ? `#${item.ref}` : '', item.subject || item.slug || 'Untitled item']
+      .filter(Boolean)
+      .join(' ');
   }
 
   protected updateCompactKanbanQuery(toolbar: CompactKanbanToolbar, event: Event): void {
@@ -323,6 +466,48 @@ export class Topbar {
       });
   }
 
+  private runGlobalSearch(): void {
+    const query = this.searchQuery().trim();
+    const projectId = this.projectContext.selectedProject().id;
+    if (query.length < 2 || projectId < 0) {
+      this.searchStatus.set('idle');
+      return;
+    }
+
+    const revision = ++this.searchRevision;
+    this.searchStatus.set('loading');
+    void firstValueFrom(this.searchApi.search(projectId, query))
+      .then((results) => {
+        if (revision !== this.searchRevision) {
+          return;
+        }
+        this.searchResults.set(results);
+        this.searchStatus.set('loaded');
+      })
+      .catch(() => {
+        if (revision === this.searchRevision) {
+          this.searchResults.set(EMPTY_TOPBAR_SEARCH_RESULTS);
+          this.searchStatus.set('error');
+        }
+      });
+  }
+
+  private resetGlobalSearch(): void {
+    this.cancelSearchTimer();
+    ++this.searchRevision;
+    this.searchQuery.set('');
+    this.searchResults.set(EMPTY_TOPBAR_SEARCH_RESULTS);
+    this.searchStatus.set('idle');
+    this.searchOpen.set(false);
+  }
+
+  private cancelSearchTimer(): void {
+    if (this.searchTimer !== null) {
+      clearTimeout(this.searchTimer);
+      this.searchTimer = null;
+    }
+  }
+
   private removeNotification(notificationId: number): void {
     this.notifications.update((notifications) =>
       notifications.filter(({ id }) => id !== notificationId),
@@ -339,6 +524,7 @@ export class Topbar {
 }
 
 type NotificationsStatus = 'error' | 'idle' | 'loaded' | 'loading';
+type SearchStatus = 'error' | 'idle' | 'loaded' | 'loading';
 
 interface NotificationProjectView {
   readonly accent: string;

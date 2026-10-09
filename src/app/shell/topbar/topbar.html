@@ -1,4 +1,9 @@
-<mat-toolbar class="topbar" [class.topbar-compact]="compactMode()">
+<mat-toolbar
+  #searchOrigin="cdkOverlayOrigin"
+  cdkOverlayOrigin
+  class="topbar"
+  [class.topbar-compact]="compactMode()"
+>
   <button
     class="navigation-toggle"
     mat-icon-button
@@ -145,21 +150,34 @@
 
   <span class="topbar-spacer"></span>
 
-  <label class="global-search" title="Global search is coming next">
+  <form class="global-search" role="search" (submit)="submitGlobalSearch($event)">
     <svg aria-hidden="true" viewBox="0 0 24 24">
       <circle cx="11" cy="11" r="6.5" />
       <path d="m16 16 4 4" />
     </svg>
-    <input type="search" aria-label="Search Taiga" placeholder="Search" disabled />
-  </label>
+    <input
+      type="search"
+      aria-label="Search current project"
+      placeholder="Search project"
+      autocomplete="off"
+      [value]="searchQuery()"
+      [attr.aria-expanded]="searchOpen()"
+      aria-controls="global-search-panel"
+      (focus)="openGlobalSearch()"
+      (input)="updateGlobalSearch($event)"
+      (keydown)="handleGlobalSearchKeydown($event)"
+    />
+  </form>
 
   <button
     class="compact-search"
     mat-icon-button
     type="button"
-    aria-label="Global search comes next"
-    matTooltip="Global search comes next"
-    disabled
+    aria-label="Search current project"
+    matTooltip="Search project"
+    [attr.aria-expanded]="searchOpen()"
+    aria-controls="global-search-panel"
+    (click)="openGlobalSearch()"
   >
     <svg aria-hidden="true" viewBox="0 0 24 24">
       <circle cx="11" cy="11" r="6.5" />
@@ -218,6 +236,151 @@
     <span class="profile-avatar">{{ profileInitials() }}</span>
   </button>
 </mat-toolbar>
+
+<ng-template
+  cdk-connected-overlay
+  [cdkConnectedOverlayOrigin]="searchOrigin"
+  [cdkConnectedOverlayOpen]="searchOpen()"
+  [cdkConnectedOverlayHasBackdrop]="true"
+  cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
+  [cdkConnectedOverlayPanelClass]="'search-overlay-pane'"
+  [cdkConnectedOverlayPositions]="searchPositions"
+  [cdkConnectedOverlayPush]="true"
+  [cdkConnectedOverlayViewportMargin]="8"
+  (backdropClick)="closeGlobalSearch()"
+  (detach)="closeGlobalSearch()"
+  (overlayKeydown)="handleGlobalSearchKeydown($event)"
+>
+  <section id="global-search-panel" class="search-panel" aria-label="Project search" role="dialog">
+    <form class="search-panel-query" role="search" (submit)="submitGlobalSearch($event)">
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="6.5" />
+        <path d="m16 16 4 4" />
+      </svg>
+      <input
+        type="search"
+        aria-label="Search current project"
+        placeholder="Search project"
+        autocomplete="off"
+        [value]="searchQuery()"
+        (input)="updateGlobalSearch($event)"
+        (keydown)="handleGlobalSearchKeydown($event)"
+      />
+    </form>
+
+    <header class="search-panel-header">
+      <span>
+        <small>Search in</small>
+        <strong>{{ projectContext.selectedProject().name }}</strong>
+      </span>
+      @if (searchResultCount()) {
+        <span>{{ searchResultCount() }} found</span>
+      }
+    </header>
+
+    <div class="search-results-list">
+      @if (searchQuery().trim().length < 2) {
+        <div class="search-state">
+          <span class="search-state-icon" aria-hidden="true">⌕</span>
+          <strong>Find anything in this project</strong>
+          <small>Type at least two characters.</small>
+        </div>
+      } @else {
+        @if (projectSearchMatches().length) {
+          <section class="search-result-group" aria-label="Projects">
+            <h3>Projects</h3>
+            @for (project of projectSearchMatches(); track project.id) {
+              <button type="button" (click)="openSearchProject(project)">
+                <span
+                  class="search-project-mark"
+                  [style.--project-accent]="project.accent"
+                  aria-hidden="true"
+                >
+                  @if (project.logoUrl) {
+                    <img [src]="project.logoUrl" alt="" />
+                  } @else {
+                    {{ project.code }}
+                  }
+                </span>
+                <span class="search-result-copy">
+                  <strong>{{ project.name }}</strong>
+                  <small>{{ project.description }}</small>
+                </span>
+                <span class="search-result-arrow" aria-hidden="true">→</span>
+              </button>
+            }
+          </section>
+        }
+
+        @if (searchResults().userstories.length) {
+          <section class="search-result-group" aria-label="User stories">
+            <h3>User stories</h3>
+            @for (item of searchResults().userstories.slice(0, 6); track item.id) {
+              <button type="button" (click)="openSearchItem('userstory', item)">
+                <span class="search-kind search-kind-story" aria-hidden="true">US</span>
+                <span class="search-result-copy">
+                  <strong>{{ searchItemTitle(item) }}</strong>
+                  <small>{{ item.status_extra_info?.name || 'Open in Kanban' }}</small>
+                </span>
+                <span class="search-result-arrow" aria-hidden="true">→</span>
+              </button>
+            }
+          </section>
+        }
+
+        @if (searchResults().issues.length) {
+          <section class="search-result-group" aria-label="Issues">
+            <h3>Issues</h3>
+            @for (item of searchResults().issues.slice(0, 6); track item.id) {
+              <button type="button" (click)="openSearchItem('issue', item)">
+                <span class="search-kind search-kind-issue" aria-hidden="true">IS</span>
+                <span class="search-result-copy">
+                  <strong>{{ searchItemTitle(item) }}</strong>
+                  <small>{{ item.status_extra_info?.name || 'Open in Issues' }}</small>
+                </span>
+                <span class="search-result-arrow" aria-hidden="true">→</span>
+              </button>
+            }
+          </section>
+        }
+
+        @if (searchResults().epics.length) {
+          <section class="search-result-group" aria-label="Epics">
+            <h3>Epics</h3>
+            @for (item of searchResults().epics.slice(0, 6); track item.id) {
+              <button type="button" (click)="openSearchItem('epic', item)">
+                <span class="search-kind search-kind-epic" aria-hidden="true">EP</span>
+                <span class="search-result-copy">
+                  <strong>{{ searchItemTitle(item) }}</strong>
+                  <small>{{ item.status_extra_info?.name || 'Open in Epics' }}</small>
+                </span>
+                <span class="search-result-arrow" aria-hidden="true">→</span>
+              </button>
+            }
+          </section>
+        }
+
+        @if (searchStatus() === 'loading') {
+          <div class="search-state" role="status">
+            <span class="search-spinner" aria-hidden="true"></span>
+            <strong>Searching…</strong>
+          </div>
+        } @else if (searchStatus() === 'error') {
+          <div class="search-state search-state-error" role="alert">
+            <strong>Search could not be loaded</strong>
+            <button type="button" (click)="retryGlobalSearch()">Try again</button>
+          </div>
+        } @else if (searchStatus() === 'loaded' && !searchResultCount()) {
+          <div class="search-state">
+            <span class="search-state-icon" aria-hidden="true">0</span>
+            <strong>No matches</strong>
+            <small>Try another subject or reference.</small>
+          </div>
+        }
+      }
+    </div>
+  </section>
+</ng-template>
 
 <ng-template
   cdk-connected-overlay

@@ -9,6 +9,7 @@ import { CompactKanbanToolbarService } from '../../shared/compact-kanban-toolbar
 import type { ShellProject } from '../project-context/mock-projects';
 import { ShellProjectContext } from '../project-context/shell-project-context';
 import { TopbarNotification, TopbarNotificationsService } from './topbar-notifications.service';
+import { TopbarSearchService } from './topbar-search.service';
 import { Topbar } from './topbar';
 
 describe('Topbar', () => {
@@ -17,6 +18,13 @@ describe('Topbar', () => {
 
   it('renders one compact search prompt and the unread notification count', async () => {
     const listUnread = vi.fn(() => of({ total: 1, objects: [notification] }));
+    const searchProject = vi.fn(() =>
+      of({
+        userstories: [{ id: 91, ref: 291, subject: 'Release story' }],
+        issues: [],
+        epics: [],
+      }),
+    );
     TestBed.configureTestingModule({
       imports: [Topbar],
       providers: [
@@ -46,6 +54,7 @@ describe('Topbar', () => {
           provide: TopbarNotificationsService,
           useValue: notificationService({ listUnread }),
         },
+        { provide: TopbarSearchService, useValue: searchService({ search: searchProject }) },
       ],
     });
     const fixture = TestBed.createComponent(Topbar);
@@ -56,8 +65,9 @@ describe('Topbar', () => {
 
     const host = fixture.nativeElement as HTMLElement;
     const search = host.querySelector<HTMLInputElement>('.global-search input')!;
-    expect(search.placeholder).toBe('Search');
-    expect(search.getAttribute('aria-label')).toBe('Search Taiga');
+    expect(search.placeholder).toBe('Search project');
+    expect(search.getAttribute('aria-label')).toBe('Search current project');
+    expect(search.disabled).toBe(false);
     expect(host.querySelector('.global-search')?.textContent?.trim()).toBe('');
     expect(host.querySelector('button[aria-label="Help"]')).toBeNull();
     expect(listUnread).toHaveBeenCalledOnce();
@@ -72,6 +82,20 @@ describe('Topbar', () => {
     fixture.detectChanges();
     expect(densityButton.getAttribute('aria-pressed')).toBe('true');
     expect(document.documentElement.getAttribute('data-ui-density')).toBe('compact');
+
+    densityButton.click();
+    fixture.detectChanges();
+    search.value = 'release';
+    search.dispatchEvent(new Event('input', { bubbles: true }));
+    host
+      .querySelector<HTMLFormElement>('.global-search')!
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    await Promise.resolve();
+    fixture.detectChanges();
+    expect(searchProject).toHaveBeenCalledWith(2, 'release');
+    expect(document.querySelector('.search-panel')?.textContent).toContain('#291 Release story');
+    search.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges();
 
     host.querySelector<HTMLButtonElement>('.notification-button')!.click();
     fixture.detectChanges();
@@ -101,6 +125,7 @@ describe('Topbar', () => {
         },
         { provide: AuthService, useValue: { user: signal(null) } },
         { provide: TopbarNotificationsService, useValue: notificationService() },
+        { provide: TopbarSearchService, useValue: searchService() },
       ],
     });
     const fixture = TestBed.createComponent(Topbar);
@@ -140,6 +165,7 @@ describe('Topbar', () => {
         },
         { provide: AuthService, useValue: { user: signal(null) } },
         { provide: TopbarNotificationsService, useValue: notificationService() },
+        { provide: TopbarSearchService, useValue: searchService() },
       ],
     });
     const toolbarService = TestBed.inject(CompactKanbanToolbarService);
@@ -212,6 +238,7 @@ describe('Topbar', () => {
           provide: TopbarNotificationsService,
           useValue: notificationService({ markAsRead }),
         },
+        { provide: TopbarSearchService, useValue: searchService() },
       ],
     });
     const fixture = TestBed.createComponent(Topbar);
@@ -261,6 +288,13 @@ function notificationService(overrides: Record<string, unknown> = {}): object {
     listUnread: () => of({ total: 0, objects: [] }),
     markAsRead: () => of(undefined),
     markAllAsRead: () => of(undefined),
+    ...overrides,
+  };
+}
+
+function searchService(overrides: Record<string, unknown> = {}): object {
+  return {
+    search: () => of({ userstories: [], issues: [], epics: [] }),
     ...overrides,
   };
 }

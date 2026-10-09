@@ -157,6 +157,15 @@ pf-root {
   overflow: hidden !important;
 }
 
+.search-overlay-pane {
+  --search-panel-width: min(38rem, calc(100vw - 1rem));
+
+  width: var(--search-panel-width) !important;
+  min-width: var(--search-panel-width) !important;
+  max-width: var(--search-panel-width) !important;
+  overflow: hidden !important;
+}
+
 pf-kanban-board .board-page-compact {
   height: calc(100dvh - 2.5rem);
   padding: 0;

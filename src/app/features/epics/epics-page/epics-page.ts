@@ -25,6 +25,7 @@ import { EpicsWorkspace } from '../epics-workspace';
 export class EpicsPage {
   protected readonly projects = inject(ProjectStore);
   protected readonly requestedSlug = signal<string | null>(null);
+  protected readonly requestedSearch = signal('');
   protected readonly requestedProjectFailed = signal(false);
   protected readonly activeProject = computed(() => {
     const project = this.projects.selectedProject();
@@ -38,6 +39,10 @@ export class EpicsPage {
   private requestedProjectRevision = 0;
 
   constructor() {
+    this.route.queryParamMap
+      ?.pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => this.requestedSearch.set(params.get('q')?.trim() ?? ''));
+
     this.route.paramMap
       .pipe(
         map((params) => params.get('projectSlug')),

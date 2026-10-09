@@ -50,6 +50,7 @@ const FILTERS: readonly FilterDefinition[] = [
 })
 export class IssuesWorkspace implements OnDestroy {
   readonly project = input.required<TaigaProjectDetail>();
+  readonly initialSearch = input('');
 
   protected readonly store = inject(IssuesStore);
   protected readonly filterDefinitions = FILTERS;
@@ -65,18 +66,29 @@ export class IssuesWorkspace implements OnDestroy {
   });
 
   private loadedProjectId: number | undefined;
+  private appliedInitialSearch = '';
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     effect(() => {
       const projectId = this.project().id;
+      const initialSearch = this.initialSearch().trim();
       untracked(() => {
-        if (projectId === this.loadedProjectId) {
+        if (projectId === this.loadedProjectId && initialSearch === this.appliedInitialSearch) {
           return;
         }
+        const projectChanged = projectId !== this.loadedProjectId;
         this.loadedProjectId = projectId;
-        this.searchValue.set('');
-        this.store.loadProject(projectId);
+        this.appliedInitialSearch = initialSearch;
+        this.searchValue.set(initialSearch);
+        if (projectChanged) {
+          this.store.loadProject(projectId);
+        }
+        if (initialSearch) {
+          this.store.setSearch(initialSearch);
+        } else if (!projectChanged) {
+          this.store.setSearch('');
+        }
       });
     });
   }
