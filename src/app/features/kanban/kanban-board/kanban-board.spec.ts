@@ -162,6 +162,35 @@ describe('KanbanBoard', () => {
     expect(firstCard.textContent).not.toContain('Assigned to');
   });
 
+  it('renders every story tag instead of collapsing tags that still fit', async () => {
+    load.mockReturnValue(
+      of({
+        swimlanes: [],
+        userStories: [
+          {
+            ...stories()[0]!,
+            tags: [
+              ['frontend', '#6750a4'],
+              ['release', '#4caf50'],
+              ['desktop', '#2196f3'],
+              ['urgent', '#f44336'],
+            ],
+          },
+        ],
+      }),
+    );
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', project());
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const tags = [...host.querySelectorAll('.story-tag')].map((tag) => tag.textContent?.trim());
+    expect(tags).toEqual(['frontend', 'release', 'desktop', 'urgent']);
+    expect(host.querySelector('.story-tag-overflow')).toBeNull();
+  });
+
   it('opens a live story detail panel without leaving the modern board', async () => {
     const detail = {
       ...stories()[0]!,

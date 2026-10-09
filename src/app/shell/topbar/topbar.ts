@@ -1,5 +1,4 @@
 import { ConnectedPosition, OverlayModule } from '@angular/cdk/overlay';
-import { DOCUMENT } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -55,8 +54,8 @@ export class Topbar {
   protected readonly notificationsTotal = signal(0);
   protected readonly notificationsStatus = signal<NotificationsStatus>('idle');
   protected readonly notificationsOpen = signal(false);
-  protected readonly compactMode = signal(readCompactMode());
   protected readonly compactKanbanToolbar = inject(CompactKanbanToolbarService);
+  protected readonly compactMode = this.compactKanbanToolbar.compactMode;
   protected readonly notificationPositions: ConnectedPosition[] = [
     {
       originX: 'end',
@@ -75,10 +74,8 @@ export class Topbar {
   ];
   private readonly router = inject(Router);
   private readonly notificationsApi = inject(TopbarNotificationsService);
-  private readonly document = inject(DOCUMENT);
 
   constructor() {
-    this.applyCompactMode(this.compactMode());
     effect(() => {
       const userId = this.auth.user()?.id;
       untracked(() => {
@@ -127,10 +124,7 @@ export class Topbar {
   }
 
   protected toggleCompactMode(): void {
-    const compact = !this.compactMode();
-    this.compactMode.set(compact);
-    this.applyCompactMode(compact);
-    persistCompactMode(compact);
+    this.compactKanbanToolbar.toggleCompactMode();
   }
 
   protected updateCompactKanbanQuery(toolbar: CompactKanbanToolbar, event: Event): void {
@@ -342,13 +336,6 @@ export class Topbar {
       this.loadNotifications(true);
     });
   }
-
-  private applyCompactMode(compact: boolean): void {
-    this.document.documentElement.setAttribute(
-      'data-ui-density',
-      compact ? 'compact' : 'comfortable',
-    );
-  }
 }
 
 type NotificationsStatus = 'error' | 'idle' | 'loaded' | 'loading';
@@ -360,8 +347,6 @@ interface NotificationProjectView {
   readonly name: string;
   readonly slug: string;
 }
-
-const COMPACT_MODE_STORAGE_KEY = 'taiga-modern:compact-mode';
 
 type ProjectSection = 'epics' | 'issues' | 'kanban' | 'settings' | 'team';
 
@@ -408,20 +393,4 @@ function relativeTime(value?: string): string {
     return `${Math.floor(elapsed / 3_600_000)} hr`;
   }
   return new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' }).format(created);
-}
-
-function readCompactMode(): boolean {
-  try {
-    return globalThis.localStorage?.getItem(COMPACT_MODE_STORAGE_KEY) === 'true';
-  } catch {
-    return false;
-  }
-}
-
-function persistCompactMode(compact: boolean): void {
-  try {
-    globalThis.localStorage?.setItem(COMPACT_MODE_STORAGE_KEY, String(compact));
-  } catch {
-    // Density remains available for the current session when storage is unavailable.
-  }
 }

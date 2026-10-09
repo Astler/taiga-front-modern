@@ -1,4 +1,8 @@
-<section class="board-page" aria-label="Kanban board">
+<section
+  class="board-page"
+  [class.board-page-compact]="compactToolbar.compactMode()"
+  aria-label="Kanban board"
+>
   <div class="board-toolbar" aria-label="Board search, views, and sorting">
     <label class="search-field">
       <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -410,13 +414,10 @@
                       <div class="story-card-top">
                         @if (story.tags.length) {
                           <div class="story-tags" aria-label="Tags">
-                            @for (tag of story.tags.slice(0, 3); track tag[0]) {
+                            @for (tag of story.tags; track tag[0]) {
                               <span class="story-tag" [style.--tag-color]="tag[1] || '#8f8a99'">
                                 {{ tag[0] }}
                               </span>
-                            }
-                            @if (story.tags.length > 3) {
-                              <span class="story-tag-overflow">+{{ story.tags.length - 3 }}</span>
                             }
                           </div>
                         }

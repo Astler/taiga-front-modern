@@ -1,4 +1,4 @@
-<mat-toolbar class="topbar">
+<mat-toolbar class="topbar" [class.topbar-compact]="compactMode()">
   <button
     class="navigation-toggle"
     mat-icon-button
@@ -14,6 +14,7 @@
   </button>
 
   <pf-project-switcher
+    [compact]="compactMode()"
     [projects]="projectContext.projects()"
     [selectedProject]="projectContext.selectedProject()"
     (projectSelected)="selectProject($event)"

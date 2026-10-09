@@ -13,12 +13,14 @@ import { ShellProject } from '../project-context/mock-projects';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '[class.project-switcher-compact]': 'compact()' },
   imports: [MatMenuModule, MatTooltipModule, NgTemplateOutlet],
   selector: 'pf-project-switcher',
   styleUrl: './project-switcher.scss',
   templateUrl: './project-switcher.html',
 })
 export class ProjectSwitcher {
+  readonly compact = input(false);
   readonly projects = input.required<readonly ShellProject[]>();
   readonly selectedProject = input.required<ShellProject>();
   readonly projectSelected = output<ShellProject>();

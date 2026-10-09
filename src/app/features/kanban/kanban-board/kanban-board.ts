@@ -114,7 +114,7 @@ export class KanbanBoard {
   protected readonly store = inject(KanbanStore);
   private readonly auth = inject(AuthService);
   private readonly presetApi = inject(KanbanFilterPresetsService);
-  private readonly compactToolbar = inject(CompactKanbanToolbarService);
+  protected readonly compactToolbar = inject(CompactKanbanToolbarService);
   private readonly destroyRef = inject(DestroyRef);
   protected readonly query = signal('');
   protected readonly sortMode = signal<KanbanSortMode>('manual');

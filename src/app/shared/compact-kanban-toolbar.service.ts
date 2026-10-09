@@ -1,4 +1,5 @@
-import { Injectable, signal, type Signal } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { Injectable, inject, signal, type Signal } from '@angular/core';
 
 export interface CompactKanbanSortOption {
   readonly label: string;
@@ -28,8 +29,22 @@ export interface CompactKanbanToolbar {
 @Injectable({ providedIn: 'root' })
 export class CompactKanbanToolbarService {
   private readonly activeToolbar = signal<CompactKanbanToolbar | null>(null);
+  private readonly document = inject(DOCUMENT);
+  private readonly compactState = signal(readCompactMode());
 
   readonly toolbar = this.activeToolbar.asReadonly();
+  readonly compactMode = this.compactState.asReadonly();
+
+  constructor() {
+    this.applyCompactMode(this.compactState());
+  }
+
+  toggleCompactMode(): void {
+    const compact = !this.compactState();
+    this.compactState.set(compact);
+    this.applyCompactMode(compact);
+    persistCompactMode(compact);
+  }
 
   connect(toolbar: CompactKanbanToolbar): () => void {
     this.activeToolbar.set(toolbar);
@@ -38,5 +53,30 @@ export class CompactKanbanToolbarService {
         this.activeToolbar.set(null);
       }
     };
+  }
+
+  private applyCompactMode(compact: boolean): void {
+    this.document.documentElement.setAttribute(
+      'data-ui-density',
+      compact ? 'compact' : 'comfortable',
+    );
+  }
+}
+
+const COMPACT_MODE_STORAGE_KEY = 'taiga-modern:compact-mode';
+
+function readCompactMode(): boolean {
+  try {
+    return globalThis.localStorage?.getItem(COMPACT_MODE_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function persistCompactMode(compact: boolean): void {
+  try {
+    globalThis.localStorage?.setItem(COMPACT_MODE_STORAGE_KEY, String(compact));
+  } catch {
+    // Density remains available for the current session when storage is unavailable.
   }
 }

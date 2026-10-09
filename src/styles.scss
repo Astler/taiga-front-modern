@@ -157,10 +157,9 @@ pf-root {
   overflow: hidden !important;
 }
 
-html[data-ui-density='compact'] pf-kanban-board {
-  .board-page {
-    padding: 0;
-  }
+pf-kanban-board .board-page-compact {
+  height: calc(100dvh - 2.5rem);
+  padding: 0;
 
   .board-toolbar {
     display: none;
@@ -221,12 +220,12 @@ html[data-ui-density='compact'] pf-kanban-board {
   }
 
   .story-tags {
-    max-width: 7rem;
+    max-width: none;
     flex: 0 1 auto;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     order: 1;
     gap: 0.1rem;
-    overflow: hidden;
+    overflow: visible;
     padding-inline-end: 0;
   }
 
