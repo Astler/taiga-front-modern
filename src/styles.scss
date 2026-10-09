@@ -168,6 +168,7 @@ pf-root {
 
 pf-kanban-board .board-page-compact {
   height: 100%;
+  min-height: 0;
   padding: 0;
 
   .board-toolbar {
@@ -190,7 +191,7 @@ pf-kanban-board .board-page-compact {
   .board-scroll {
     border-block: 0;
     border-inline: 0;
-    border-radius: 0;
+    border-radius: 0 !important;
     box-shadow: none;
   }
 
@@ -210,13 +211,13 @@ pf-kanban-board .board-page-compact {
     align-items: center;
     flex-wrap: wrap;
     gap: 0.2rem 0.45rem;
-    border-radius: 0;
+    border-radius: 0 !important;
     padding: 0.25rem 0.4rem;
   }
 
   .empty-column,
   .quick-create {
-    border-radius: 0;
+    border-radius: 0 !important;
   }
 
   .story-card-top {

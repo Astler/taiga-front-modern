@@ -8,6 +8,13 @@
   min-height: 0;
 }
 
+:host-context(html[data-ui-density='compact']) .board-scroll,
+:host-context(html[data-ui-density='compact']) .story-card,
+:host-context(html[data-ui-density='compact']) .empty-column,
+:host-context(html[data-ui-density='compact']) .quick-create {
+  border-radius: 0 !important;
+}
+
 .board-page {
   position: relative;
   display: flex;
@@ -21,6 +28,7 @@
 
 .board-page.board-page-compact {
   height: 100%;
+  min-height: 0;
   padding: 0;
 }
 

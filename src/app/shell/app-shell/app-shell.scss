@@ -50,8 +50,14 @@
   outline: none;
 }
 
+:host-context(html[data-ui-density='compact']) .shell-main {
+  display: grid;
+  grid-template-rows: var(--app-topbar-height) minmax(0, 1fr);
+  overflow: hidden;
+}
+
 :host-context(html[data-ui-density='compact']) .route-content {
-  height: calc(100dvh - var(--app-topbar-height));
+  height: auto;
   min-height: 0;
   overflow: hidden;
 }
