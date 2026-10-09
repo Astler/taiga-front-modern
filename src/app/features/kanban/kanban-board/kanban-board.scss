@@ -71,7 +71,6 @@
 .search-field svg,
 .story-fact svg,
 .add-story-button svg,
-.drag-handle svg,
 .story-menu-button svg {
   fill: none;
   stroke: currentColor;
@@ -327,7 +326,6 @@
 }
 
 .add-story-button,
-.drag-handle,
 .story-menu-button {
   display: grid;
   border: 0;
@@ -351,7 +349,6 @@
 }
 
 .add-story-button:hover,
-.drag-handle:hover,
 .story-menu-button:hover {
   background: var(--mat-sys-surface-container-highest);
   color: var(--mat-sys-on-surface);
@@ -363,14 +360,9 @@
   outline-offset: 1px;
 }
 
-.add-story-button:disabled,
-.drag-handle-disabled {
+.add-story-button:disabled {
   cursor: default;
   opacity: 0.38;
-}
-
-.drag-handle:not(.drag-handle-disabled) {
-  cursor: grab;
 }
 
 .column-cards {
@@ -457,6 +449,15 @@
   transform: translateY(-1px);
 }
 
+.story-card-draggable {
+  cursor: grab;
+}
+
+.story-card-draggable:active,
+.story-card.cdk-drag-dragging {
+  cursor: grabbing;
+}
+
 .story-card-blocked {
   border-inline-start: 3px solid var(--mat-sys-error);
 }
@@ -491,22 +492,15 @@
   opacity: 1;
 }
 
-.drag-handle,
 .story-menu-button {
   width: 2rem;
   height: 2rem;
   border-radius: 50%;
 }
 
-.drag-handle svg,
 .story-menu-button svg {
   width: 1.05rem;
   height: 1.05rem;
-}
-
-.drag-handle svg {
-  fill: currentColor;
-  stroke: none;
 }
 
 .story-menu-button svg {
@@ -519,7 +513,7 @@
   min-width: 0;
   flex-wrap: wrap;
   gap: 0.25rem;
-  padding-inline-end: 4.25rem;
+  padding-inline-end: 2.25rem;
 }
 
 .story-tag,
@@ -550,7 +544,7 @@
   outline: 0;
   background: transparent;
   color: var(--mat-sys-on-surface);
-  padding: 0 4rem 0 0;
+  padding: 0 2.25rem 0 0;
   cursor: pointer;
   font: var(--mat-sys-body-medium);
   font-weight: 540;

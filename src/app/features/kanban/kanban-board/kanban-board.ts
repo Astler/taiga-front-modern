@@ -1,10 +1,4 @@
-import {
-  CdkDrag,
-  CdkDragDrop,
-  CdkDragHandle,
-  CdkDropList,
-  CdkDropListGroup,
-} from '@angular/cdk/drag-drop';
+import { CdkDrag, CdkDragDrop, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { CdkScrollable } from '@angular/cdk/scrolling';
 import {
   ChangeDetectionStrategy,
@@ -71,7 +65,6 @@ const FOCUS_OPTIONS: readonly KanbanFilterOption[] = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CdkDrag,
-    CdkDragHandle,
     CdkDropList,
     CdkDropListGroup,
     CdkScrollable,

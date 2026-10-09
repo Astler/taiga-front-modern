@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { CdkDrag, CdkDropList, type CdkDragDrop } from '@angular/cdk/drag-drop';
+import { CdkDrag, CdkDragHandle, CdkDropList, type CdkDragDrop } from '@angular/cdk/drag-drop';
 import { By } from '@angular/platform-browser';
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
@@ -328,16 +328,23 @@ describe('KanbanBoard', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
+    const host = fixture.nativeElement as HTMLElement;
     const drags = fixture.debugElement
       .queryAll(By.directive(CdkDrag))
       .map((element) => element.injector.get(CdkDrag));
+    const handles = fixture.debugElement.queryAll(By.directive(CdkDragHandle));
     const lists = fixture.debugElement
       .queryAll(By.directive(CdkDropList))
       .map((element) => element.injector.get(CdkDropList));
     expect(drags.every(({ disabled }) => !disabled)).toBe(true);
+    expect(handles).toHaveLength(0);
     expect(lists.every(({ disabled }) => !disabled)).toBe(true);
+    expect(
+      [...host.querySelectorAll<HTMLElement>('.story-card')].every((card) =>
+        card.classList.contains('story-card-draggable'),
+      ),
+    ).toBe(true);
 
-    const host = fixture.nativeElement as HTMLElement;
     setControlValue(
       host.querySelector<HTMLInputElement>('input[type="search"]')!,
       'login',
@@ -554,6 +561,7 @@ describe('KanbanBoard', () => {
     expect(cardSubjects(readOnlyHost)).toHaveLength(3);
     expect(readOnlyHost.querySelector('.add-story-button')).toBeNull();
     expect(readOnlyHost.querySelector('.drag-handle')).toBeNull();
+    expect(readOnlyHost.querySelector('.story-card-draggable')).toBeNull();
     expect(
       readOnlyFixture.debugElement
         .queryAll(By.directive(CdkDrag))
@@ -572,6 +580,7 @@ describe('KanbanBoard', () => {
     const createOnlyHost = createOnlyFixture.nativeElement as HTMLElement;
     expect(createOnlyHost.querySelector('.add-story-button')).toBeTruthy();
     expect(createOnlyHost.querySelector('.drag-handle')).toBeNull();
+    expect(createOnlyHost.querySelector('.story-card-draggable')).toBeNull();
   });
 
   it('matches a hash-prefixed reference exactly', async () => {
