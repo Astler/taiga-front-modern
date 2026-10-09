@@ -34,6 +34,13 @@
   background: var(--mat-sys-outline);
 }
 
+.board-live-region {
+  position: fixed !important;
+  inset: 0 auto auto 0 !important;
+  margin: 0 !important;
+  pointer-events: none;
+}
+
 .board-page {
   position: relative;
   display: flex;
