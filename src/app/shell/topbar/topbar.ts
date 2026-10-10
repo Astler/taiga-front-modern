@@ -1,4 +1,5 @@
 import { ConnectedPosition, OverlayModule } from '@angular/cdk/overlay';
+import { DOCUMENT } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -86,6 +87,7 @@ export class Topbar {
   protected readonly notificationsTotal = signal(0);
   protected readonly notificationsStatus = signal<NotificationsStatus>('idle');
   protected readonly notificationsOpen = signal(false);
+  protected readonly profileOpen = signal(false);
   protected readonly searchQuery = signal('');
   protected readonly searchResults = signal(EMPTY_TOPBAR_SEARCH_RESULTS);
   protected readonly searchStatus = signal<SearchStatus>('idle');
@@ -115,6 +117,22 @@ export class Topbar {
   });
   protected readonly compactKanbanToolbar = inject(CompactKanbanToolbarService);
   protected readonly compactMode = this.compactKanbanToolbar.compactMode;
+  protected readonly profilePositions: ConnectedPosition[] = [
+    {
+      originX: 'end',
+      originY: 'bottom',
+      overlayX: 'end',
+      overlayY: 'top',
+      offsetY: 8,
+    },
+    {
+      originX: 'end',
+      originY: 'top',
+      overlayX: 'end',
+      overlayY: 'bottom',
+      offsetY: -8,
+    },
+  ];
   protected readonly notificationPositions: ConnectedPosition[] = [
     {
       originX: 'end',
@@ -147,6 +165,7 @@ export class Topbar {
       offsetY: -6,
     },
   ];
+  private readonly document = inject(DOCUMENT);
   private readonly router = inject(Router);
   private readonly notificationsApi = inject(TopbarNotificationsService);
   private readonly searchApi = inject(TopbarSearchService);
@@ -159,9 +178,10 @@ export class Topbar {
     this.destroyRef.onDestroy(() => this.cancelSearchTimer());
 
     effect(() => {
-      const scope = this.location().scope;
+      const location = this.location();
       untracked(() => {
-        if (scope === 'account') this.resetGlobalSearch();
+        if (location.scope === 'account') this.resetGlobalSearch();
+        this.closeProfilePanel();
       });
     });
 
@@ -210,7 +230,60 @@ export class Topbar {
   }
 
   protected logout(): void {
+    this.closeProfilePanel();
     this.auth.logout();
+  }
+
+  protected toggleProfilePanel(): void {
+    const open = !this.profileOpen();
+    if (open) {
+      this.closeNotifications();
+      this.closeGlobalSearch();
+    }
+    this.profileOpen.set(open);
+  }
+
+  protected closeProfilePanel(): void {
+    this.profileOpen.set(false);
+  }
+
+  protected focusProfilePanel(): void {
+    queueMicrotask(() => {
+      if (this.profileOpen()) {
+        this.document
+          .querySelector<HTMLButtonElement>('.profile-panel .profile-layout-card[aria-checked="true"]')
+          ?.focus();
+      }
+    });
+  }
+
+  protected handleProfilePanelKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.closeProfilePanel();
+      queueMicrotask(() => this.document.querySelector<HTMLButtonElement>('.profile-button')?.focus());
+    }
+  }
+
+  protected handleProfileLayoutKeydown(event: KeyboardEvent): void {
+    const delta =
+      event.key === 'ArrowDown' || event.key === 'ArrowRight' ? 1 :
+      event.key === 'ArrowUp' || event.key === 'ArrowLeft' ? -1 : 0;
+    if (!delta) return;
+
+    event.preventDefault();
+    const currentIndex = this.editorLayoutOptions.findIndex(
+      (option) => option.value === this.editorLayout.mode(),
+    );
+    const nextIndex = (currentIndex + delta + this.editorLayoutOptions.length) %
+      this.editorLayoutOptions.length;
+    const mode = this.editorLayoutOptions[nextIndex]!.value;
+    this.editorLayout.setMode(mode);
+    queueMicrotask(() =>
+      this.document
+        .querySelector<HTMLButtonElement>(`.profile-panel .profile-layout-card[data-layout="${mode}"]`)
+        ?.focus(),
+    );
   }
 
   protected refreshNotifications(): void {
@@ -221,6 +294,7 @@ export class Topbar {
     const open = !this.notificationsOpen();
     this.notificationsOpen.set(open);
     if (open) {
+      this.closeProfilePanel();
       this.closeGlobalSearch();
       this.refreshNotifications();
     }
@@ -235,6 +309,7 @@ export class Topbar {
   }
 
   protected openGlobalSearch(): void {
+    this.closeProfilePanel();
     this.closeNotifications();
     this.searchOpen.set(true);
   }
@@ -246,6 +321,7 @@ export class Topbar {
   protected updateGlobalSearch(event: Event): void {
     const query = (event.target as HTMLInputElement).value;
     this.searchQuery.set(query);
+    this.closeProfilePanel();
     this.closeNotifications();
     this.searchOpen.set(true);
     this.cancelSearchTimer();

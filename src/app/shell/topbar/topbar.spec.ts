@@ -171,7 +171,7 @@ describe('Topbar', () => {
     expect(host.querySelector('.global-search')).toBeTruthy();
   });
 
-  it('allows a Taiga profile to select its persistent story editor layout', async () => {
+  it('renders a standalone M3 profile panel with accessible layout cards', async () => {
     TestBed.configureTestingModule({
       imports: [Topbar],
       providers: [
@@ -199,42 +199,55 @@ describe('Topbar', () => {
     fixture.componentRef.setInput('navigationExpanded', true);
     fixture.detectChanges();
 
-    fixture.nativeElement.querySelector<HTMLButtonElement>('.profile-button')!.click();
+    const trigger = fixture.nativeElement.querySelector<HTMLButtonElement>('.profile-button')!;
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    trigger.click();
+    fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    const fullscreen = document.querySelector<HTMLButtonElement>(
-      '[aria-label="Fullscreen"]',
-    )!;
-    expect(fullscreen).toBeTruthy();
 
-    const initialChoices = [
-      ...document.querySelectorAll<HTMLButtonElement>('.profile-layout-item'),
-    ];
-    expect(initialChoices.map((choice) => choice.getAttribute('role'))).toEqual([
-      'menuitemradio', 'menuitemradio', 'menuitemradio',
+    const panel = document.querySelector<HTMLElement>('#profile-panel')!;
+    expect(panel).toBeTruthy();
+    expect(panel.getAttribute('role')).toBe('dialog');
+    expect(panel.querySelector('.profile-panel-person')?.textContent).toContain('Ada Lovelace');
+    expect(panel.querySelector('.profile-panel-section-heading')?.textContent).toContain(
+      'Story editor layout',
+    );
+    expect(panel.querySelector('.mat-mdc-menu-item')).toBeNull();
+
+    const choices = [...panel.querySelectorAll<HTMLButtonElement>('.profile-layout-card')];
+    expect(choices.map((button) => button.dataset['layout'])).toEqual([
+      'auto', 'side', 'fullscreen',
     ]);
-    expect(initialChoices.map((choice) => choice.getAttribute('aria-checked'))).toEqual([
+    expect(choices.map((button) => button.getAttribute('aria-checked'))).toEqual([
       'true', 'false', 'false',
     ]);
-    expect(initialChoices[0]?.querySelector('.profile-layout-row')).toBeTruthy();
-    expect(initialChoices[0]?.querySelector('.profile-layout-indicator svg')).toBeTruthy();
-    expect(initialChoices[0]?.querySelector('.profile-layout-option')?.textContent).toContain(
+    expect(choices[0]?.querySelector('.profile-layout-card-copy')?.textContent).toContain(
       'Fullscreen on smaller screens',
     );
+    expect(choices[0]?.querySelector('.profile-layout-card-check svg')).toBeTruthy();
 
-    fullscreen.click();
+    choices[2]!.click();
     fixture.detectChanges();
     expect(selectLayout).toHaveBeenCalledWith('fullscreen');
     expect(layoutMode()).toBe('fullscreen');
+    expect(choices[2]!.getAttribute('aria-checked')).toBe('true');
+    expect(choices[2]!.classList.contains('profile-layout-card-active')).toBe(true);
+    expect(choices[2]!.querySelector('.profile-layout-card-check svg')).toBeTruthy();
 
-    fixture.nativeElement.querySelector<HTMLButtonElement>('.profile-button')!.click();
-    await fixture.whenStable();
+    choices[2]!.dispatchEvent(new KeyboardEvent('keydown', {
+      key: 'ArrowDown', bubbles: true, cancelable: true,
+    }));
     fixture.detectChanges();
-    const selected = document.querySelector<HTMLButtonElement>(
-      '.profile-layout-item[aria-label="Fullscreen"]',
-    );
-    expect(selected?.getAttribute('aria-checked')).toBe('true');
-    expect(selected?.querySelector('.profile-layout-indicator svg')).toBeTruthy();
+    expect(selectLayout).toHaveBeenLastCalledWith('auto');
+
+    const component = fixture.componentInstance as unknown as {
+      handleProfilePanelKeydown(event: KeyboardEvent): void;
+    };
+    component.handleProfilePanelKeydown(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    expect(document.querySelector('#profile-panel')).toBeNull();
   });
 
   it.each([
