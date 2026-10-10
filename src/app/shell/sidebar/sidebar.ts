@@ -34,7 +34,7 @@ export class Sidebar {
       },
       {
         iconPath: 'M4 13h6V4H4v9Zm0 7h6v-4H4v4Zm10 0h6v-9h-6v9Zm0-16v4h6V4h-6Z',
-        label: 'Overview',
+        label: 'My dashboard',
         route: '/dashboard',
       },
       {

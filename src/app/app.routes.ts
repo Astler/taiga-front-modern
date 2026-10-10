@@ -27,11 +27,11 @@ export const routes: Routes = [
       {
         path: 'dashboard',
         loadComponent: () =>
-          import('./shell/dashboard-placeholder/dashboard-placeholder').then(
-            ({ DashboardPlaceholder }) => DashboardPlaceholder,
+          import('./features/dashboard/dashboard-page/dashboard-page').then(
+            ({ DashboardPage }) => DashboardPage,
           ),
         data: {
-          title: 'Overview',
+          title: 'My dashboard',
         },
       },
       {

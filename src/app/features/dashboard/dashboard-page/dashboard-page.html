@@ -1,0 +1,249 @@
+<section class="dashboard" aria-labelledby="dashboard-title">
+  <header class="page-header">
+    <div>
+      <div class="page-eyebrow">
+        <span class="account-indicator" aria-hidden="true">ME</span>
+        <span>Personal workspace</span>
+        @if (store.status() === 'loaded') {
+          <span class="live-badge"><i aria-hidden="true"></i>Live data</span>
+        }
+      </div>
+      <h1 id="dashboard-title">{{ greeting() }}</h1>
+      <p>Everything assigned to you or followed by you, across your Taiga projects.</p>
+    </div>
+    <div class="page-actions">
+      <button
+        mat-button
+        type="button"
+        class="refresh-button"
+        [disabled]="store.loading() || store.refreshing()"
+        (click)="refresh()"
+      >
+        <span class="app-button-content">
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" />
+          </svg>
+          <span>{{ store.refreshing() ? 'Syncing…' : 'Refresh' }}</span>
+        </span>
+      </button>
+      <a mat-flat-button [routerLink]="['/projects']">
+        <span class="app-button-content">All projects</span>
+      </a>
+    </div>
+  </header>
+
+  @if (store.loading() || (store.status() === 'idle' && !store.error())) {
+    <section class="overview-state loading-state" role="status">
+      <mat-progress-bar mode="indeterminate" />
+      <div>
+        <strong>Building your account overview…</strong>
+        <span>Loading assigned work and followed items across projects.</span>
+      </div>
+    </section>
+  } @else if (store.status() === 'error') {
+    <section class="overview-state error-state" role="alert">
+      <span class="state-icon" aria-hidden="true">!</span>
+      <div>
+        <strong>Dashboard unavailable</strong>
+        <span>{{ store.error() }}</span>
+      </div>
+      <button mat-flat-button type="button" (click)="refresh()">Try again</button>
+    </section>
+  } @else {
+    @if (store.error(); as refreshError) {
+      <p class="refresh-error" role="status">{{ refreshError }}</p>
+    }
+
+    @if (store.warnings().length) {
+      <div class="partial-warning" role="status">
+        <strong>Some information could not be loaded</strong>
+        <span>{{ store.warnings().join(' ') }} Try refreshing the dashboard.</span>
+      </div>
+    }
+
+    <div class="metrics" aria-label="My account work summary">
+      @for (metric of metrics(); track metric.label) {
+        <article class="metric-card" [attr.data-tone]="metric.tone">
+          <div class="metric-heading">
+            <span class="metric-indicator" aria-hidden="true"></span>
+            <span>{{ metric.label }}</span>
+          </div>
+          <strong>{{ metric.value }}</strong>
+          <small>{{ metric.detail }}</small>
+        </article>
+      }
+    </div>
+
+    <div class="dashboard-grid">
+      <section class="focus-card" aria-labelledby="assigned-title">
+        <header class="card-header">
+          <div>
+            <span class="section-label">Across all projects</span>
+            <h2 id="assigned-title">Working on</h2>
+          </div>
+          <span class="section-count">{{ store.assigned().length }} open</span>
+        </header>
+
+        <ul class="focus-list">
+          @for (item of visibleAssigned(); track item.type + ':' + item.id) {
+            <li class="focus-item">
+              <span
+                class="focus-status"
+                [style.background]="item.statusColor || null"
+                aria-hidden="true"
+              ></span>
+              <div class="focus-copy">
+                <span class="work-context">{{ projectName(item) }} · {{ kindName(item.type) }}</span>
+                @if (itemRoute(item); as route) {
+                  <a class="work-title" [routerLink]="route" [queryParams]="itemQuery(item)">
+                    <strong>{{ referenceLabel(item) }} {{ item.title }}</strong>
+                  </a>
+                } @else {
+                  <strong class="work-title">{{ referenceLabel(item) }} {{ item.title }}</strong>
+                }
+                <small>{{ item.statusName || 'Open' }}</small>
+              </div>
+              <span class="focus-tags">
+                @if (isOverdue(item)) {
+                  <span class="item-tag item-tag-danger">Overdue</span>
+                } @else if (item.isBlocked) {
+                  <span class="item-tag item-tag-danger">Blocked</span>
+                } @else if (item.dueDate) {
+                  <span class="item-tag">{{ dateLabel(item.dueDate) }}</span>
+                }
+              </span>
+            </li>
+          } @empty {
+            <li class="empty-card-state">
+              <strong>Nothing assigned right now</strong>
+              <span>Open tasks, stories, issues and epics assigned to you will appear here.</span>
+            </li>
+          }
+        </ul>
+        @if (store.assigned().length > 10) {
+          <button
+            class="list-toggle"
+            type="button"
+            (click)="showAllAssigned.set(!showAllAssigned())"
+          >
+            {{ showAllAssigned() ? 'Show less' : 'Show all ' + store.assigned().length + ' items' }}
+          </button>
+        }
+      </section>
+
+      <section class="activity-card" aria-labelledby="watching-title">
+        <header class="card-header">
+          <div>
+            <span class="section-label">Followed across Taiga</span>
+            <h2 id="watching-title">Watching</h2>
+          </div>
+          <span class="section-count">{{ store.watching().length }}</span>
+        </header>
+
+        <ul class="watch-list">
+          @for (item of visibleWatching(); track item.type + ':' + item.id) {
+            <li class="watch-item">
+              <span class="work-kind" aria-hidden="true">{{ kindName(item.type).slice(0, 2) }}</span>
+              <span class="watch-copy">
+                <small>{{ projectName(item) }} · {{ kindName(item.type) }}</small>
+                @if (itemRoute(item); as route) {
+                  <a [routerLink]="route" [queryParams]="itemQuery(item)">
+                    {{ referenceLabel(item) }} {{ item.title }}
+                  </a>
+                } @else {
+                  <strong>{{ referenceLabel(item) }} {{ item.title }}</strong>
+                }
+                <span>{{ item.statusName || 'Following' }}</span>
+              </span>
+            </li>
+          } @empty {
+            <li class="empty-card-state">
+              <strong>Nothing watched yet</strong>
+              <span>Projects and items you follow will appear here.</span>
+            </li>
+          }
+        </ul>
+        @if (store.watching().length > 10) {
+          <button
+            class="list-toggle"
+            type="button"
+            (click)="showAllWatching.set(!showAllWatching())"
+          >
+            {{ showAllWatching() ? 'Show less' : 'Show all ' + store.watching().length + ' items' }}
+          </button>
+        }
+      </section>
+    </div>
+
+    <div class="lower-grid">
+      <section class="activity-card" aria-labelledby="recent-title">
+        <header class="card-header">
+          <div>
+            <span class="section-label">Assigned or followed work</span>
+            <h2 id="recent-title">Recently updated</h2>
+          </div>
+        </header>
+        <ul class="activity-list">
+          @for (item of recentItems(); track item.type + ':' + item.id) {
+            <li class="activity-item">
+              <span class="work-kind" aria-hidden="true">{{ kindName(item.type).slice(0, 2) }}</span>
+              <span class="activity-copy">
+                @if (itemRoute(item); as route) {
+                  <a
+                    class="activity-title"
+                    [routerLink]="route"
+                    [queryParams]="itemQuery(item)"
+                  >
+                    {{ referenceLabel(item) }} {{ item.title }}
+                  </a>
+                } @else {
+                  <span>{{ referenceLabel(item) }} {{ item.title }}</span>
+                }
+                <span>{{ projectName(item) }} · {{ kindName(item.type) }}</span>
+              </span>
+              <time [attr.datetime]="item.updatedAt">{{ dateLabel(item.updatedAt) }}</time>
+            </li>
+          } @empty {
+            <li class="empty-card-state">
+              <strong>No recent activity in your work</strong>
+              <span>Updates to assigned and watched items will be listed here.</span>
+            </li>
+          }
+        </ul>
+      </section>
+
+      <section class="activity-card" aria-labelledby="projects-title">
+        <header class="card-header">
+          <div>
+            <span class="section-label">Your account</span>
+            <h2 id="projects-title">Projects</h2>
+          </div>
+          <a mat-button [routerLink]="['/projects']">View all</a>
+        </header>
+        <p class="project-summary">
+          <strong>{{ context.projects().length }}</strong>
+          projects available to your account
+        </p>
+        <ul class="project-work-list">
+          @for (project of projectSummaries().slice(0, 8); track project.id) {
+            <li>
+              <span>
+                @if (project.slug) {
+                  <a [routerLink]="projectRoute(project.slug)">{{ project.name }}</a>
+                } @else {
+                  <strong>{{ project.name }}</strong>
+                }
+                <small>{{ project.assigned }} assigned · {{ project.watching }} watched</small>
+              </span>
+            </li>
+          } @empty {
+            <li class="empty-card-state">
+              <strong>No tracked work per project</strong>
+              <span>Open your <a [routerLink]="['/projects']">projects directory</a>.</span>
+            </li>
+          }
+        </ul>
+      </section>
+    </div>
+  }
+</section>
