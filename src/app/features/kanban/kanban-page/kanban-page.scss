@@ -3,7 +3,10 @@
   min-height: 100%;
 }
 
+/* The board fills the routed viewport, independent of any outlet placeholder. */
 :host-context(html[data-ui-density='compact']) {
+  position: absolute;
+  inset: 0;
   height: 100%;
   min-height: 0;
 }

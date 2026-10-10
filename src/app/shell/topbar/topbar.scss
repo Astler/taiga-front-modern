@@ -9,6 +9,11 @@
   display: none;
 }
 
+/* Keep the host as tall as the visible compact toolbar, not its overlay anchors. */
+:host-context(html[data-ui-density='compact']) {
+  height: var(--app-topbar-height);
+}
+
 .topbar {
   min-width: 0;
   height: var(--app-topbar-height);
