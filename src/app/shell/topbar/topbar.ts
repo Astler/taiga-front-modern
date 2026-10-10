@@ -18,6 +18,10 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import type { ShellRouteContext } from '../app-shell/shell-route-context';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import {
+  StoryEditorLayoutService,
+  type StoryEditorLayoutMode,
+} from '../../shared/story-editor-layout.service';
 import { AuthService } from '../../core/auth';
 import {
   CompactKanbanToolbarService,
@@ -64,6 +68,16 @@ export class Topbar {
       this.projectContext.selectedProject();
   });
   protected readonly auth = inject(AuthService);
+  protected readonly editorLayout = inject(StoryEditorLayoutService);
+  protected readonly editorLayoutOptions: readonly {
+    readonly value: StoryEditorLayoutMode;
+    readonly label: string;
+    readonly description: string;
+  }[] = [
+    { value: 'auto', label: 'Auto', description: 'Fullscreen on smaller screens' },
+    { value: 'side', label: 'Side panel', description: 'Always docked on the right' },
+    { value: 'fullscreen', label: 'Fullscreen', description: 'Always full screen' },
+  ];
   protected readonly profileName = computed(
     () => this.auth.user()?.full_name_display || this.auth.user()?.username || 'Taiga user',
   );

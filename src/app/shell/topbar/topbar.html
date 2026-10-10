@@ -554,5 +554,35 @@
       <small>{{ auth.user()?.username }}</small>
     </span>
   </div>
+  <div class="profile-layout-heading">
+    <strong>Story editor layout</strong>
+    <small>
+      @switch (editorLayout.syncState()) {
+        @case ('synced') { Saved to your Taiga account }
+        @case ('saving') { Syncing to Taiga… }
+        @case ('loading') { Loading preference… }
+        @default { Saved on this device }
+      }
+    </small>
+  </div>
+  @for (option of editorLayoutOptions; track option.value) {
+    <button
+      mat-menu-item
+      type="button"
+      [attr.aria-label]="
+        option.label + (editorLayout.mode() === option.value ? ', selected' : '')
+      "
+      (click)="editorLayout.setMode(option.value)"
+    >
+      <span class="profile-layout-check" aria-hidden="true">
+        {{ editorLayout.mode() === option.value ? '✓' : '' }}
+      </span>
+      <span class="profile-layout-option">
+        <span>{{ option.label }}</span>
+        <small>{{ option.description }}</small>
+      </span>
+    </button>
+  }
+  <div class="profile-menu-divider" role="separator"></div>
   <button mat-menu-item type="button" (click)="logout()">Sign out</button>
 </mat-menu>

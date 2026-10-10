@@ -1,4 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
+import { signal } from '@angular/core';
 import { CdkDrag, CdkDragHandle, CdkDropList, type CdkDragDrop } from '@angular/cdk/drag-drop';
 import { By } from '@angular/platform-browser';
 import { TestBed } from '@angular/core/testing';
@@ -6,6 +7,7 @@ import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthService } from '../../../core/auth';
 import { RuntimeConfigService } from '../../../core/config';
+import { StoryEditorLayoutService } from '../../../shared/story-editor-layout.service';
 import {
   KanbanApiService,
   KanbanFilterPresetsService,
@@ -27,8 +29,10 @@ describe('KanbanBoard', () => {
   const deleteAttachment = vi.fn();
   const loadPresets = vi.fn();
   const savePresets = vi.fn();
+  const fullscreenPreference = signal(false);
 
   beforeEach(async () => {
+    fullscreenPreference.set(false);
     load.mockReset();
     moveUserStories.mockReset();
     createUserStories.mockReset();
@@ -91,6 +95,10 @@ describe('KanbanBoard', () => {
         {
           provide: RuntimeConfigService,
           useValue: { snapshot: () => ({ legacyUrl: 'https://legacy.example.test/' }) },
+        },
+        {
+          provide: StoryEditorLayoutService,
+          useValue: { fullscreen: fullscreenPreference.asReadonly() },
         },
       ],
     }).compileComponents();
@@ -235,6 +243,51 @@ describe('KanbanBoard', () => {
     expect(host.ownerDocument.activeElement).toBe(
       host.querySelector<HTMLButtonElement>('[data-story-details-trigger="101"]'),
     );
+  });
+
+  it('switches between side and fullscreen without losing unsaved edits', async () => {
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', project());
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    host.querySelector<HTMLButtonElement>('.story-subject')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const aside = host.querySelector<HTMLElement>('.story-drawer')!;
+    const title = aside.querySelector<HTMLInputElement>('input[type="text"]')!;
+    setControlValue(title, 'Unsaved new title', 'input');
+    fixture.detectChanges();
+
+    const resize = aside.querySelector<HTMLButtonElement>('.drawer-resize')!;
+    expect(aside.classList.contains('story-drawer-fullscreen')).toBe(false);
+    resize.click();
+    fixture.detectChanges();
+
+    expect(aside.classList.contains('story-drawer-fullscreen')).toBe(true);
+    expect(aside.querySelector('input[type="text"]')).toBe(title);
+    expect(title.value).toBe('Unsaved new title');
+    expect(host.querySelector('.story-drawer-backdrop')?.classList
+      .contains('story-editor-fullscreen')).toBe(true);
+
+    resize.click();
+    fixture.detectChanges();
+    expect(aside.classList.contains('story-drawer-fullscreen')).toBe(false);
+    expect(title.value).toBe('Unsaved new title');
+
+    host.querySelector<HTMLButtonElement>('.drawer-close')!.click();
+    fixture.detectChanges();
+    fullscreenPreference.set(true);
+    fixture.detectChanges();
+    host.querySelector<HTMLButtonElement>('.story-subject')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(host.querySelector('.story-drawer-fullscreen')).toBeTruthy();
   });
 
   it('saves story edits from the modern drawer without an external editor', async () => {

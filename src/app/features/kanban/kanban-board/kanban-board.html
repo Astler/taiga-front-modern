@@ -606,6 +606,7 @@
   @if (store.selectedStory(); as detail) {
     <div
       class="story-drawer-backdrop"
+      [class.story-editor-fullscreen]="editorFullscreen()"
       role="presentation"
       tabindex="-1"
       (click)="closeStoryDetails()"
@@ -613,6 +614,7 @@
     >
       <aside
         class="story-drawer"
+        [class.story-drawer-fullscreen]="editorFullscreen()"
         role="dialog"
         aria-modal="true"
         [attr.aria-labelledby]="'story-detail-' + detail.id"
@@ -631,15 +633,41 @@
               {{ storyDraft()?.subject || detail.subject }}
             </h2>
           </div>
-          <button
-            class="drawer-close"
-            type="button"
-            autofocus
-            aria-label="Close story details"
-            (click)="closeStoryDetails()"
-          >
-            ×
-          </button>
+          <div class="story-drawer-header-actions">
+            <button
+              class="drawer-resize"
+              type="button"
+              [attr.aria-label]="
+                editorFullscreen() ? 'Use side panel for this story' : 'Expand story editor'
+              "
+              [attr.aria-pressed]="editorFullscreen()"
+              [matTooltip]="
+                editorFullscreen()
+                  ? 'Side panel for this story'
+                  : 'Fullscreen for this story'
+              "
+              (click)="toggleEditorFullscreen()"
+            >
+              @if (editorFullscreen()) {
+                <svg aria-hidden="true" viewBox="0 0 24 24">
+                  <path d="M9 3v6H3m0 0 7-7M15 21v-6h6m0 0-7 7" />
+                </svg>
+              } @else {
+                <svg aria-hidden="true" viewBox="0 0 24 24">
+                  <path d="M8 3H3v5m0-5 7 7m6 11h5v-5m0 5-7-7" />
+                </svg>
+              }
+            </button>
+            <button
+              class="drawer-close"
+              type="button"
+              autofocus
+              aria-label="Close story details"
+              (click)="closeStoryDetails()"
+            >
+              ×
+            </button>
+          </div>
         </header>
 
         @if (store.selectedStoryStatus() === 'loading') {

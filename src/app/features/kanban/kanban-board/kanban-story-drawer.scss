@@ -569,6 +569,94 @@
   font: var(--mat-sys-body-small);
 }
 
+
+/* Fullscreen uses the same editor instance, preserving draft state and uploads. */
+.story-editor-fullscreen {
+  justify-content: center;
+  background: var(--mat-sys-surface-container-low);
+  backdrop-filter: none;
+}
+
+.story-drawer-fullscreen {
+  width: 100%;
+  max-width: none;
+  border-inline-start: 0;
+  box-shadow: none;
+  animation: none;
+}
+
+.story-drawer-fullscreen .story-drawer-header,
+.story-drawer-fullscreen .story-drawer-footer {
+  padding-inline: max(1.25rem, calc((100vw - 70rem) / 2));
+}
+
+.story-drawer-fullscreen .story-drawer-content {
+  width: 100%;
+  max-width: 70rem;
+  margin-inline: auto;
+  padding: clamp(1rem, 2vw, 1.75rem);
+}
+
+.story-drawer-fullscreen .editor-field-wide textarea {
+  min-height: 13rem;
+}
+
+.story-drawer-header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.drawer-resize {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--mat-sys-on-surface-variant);
+  cursor: pointer;
+}
+
+.drawer-resize svg {
+  width: 1.3rem;
+  height: 1.3rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.drawer-resize:hover,
+.drawer-resize:focus-visible {
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface);
+}
+
+.drawer-resize:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 1px;
+}
+
+@media (max-width: 599px) {
+  .story-drawer-header {
+    gap: 0.5rem;
+    padding: 0.9rem;
+  }
+
+  .story-drawer-title h2 {
+    font: var(--mat-sys-title-large);
+    font-weight: 680;
+  }
+
+  .story-drawer-fullscreen .story-drawer-content {
+    padding: 1rem 0.85rem;
+  }
+}
+
 @keyframes drawer-in {
   from {
     transform: translateX(2rem);

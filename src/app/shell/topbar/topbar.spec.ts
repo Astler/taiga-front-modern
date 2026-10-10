@@ -1,4 +1,8 @@
 import { signal } from '@angular/core';
+import {
+  StoryEditorLayoutService,
+  type StoryEditorLayoutMode,
+} from '../../shared/story-editor-layout.service';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { of } from 'rxjs';
@@ -14,7 +18,21 @@ import { Topbar } from './topbar';
 import { resolveShellRoute } from '../app-shell/shell-route-context';
 
 describe('Topbar', () => {
-  beforeEach(resetCompactMode);
+  const layoutMode = signal<StoryEditorLayoutMode>('auto');
+  const selectLayout = vi.fn((mode: StoryEditorLayoutMode) => layoutMode.set(mode));
+
+  beforeEach(() => {
+    resetCompactMode();
+    layoutMode.set('auto');
+    selectLayout.mockClear();
+    TestBed.overrideProvider(StoryEditorLayoutService, {
+      useValue: {
+        mode: layoutMode.asReadonly(),
+        syncState: signal('synced'),
+        setMode: selectLayout,
+      },
+    });
+  });
   afterEach(resetCompactMode);
 
   it('renders one compact search prompt and the unread notification count', async () => {
@@ -151,6 +169,47 @@ describe('Topbar', () => {
     expect(host.querySelector('.account-location')).toBeNull();
     expect(host.querySelector('pf-project-switcher')).toBeTruthy();
     expect(host.querySelector('.global-search')).toBeTruthy();
+  });
+
+  it('allows a Taiga profile to select its persistent story editor layout', async () => {
+    TestBed.configureTestingModule({
+      imports: [Topbar],
+      providers: [
+        { provide: Router, useValue: { navigate: vi.fn(), url: '/dashboard' } },
+        {
+          provide: ShellProjectContext,
+          useValue: {
+            projects: signal([project]),
+            pinnedProjects: signal([project]),
+            selectedProject: signal(project),
+            selectProject: vi.fn(),
+            togglePin: vi.fn(),
+          },
+        },
+        { provide: AuthService, useValue: {
+          user: signal({ id: 7, full_name_display: 'Ada Lovelace', username: 'ada' }),
+          logout: vi.fn(),
+        } },
+        { provide: TopbarNotificationsService, useValue: notificationService() },
+        { provide: TopbarSearchService, useValue: searchService() },
+      ],
+    });
+
+    const fixture = TestBed.createComponent(Topbar);
+    fixture.componentRef.setInput('navigationExpanded', true);
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector<HTMLButtonElement>('.profile-button')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const fullscreen = document.querySelector<HTMLButtonElement>(
+      '[aria-label="Fullscreen"]',
+    )!;
+    expect(fullscreen).toBeTruthy();
+    fullscreen.click();
+    fixture.detectChanges();
+    expect(selectLayout).toHaveBeenCalledWith('fullscreen');
+    expect(layoutMode()).toBe('fullscreen');
   });
 
   it.each([

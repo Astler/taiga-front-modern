@@ -19,6 +19,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../core/auth';
 import { CompactKanbanToolbarService } from '../../../shared/compact-kanban-toolbar.service';
+import { StoryEditorLayoutService } from '../../../shared/story-editor-layout.service';
 import type { TaigaId } from '../../../shared/models';
 import {
   KanbanStore,
@@ -115,6 +116,11 @@ export class KanbanBoard {
   private readonly auth = inject(AuthService);
   private readonly presetApi = inject(KanbanFilterPresetsService);
   protected readonly compactToolbar = inject(CompactKanbanToolbarService);
+  protected readonly editorLayout = inject(StoryEditorLayoutService);
+  private readonly editorLayoutOverride = signal<boolean | null>(null);
+  protected readonly editorFullscreen = computed(
+    () => this.editorLayoutOverride() ?? this.editorLayout.fullscreen(),
+  );
   private readonly destroyRef = inject(DestroyRef);
   protected readonly query = signal('');
   protected readonly sortMode = signal<KanbanSortMode>('manual');
@@ -853,12 +859,20 @@ export class KanbanBoard {
   }
 
   protected openStoryDetails(story: KanbanUserStory): void {
+    // Each new story uses the profile preference. Manual expansion stays local to the open card.
+    this.editorLayoutOverride.set(null);
     this.storyDraft.set(storyDraftFrom(story));
     this.storyDraftDirty.set(false);
     this.store.openStoryDetails(story.id);
   }
 
+  protected toggleEditorFullscreen(): void {
+    // Only switch layout, never recreate the form or discard its unsaved draft.
+    this.editorLayoutOverride.set(!this.editorFullscreen());
+  }
+
   protected closeStoryDetails(): void {
+    this.editorLayoutOverride.set(null);
     const storyId = this.store.selectedStory()?.id;
     this.store.closeStoryDetails();
     this.attachmentDragActive.set(false);
