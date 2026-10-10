@@ -1,5 +1,5 @@
 /* Global CDK overlay styling for topbar search and notifications.
-   Included as an explicit Angular build stylesheet, after base design tokens. */
+   Loaded by index.html as a static stylesheet to avoid CSS bundling issues. */
 
 .search-panel {
   width: 100%;
