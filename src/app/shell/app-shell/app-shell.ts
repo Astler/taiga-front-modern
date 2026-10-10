@@ -17,7 +17,6 @@ import { AuthService } from '../../core/auth';
 import { ShellProjectContext } from '../project-context/shell-project-context';
 import { Sidebar } from '../sidebar/sidebar';
 import { Topbar } from '../topbar/topbar';
-import { installCompactLayoutDiagnostics } from './compact-layout-diagnostics';
 
 const COMPACT_VIEWPORT_QUERY = '(max-width: 839px)';
 
@@ -41,16 +40,6 @@ export class AppShell {
   private readonly title = inject(Title);
 
   constructor() {
-    // Opt-in visual geometry probe for mobile browsers without DevTools.
-    // No diagnostics run unless ?layoutDebug=1 is present in the address bar.
-    if (
-      typeof window !== 'undefined' &&
-      new URLSearchParams(window.location.search).get('layoutDebug') === '1'
-    ) {
-      const detach = installCompactLayoutDiagnostics();
-      this.destroyRef.onDestroy(detach);
-    }
-
     effect(() => {
       const status = this.auth.status();
       if (status === 'anonymous' || status === 'restore-error') {

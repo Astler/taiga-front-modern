@@ -64,7 +64,6 @@
 }
 
 :host-context(html[data-ui-density='compact']) .route-content {
-  position: relative;
   height: auto;
   min-height: 0;
   flex: 1 1 0;

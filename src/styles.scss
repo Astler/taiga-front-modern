@@ -54,6 +54,16 @@ html[data-ui-density='compact'] {
   --app-topbar-height-mobile: 2.5rem;
 }
 
+/* The compact toolbar is 40px tall, but its Angular component host can still
+   occupy the normal 60px flex row. Constrain the actual flex item, not only
+   the inner mat-toolbar. This global rule intentionally avoids view scoping. */
+html[data-ui-density='compact'] .shell-main > pf-topbar {
+  flex: 0 0 var(--app-topbar-height);
+  height: var(--app-topbar-height);
+  min-height: 0;
+  max-height: var(--app-topbar-height);
+}
+
 *,
 *::before,
 *::after {
