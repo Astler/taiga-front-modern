@@ -19,10 +19,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import type { ShellRouteContext } from '../app-shell/shell-route-context';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import {
-  StoryEditorLayoutService,
-  type StoryEditorLayoutMode,
-} from '../../shared/story-editor-layout.service';
 import { AuthService } from '../../core/auth';
 import {
   CompactKanbanToolbarService,
@@ -31,6 +27,7 @@ import {
 import { ShellProject } from '../project-context/mock-projects';
 import { ShellProjectContext } from '../project-context/shell-project-context';
 import { ProjectSwitcher } from '../project-switcher/project-switcher';
+import { ProfilePanel } from '../profile-panel/profile-panel';
 import { TopbarNotification, TopbarNotificationsService } from './topbar-notifications.service';
 import {
   EMPTY_TOPBAR_SEARCH_RESULTS,
@@ -47,6 +44,7 @@ import {
     MatTooltipModule,
     OverlayModule,
     ProjectSwitcher,
+    ProfilePanel,
   ],
   selector: 'pf-topbar',
   styleUrl: './topbar.scss',
@@ -69,16 +67,6 @@ export class Topbar {
       this.projectContext.selectedProject();
   });
   protected readonly auth = inject(AuthService);
-  protected readonly editorLayout = inject(StoryEditorLayoutService);
-  protected readonly editorLayoutOptions: readonly {
-    readonly value: StoryEditorLayoutMode;
-    readonly label: string;
-    readonly description: string;
-  }[] = [
-    { value: 'auto', label: 'Auto', description: 'Fullscreen on smaller screens' },
-    { value: 'side', label: 'Side panel', description: 'Always docked on the right' },
-    { value: 'fullscreen', label: 'Fullscreen', description: 'Always full screen' },
-  ];
   protected readonly profileName = computed(
     () => this.auth.user()?.full_name_display || this.auth.user()?.username || 'Taiga user',
   );
@@ -263,27 +251,6 @@ export class Topbar {
       this.closeProfilePanel();
       queueMicrotask(() => this.document.querySelector<HTMLButtonElement>('.profile-button')?.focus());
     }
-  }
-
-  protected handleProfileLayoutKeydown(event: KeyboardEvent): void {
-    const delta =
-      event.key === 'ArrowDown' || event.key === 'ArrowRight' ? 1 :
-      event.key === 'ArrowUp' || event.key === 'ArrowLeft' ? -1 : 0;
-    if (!delta) return;
-
-    event.preventDefault();
-    const currentIndex = this.editorLayoutOptions.findIndex(
-      (option) => option.value === this.editorLayout.mode(),
-    );
-    const nextIndex = (currentIndex + delta + this.editorLayoutOptions.length) %
-      this.editorLayoutOptions.length;
-    const mode = this.editorLayoutOptions[nextIndex]!.value;
-    this.editorLayout.setMode(mode);
-    queueMicrotask(() =>
-      this.document
-        .querySelector<HTMLButtonElement>(`.profile-panel .profile-layout-card[data-layout="${mode}"]`)
-        ?.focus(),
-    );
   }
 
   protected refreshNotifications(): void {

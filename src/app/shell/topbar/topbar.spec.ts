@@ -209,6 +209,8 @@ describe('Topbar', () => {
     const panel = document.querySelector<HTMLElement>('#profile-panel')!;
     expect(panel).toBeTruthy();
     expect(panel.getAttribute('role')).toBe('dialog');
+    expect(panel.closest('pf-profile-panel')).toBeTruthy();
+    expect(getComputedStyle(panel).display).toBe('block');
     expect(panel.querySelector('.profile-panel-person')?.textContent).toContain('Ada Lovelace');
     expect(panel.querySelector('.profile-panel-section-heading')?.textContent).toContain(
       'Story editor layout',
@@ -216,6 +218,7 @@ describe('Topbar', () => {
     expect(panel.querySelector('.mat-mdc-menu-item')).toBeNull();
 
     const choices = [...panel.querySelectorAll<HTMLButtonElement>('.profile-layout-card')];
+    expect(getComputedStyle(choices[0]!).display).toBe('grid');
     expect(choices.map((button) => button.dataset['layout'])).toEqual([
       'auto', 'side', 'fullscreen',
     ]);

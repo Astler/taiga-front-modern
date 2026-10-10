@@ -1,0 +1,94 @@
+<section
+  id="profile-panel"
+  class="profile-panel"
+  role="dialog"
+  aria-label="Profile settings"
+>
+  <header class="profile-panel-header">
+    <span class="profile-panel-avatar" aria-hidden="true">{{ initials() }}</span>
+    <span class="profile-panel-person">
+      <strong>{{ name() }}</strong>
+      <small>{{ username() }}</small>
+    </span>
+    <span class="profile-panel-identity-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 3.5 14.3 9.7 21 12l-6.7 2.3L12 21l-2.3-6.7L3 12l6.7-2.3L12 3.5Z" />
+      </svg>
+    </span>
+  </header>
+
+  <div class="profile-panel-body">
+    <div class="profile-panel-section-heading">
+      <span class="profile-panel-section-kicker">PERSONAL PREFERENCES</span>
+      <strong>Story editor layout</strong>
+      <small class="profile-panel-sync" aria-live="polite">
+        @switch (editorLayout.syncState()) {
+          @case ('synced') { Saved to your Taiga account }
+          @case ('saving') { Syncing to Taiga… }
+          @case ('loading') { Loading preference… }
+          @default { Saved on this device }
+        }
+      </small>
+    </div>
+
+    <div
+      class="profile-layout-list"
+      role="radiogroup"
+      aria-label="Story editor layout"
+      (keydown)="handleLayoutKeydown($event)"
+    >
+      @for (option of editorLayoutOptions; track option.value) {
+        <button
+          type="button"
+          class="profile-layout-card"
+          [class.profile-layout-card-active]="editorLayout.mode() === option.value"
+          [attr.data-layout]="option.value"
+          [attr.aria-label]="option.label"
+          [attr.aria-checked]="editorLayout.mode() === option.value"
+          [attr.tabindex]="editorLayout.mode() === option.value ? 0 : -1"
+          role="radio"
+          (click)="editorLayout.setMode(option.value)"
+        >
+          <span class="profile-layout-card-icon" aria-hidden="true">
+            @switch (option.value) {
+              @case ('auto') {
+                <svg viewBox="0 0 24 24">
+                  <path d="M4 6.5h16v11H4zM10 20h4M12 17.5V20m-5-8 3 3 7-7" />
+                </svg>
+              }
+              @case ('side') {
+                <svg viewBox="0 0 24 24">
+                  <rect x="3" y="4" width="18" height="16" rx="2" />
+                  <path d="M14 4v16" />
+                </svg>
+              }
+              @case ('fullscreen') {
+                <svg viewBox="0 0 24 24">
+                  <path d="M8 4H4v4m12-4h4v4M8 20H4v-4m12 4h4v-4" />
+                </svg>
+              }
+            }
+          </span>
+          <span class="profile-layout-card-copy">
+            <strong>{{ option.label }}</strong>
+            <small>{{ option.description }}</small>
+          </span>
+          <span class="profile-layout-card-check" aria-hidden="true">
+            @if (editorLayout.mode() === option.value) {
+              <svg viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7" /></svg>
+            }
+          </span>
+        </button>
+      }
+    </div>
+  </div>
+
+  <footer class="profile-panel-footer">
+    <button class="profile-logout" type="button" (click)="logoutRequested.emit()">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M10 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5M14 16l4-4-4-4m4 4H9" />
+      </svg>
+      Sign out
+    </button>
+  </footer>
+</section>

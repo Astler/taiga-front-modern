@@ -1,0 +1,255 @@
+:host {
+  display: block;
+  width: min(22rem, calc(100vw - 1rem));
+  max-width: calc(100vw - 1rem);
+}
+
+/* Component-scoped M3 profile panel styles.
+   Loaded with pf-profile-panel even inside a CDK overlay. */
+.profile-panel {
+  width: min(22rem, calc(100vw - 1rem));
+  max-height: calc(100dvh - 1rem);
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-xl);
+  background: var(--mat-sys-surface-container-high);
+  box-shadow: var(--mat-sys-level4), 0 20px 52px rgb(0 0 0 / 27%);
+  color: var(--mat-sys-on-surface);
+}
+
+.profile-panel-header {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 1rem;
+  border-bottom: 1px solid var(--app-border-color);
+  background: linear-gradient(120deg,
+    color-mix(in srgb, var(--mat-sys-primary-container) 32%, transparent),
+    color-mix(in srgb, var(--mat-sys-surface-container-high) 96%, transparent));
+}
+
+.profile-panel-avatar {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 2.75rem;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--mat-sys-primary) 40%, transparent);
+  border-radius: 50%;
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+  font: var(--mat-sys-title-small);
+  font-weight: 750;
+}
+
+.profile-panel-person {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 0.15rem;
+}
+
+.profile-panel-person strong {
+  overflow: hidden;
+  font: var(--mat-sys-title-small);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-panel-person small {
+  overflow: hidden;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-panel-identity-mark {
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--mat-sys-primary) 14%, transparent);
+  color: var(--mat-sys-primary);
+}
+
+.profile-panel-identity-mark svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.profile-panel-body {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.profile-panel-section-heading {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.profile-panel-section-kicker {
+  color: var(--mat-sys-primary);
+  font: var(--mat-sys-label-small);
+  font-weight: 700;
+  letter-spacing: 0.07em;
+}
+
+.profile-panel-section-heading > strong {
+  font: var(--mat-sys-title-medium);
+  font-weight: 700;
+}
+
+.profile-panel-sync {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+  line-height: 1.4;
+}
+
+.profile-layout-list {
+  display: grid;
+  min-width: 0;
+  gap: 0.5rem;
+}
+
+.profile-layout-card {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  min-height: 4.25rem;
+  grid-template-columns: 2.25rem minmax(0, 1fr) 1.5rem;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-lg);
+  background: var(--mat-sys-surface-container);
+  color: inherit;
+  cursor: pointer;
+  padding: 0.65rem 0.7rem;
+  text-align: start;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.profile-layout-card:hover {
+  border-color: color-mix(in srgb, var(--mat-sys-primary) 40%, var(--app-border-color));
+  background: var(--mat-sys-surface-container-highest);
+}
+
+.profile-layout-card:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
+}
+
+.profile-layout-card-active {
+  border-color: color-mix(in srgb, var(--mat-sys-primary) 45%, var(--app-border-color));
+  background: color-mix(in srgb, var(--mat-sys-primary-container) 43%, var(--mat-sys-surface-container));
+}
+
+.profile-layout-card-active:hover {
+  background: color-mix(in srgb, var(--mat-sys-primary-container) 57%, var(--mat-sys-surface-container-high));
+}
+
+.profile-layout-card-icon {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border-radius: 0.7rem;
+  background: color-mix(in srgb, var(--mat-sys-primary) 13%, transparent);
+  color: var(--mat-sys-primary);
+}
+
+.profile-layout-card-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.profile-layout-card-copy strong {
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-label-large);
+  font-weight: 700;
+}
+
+.profile-layout-card-copy small {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.profile-layout-card-check {
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  color: transparent;
+}
+
+.profile-layout-card-active .profile-layout-card-check {
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+}
+
+.profile-layout-card-icon svg,
+.profile-layout-card-check svg,
+.profile-logout svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.profile-panel-footer {
+  padding: 0.65rem;
+  border-top: 1px solid var(--app-border-color);
+}
+
+.profile-logout {
+  display: flex;
+  width: 100%;
+  min-height: 2.6rem;
+  align-items: center;
+  gap: 0.75rem;
+  border: 0;
+  border-radius: var(--app-radius-md);
+  background: transparent;
+  color: var(--mat-sys-on-surface-variant);
+  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+  text-align: start;
+  font: var(--mat-sys-label-large);
+  font-weight: 600;
+}
+
+.profile-logout:hover,
+.profile-logout:focus-visible {
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface);
+}
+
+@media (max-width: 380px) {
+  .profile-panel-body {
+    padding: 0.75rem;
+  }
+
+  .profile-layout-card {
+    gap: 0.5rem;
+    padding-inline: 0.55rem;
+  }
+}
