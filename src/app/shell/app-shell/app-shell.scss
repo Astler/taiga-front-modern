@@ -50,15 +50,23 @@
   outline: none;
 }
 
+/* Let the topbar occupy its own fixed-height row. The routed view gets
+   exactly the remaining space, without an implicit grid track or overflow gap. */
 :host-context(html[data-ui-density='compact']) .shell-main {
-  display: grid;
-  grid-template-rows: var(--app-topbar-height) minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
+}
+
+:host-context(html[data-ui-density='compact']) pf-topbar {
+  flex: 0 0 var(--app-topbar-height);
+  min-height: 0;
 }
 
 :host-context(html[data-ui-density='compact']) .route-content {
   height: auto;
   min-height: 0;
+  flex: 1 1 0;
   overflow: hidden;
 }
 
