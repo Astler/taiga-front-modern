@@ -1,5 +1,5 @@
-/* CDK search and notification panels live outside the topbar layout.
-   Keep their styles global to stay below Angular's component CSS budget. */
+/* Global CDK overlay styling for topbar search and notifications.
+   Included as an explicit Angular build stylesheet, after base design tokens. */
 
 .search-panel {
   width: 100%;
