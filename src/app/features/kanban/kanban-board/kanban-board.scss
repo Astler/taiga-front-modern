@@ -9,7 +9,6 @@
 }
 
 :host-context(html[data-ui-density='compact']) .board-scroll,
-:host-context(html[data-ui-density='compact']) .story-card,
 :host-context(html[data-ui-density='compact']) .empty-column,
 :host-context(html[data-ui-density='compact']) .quick-create {
   border-radius: 0 !important;
