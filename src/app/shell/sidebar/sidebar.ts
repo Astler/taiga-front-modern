@@ -28,6 +28,11 @@ export class Sidebar {
     const projectSlug = this.projectContext.selectedProject().slug;
     return [
       {
+        iconPath: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',
+        label: 'Projects',
+        route: '/projects',
+      },
+      {
         iconPath: 'M4 13h6V4H4v9Zm0 7h6v-4H4v4Zm10 0h6v-9h-6v9Zm0-16v4h6V4h-6Z',
         label: 'Overview',
         route: '/dashboard',

@@ -10,6 +10,14 @@ describe('app routes', () => {
     expect(shellRoute?.canActivateChild).toContain(authRequiredGuard);
   });
 
+  it('exposes the all-projects directory behind authentication', () => {
+    const shell = routes.find((route) => route.path === '');
+    const projects = shell?.children?.find((route) => route.path === 'projects');
+
+    expect(shell?.canActivateChild).toContain(authRequiredGuard);
+    expect(projects?.loadComponent).toBeDefined();
+  });
+
   it('exposes both selected-project and deep-linked project workspaces', () => {
     const children = routes.find((route) => route.path === '')?.children ?? [];
 

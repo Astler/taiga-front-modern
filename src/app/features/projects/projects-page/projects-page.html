@@ -1,0 +1,185 @@
+<section class="projects-page" aria-labelledby="projects-title">
+  <header class="projects-header">
+    <div>
+      <span class="eyebrow">Workspace directory</span>
+      <h1 id="projects-title">Projects</h1>
+      <p>All projects you belong to, in one place.</p>
+    </div>
+    <button
+      mat-button
+      type="button"
+      class="refresh-button"
+      [disabled]="context.loading()"
+      (click)="refresh()"
+    >
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" />
+      </svg>
+      Refresh
+    </button>
+  </header>
+
+  <div class="projects-summary" aria-label="Project counts">
+    <span><strong>{{ allProjects().length }}</strong> projects</span>
+    <span><strong>{{ pinnedCount() }}</strong> pinned</span>
+  </div>
+
+  <div class="projects-controls">
+    <label class="project-search">
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="6.5" />
+        <path d="m16 16 4 4" />
+      </svg>
+      <input
+        type="search"
+        aria-label="Search projects"
+        placeholder="Search projects"
+        [value]="search()"
+        (input)="updateSearch($event)"
+      />
+    </label>
+
+    <div class="project-scopes" role="group" aria-label="Project view">
+      <button
+        type="button"
+        [class.scope-active]="scope() === 'all'"
+        [attr.aria-pressed]="scope() === 'all'"
+        (click)="setScope('all')"
+      >
+        All projects
+      </button>
+      <button
+        type="button"
+        [class.scope-active]="scope() === 'pinned'"
+        [attr.aria-pressed]="scope() === 'pinned'"
+        (click)="setScope('pinned')"
+      >
+        Pinned
+      </button>
+    </div>
+
+    <label class="sort-control">
+      <span>Sort</span>
+      <select aria-label="Sort projects" [value]="sort()" (change)="updateSort($event)">
+        <option value="user-order">Taiga order</option>
+        <option value="name">Name A–Z</option>
+      </select>
+    </label>
+  </div>
+
+  @if (context.loading()) {
+    <mat-progress-bar class="page-progress" mode="indeterminate" />
+  }
+
+  @if (listError() && !context.store.projectsLoaded()) {
+    <section class="page-state" role="alert">
+      <h2>Projects unavailable</h2>
+      <p>Taiga could not load your projects. Check the connection and try again.</p>
+      <button mat-flat-button type="button" (click)="refresh()">Try again</button>
+    </section>
+  } @else if (!context.store.projectsLoaded() && context.loading()) {
+    <div class="page-state" role="status">
+      <h2>Loading projects…</h2>
+    </div>
+  } @else if (context.store.projectsLoaded() && !allProjects().length) {
+    <section class="page-state">
+      <h2>No projects yet</h2>
+      <p>Projects you join will appear here automatically.</p>
+    </section>
+  } @else if (!filtered().length) {
+    <section class="page-state">
+      <h2>No matching projects</h2>
+      <p>Try another search or include unpinned projects.</p>
+      <button mat-button type="button" (click)="clearFilters()">Clear filters</button>
+    </section>
+  } @else {
+    @for (group of groups(); track group.key) {
+      <section class="projects-group" [attr.aria-labelledby]="'group-' + group.key">
+        <header class="group-heading">
+          <h2 [id]="'group-' + group.key">{{ group.title }}</h2>
+          <span>{{ group.items.length }}</span>
+        </header>
+        <div class="projects-grid">
+          @for (project of group.items; track project.id) {
+            <article
+              class="project-card"
+              [class.project-card-selected]="project.id === context.selectedProject().id"
+            >
+              <header class="card-heading">
+                <span
+                  class="project-mark"
+                  aria-hidden="true"
+                  [style.--project-accent]="project.accent"
+                >
+                  @if (project.logoUrl) {
+                    <img [src]="project.logoUrl" alt="" />
+                  } @else {
+                    {{ project.code }}
+                  }
+                </span>
+                <span class="project-identity">
+                  <a
+                    class="project-name"
+                    [routerLink]="projectRoute(project)"
+                    [attr.data-testid]="'open-project-' + project.slug"
+                  >{{ project.name }}</a>
+                  <span class="project-slug">{{ project.slug }}</span>
+                </span>
+                <button
+                  type="button"
+                  class="pin-button"
+                  [class.pin-button-active]="project.isPinned"
+                  [attr.aria-pressed]="project.isPinned"
+                  [attr.aria-label]="(project.isPinned ? 'Unpin ' : 'Pin ') + project.name"
+                  [attr.data-testid]="'pin-project-' + project.slug"
+                  (click)="togglePin(project)"
+                >
+                  <svg aria-hidden="true" viewBox="0 0 24 24">
+                    <path
+                      d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"
+                    />
+                  </svg>
+                </button>
+              </header>
+
+              <p class="project-description">{{ project.description }}</p>
+
+              <div class="project-facts">
+                @if (project.details?.is_private) {
+                  <span>Private</span>
+                } @else {
+                  <span>Public</span>
+                }
+                @if (project.details?.i_am_owner) {
+                  <span>Owner</span>
+                } @else if (project.details?.i_am_admin) {
+                  <span>Admin</span>
+                }
+                @if (project.details?.archived_code) {
+                  <span class="archived-label">Archived</span>
+                }
+                @for (module of moduleLabels(project); track module) {
+                  <span>{{ module }}</span>
+                }
+              </div>
+
+              <footer class="card-footer">
+                @if (project.id === context.selectedProject().id) {
+                  <span class="current-project">Current project</span>
+                } @else {
+                  <span></span>
+                }
+                <a [routerLink]="projectRoute(project)" class="open-link">
+                  Open workspace
+                  <svg aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
+                </a>
+              </footer>
+            </article>
+          }
+        </div>
+      </section>
+    }
+  }
+</section>

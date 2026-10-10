@@ -17,6 +17,14 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       {
+        path: 'projects',
+        loadComponent: () =>
+          import('./features/projects/projects-page/projects-page').then(
+            ({ ProjectsPage }) => ProjectsPage,
+          ),
+        data: { title: 'Projects' },
+      },
+      {
         path: 'dashboard',
         loadComponent: () =>
           import('./shell/dashboard-placeholder/dashboard-placeholder').then(
