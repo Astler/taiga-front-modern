@@ -48,7 +48,7 @@ describe('ProjectsPage', () => {
   const togglePin = vi.fn();
   const reload = vi.fn();
 
-  beforeEach(() => {
+  beforeEach(async () => {
     shown.set(projects);
     raw.set(details);
     loading.set(false);
@@ -58,7 +58,7 @@ describe('ProjectsPage', () => {
     reload.mockReset();
     reload.mockResolvedValue(details);
 
-    TestBed.configureTestingModule({
+    await TestBed.configureTestingModule({
       imports: [ProjectsPage],
       providers: [
         provideRouter([]),
@@ -79,7 +79,7 @@ describe('ProjectsPage', () => {
           },
         },
       ],
-    });
+    }).compileComponents();
   });
 
   it('lists real projects and opens their supported workspaces', () => {
