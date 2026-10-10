@@ -1,0 +1,200 @@
+/* Profile menu is rendered in the CDK overlay container, outside pf-topbar.
+   Keep its rules global so density and Angular view encapsulation do not affect layout. */
+.profile-menu.mat-mdc-menu-panel {
+  width: min(18.5rem, calc(100vw - 1rem)) !important;
+  min-width: 0 !important;
+  max-width: calc(100vw - 1rem) !important;
+  overflow: hidden;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-lg);
+  background: var(--mat-sys-surface-container-high);
+  box-shadow: var(--mat-sys-level3);
+}
+
+.profile-menu .mat-mdc-menu-content {
+  padding: 0.375rem !important;
+}
+
+.profile-menu .profile-summary {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+  border-bottom: 1px solid var(--app-border-color);
+  padding: 0.625rem 0.75rem 0.875rem;
+}
+
+.profile-menu .profile-summary > span:last-child {
+  display: grid;
+  min-width: 0;
+  gap: 0.15rem;
+}
+
+.profile-menu .profile-summary strong {
+  overflow: hidden;
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-title-small);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-menu .profile-summary small,
+.profile-menu .profile-layout-heading small,
+.profile-menu .profile-layout-option small {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-small);
+}
+
+.profile-menu .profile-avatar.profile-avatar-large {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 2.5rem;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--mat-sys-primary) 42%, transparent);
+  border-radius: 50%;
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+  font: var(--mat-sys-label-large);
+  font-weight: 750;
+}
+
+.profile-menu .profile-layout-heading {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.625rem 0.75rem 0.5rem;
+}
+
+.profile-menu .profile-layout-heading strong {
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-label-large);
+  font-weight: 700;
+}
+
+.profile-menu .profile-layout-heading small {
+  line-height: 1.35;
+}
+
+.profile-menu .profile-layout-item.mat-mdc-menu-item {
+  display: flex;
+  width: 100%;
+  height: auto;
+  min-height: 3.7rem;
+  align-items: center;
+  margin-block: 0.125rem;
+  border-radius: var(--app-radius-md);
+  padding: 0 0.75rem !important;
+  background: transparent;
+  color: var(--mat-sys-on-surface);
+}
+
+.profile-menu .profile-layout-item.mat-mdc-menu-item > .mat-mdc-menu-item-text {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  white-space: normal;
+}
+
+.profile-menu .profile-layout-row {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 0.75rem;
+  padding-block: 0.5rem;
+}
+
+.profile-menu .profile-layout-option {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 auto;
+  gap: 0.125rem;
+  line-height: 1.25;
+}
+
+.profile-menu .profile-layout-name {
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-label-large);
+  font-weight: 650;
+}
+
+.profile-menu .profile-layout-option small {
+  line-height: 1.4;
+  white-space: normal;
+}
+
+.profile-menu .profile-layout-indicator {
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: 0 0 1.5rem;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--mat-sys-on-secondary-container);
+}
+
+.profile-menu .profile-layout-indicator svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.profile-menu .profile-layout-item-active.mat-mdc-menu-item {
+  background: color-mix(in srgb, var(--mat-sys-primary) 14%, var(--mat-sys-surface-container-high));
+}
+
+.profile-menu .profile-layout-item-active .profile-layout-indicator {
+  background: var(--mat-sys-secondary-container);
+}
+
+.profile-menu .profile-layout-item.mat-mdc-menu-item:hover,
+.profile-menu .profile-layout-item.mat-mdc-menu-item:focus-visible {
+  background: var(--mat-sys-surface-container-highest);
+}
+
+.profile-menu .profile-layout-item-active.mat-mdc-menu-item:hover,
+.profile-menu .profile-layout-item-active.mat-mdc-menu-item:focus-visible {
+  background: color-mix(in srgb, var(--mat-sys-primary) 20%, var(--mat-sys-surface-container-highest));
+}
+
+.profile-menu .profile-menu-divider {
+  height: 1px;
+  margin: 0.5rem 0.625rem 0.375rem;
+  background: var(--app-border-color);
+}
+
+.profile-menu .profile-logout.mat-mdc-menu-item {
+  width: 100%;
+  min-height: 2.75rem;
+  border-radius: var(--app-radius-md);
+  padding: 0 0.75rem !important;
+}
+
+.profile-menu .profile-logout.mat-mdc-menu-item > .mat-mdc-menu-item-text {
+  width: 100%;
+}
+
+.profile-menu .profile-logout-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-large);
+  font-weight: 600;
+}
+
+.profile-menu .profile-logout-row svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

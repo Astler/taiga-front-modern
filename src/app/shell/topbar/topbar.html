@@ -546,7 +546,7 @@
   </section>
 </ng-template>
 
-<mat-menu #profileMenu="matMenu" xPosition="before">
+<mat-menu #profileMenu="matMenu" class="profile-menu" xPosition="before">
   <div class="profile-summary">
     <span class="profile-avatar profile-avatar-large">{{ profileInitials() }}</span>
     <span>
@@ -554,9 +554,10 @@
       <small>{{ auth.user()?.username }}</small>
     </span>
   </div>
+
   <div class="profile-layout-heading">
     <strong>Story editor layout</strong>
-    <small>
+    <small class="profile-layout-sync" aria-live="polite">
       @switch (editorLayout.syncState()) {
         @case ('synced') { Saved to your Taiga account }
         @case ('saving') { Syncing to Taiga… }
@@ -565,24 +566,41 @@
       }
     </small>
   </div>
+
   @for (option of editorLayoutOptions; track option.value) {
     <button
       mat-menu-item
+      class="profile-layout-item"
+      [class.profile-layout-item-active]="editorLayout.mode() === option.value"
       type="button"
-      [attr.aria-label]="
-        option.label + (editorLayout.mode() === option.value ? ', selected' : '')
-      "
+      role="menuitemradio"
+      [attr.aria-label]="option.label"
+      [attr.aria-checked]="editorLayout.mode() === option.value"
       (click)="editorLayout.setMode(option.value)"
     >
-      <span class="profile-layout-check" aria-hidden="true">
-        {{ editorLayout.mode() === option.value ? '✓' : '' }}
-      </span>
-      <span class="profile-layout-option">
-        <span>{{ option.label }}</span>
-        <small>{{ option.description }}</small>
+      <span class="profile-layout-row">
+        <span class="profile-layout-option">
+          <strong class="profile-layout-name">{{ option.label }}</strong>
+          <small>{{ option.description }}</small>
+        </span>
+        <span class="profile-layout-indicator" aria-hidden="true">
+          @if (editorLayout.mode() === option.value) {
+            <svg viewBox="0 0 24 24">
+              <path d="m5 12 4.5 4.5L19 7" />
+            </svg>
+          }
+        </span>
       </span>
     </button>
   }
+
   <div class="profile-menu-divider" role="separator"></div>
-  <button mat-menu-item type="button" (click)="logout()">Sign out</button>
+  <button class="profile-logout" mat-menu-item type="button" (click)="logout()">
+    <span class="profile-logout-row">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M10 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5M14 16l4-4-4-4m4 4H9" />
+      </svg>
+      <span>Sign out</span>
+    </span>
+  </button>
 </mat-menu>

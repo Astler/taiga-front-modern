@@ -206,10 +206,35 @@ describe('Topbar', () => {
       '[aria-label="Fullscreen"]',
     )!;
     expect(fullscreen).toBeTruthy();
+
+    const initialChoices = [
+      ...document.querySelectorAll<HTMLButtonElement>('.profile-layout-item'),
+    ];
+    expect(initialChoices.map((choice) => choice.getAttribute('role'))).toEqual([
+      'menuitemradio', 'menuitemradio', 'menuitemradio',
+    ]);
+    expect(initialChoices.map((choice) => choice.getAttribute('aria-checked'))).toEqual([
+      'true', 'false', 'false',
+    ]);
+    expect(initialChoices[0]?.querySelector('.profile-layout-row')).toBeTruthy();
+    expect(initialChoices[0]?.querySelector('.profile-layout-indicator svg')).toBeTruthy();
+    expect(initialChoices[0]?.querySelector('.profile-layout-option')?.textContent).toContain(
+      'Fullscreen on smaller screens',
+    );
+
     fullscreen.click();
     fixture.detectChanges();
     expect(selectLayout).toHaveBeenCalledWith('fullscreen');
     expect(layoutMode()).toBe('fullscreen');
+
+    fixture.nativeElement.querySelector<HTMLButtonElement>('.profile-button')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const selected = document.querySelector<HTMLButtonElement>(
+      '.profile-layout-item[aria-label="Fullscreen"]',
+    );
+    expect(selected?.getAttribute('aria-checked')).toBe('true');
+    expect(selected?.querySelector('.profile-layout-indicator svg')).toBeTruthy();
   });
 
   it.each([
