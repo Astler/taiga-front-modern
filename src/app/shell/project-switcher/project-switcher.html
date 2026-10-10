@@ -92,6 +92,25 @@
   @if (!projects().length) {
     <div class="menu-empty">No projects found</div>
   }
+
+  <div class="menu-all-projects">
+    <button
+      mat-menu-item
+      type="button"
+      data-testid="view-all-projects"
+      (click)="viewAllProjects()"
+    >
+      <span class="all-projects-label">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
+        </svg>
+        View all projects
+      </span>
+    </button>
+  </div>
 </mat-menu>
 
 <ng-template #projectRow let-project>

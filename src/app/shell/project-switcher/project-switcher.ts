@@ -25,6 +25,7 @@ export class ProjectSwitcher {
   readonly selectedProject = input.required<ShellProject>();
   readonly projectSelected = output<ShellProject>();
   readonly pinToggled = output<ShellProject>();
+  readonly viewAllRequested = output<void>();
   protected readonly pinnedProjects = computed(() =>
     this.projects().filter(({ isPinned }) => isPinned),
   );
@@ -38,6 +39,11 @@ export class ProjectSwitcher {
       this.projectSelected.emit(project);
     }
     this.menuTrigger().closeMenu();
+  }
+
+  protected viewAllProjects(): void {
+    this.menuTrigger().closeMenu();
+    this.viewAllRequested.emit();
   }
 
   protected togglePin(event: Event, project: ShellProject): void {

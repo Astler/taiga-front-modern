@@ -166,6 +166,12 @@ export class Topbar {
     }
   }
 
+  protected openProjectsPage(): void {
+    this.closeNotifications();
+    this.closeGlobalSearch();
+    void this.router.navigate(['/projects']);
+  }
+
   protected togglePin(project: ShellProject): void {
     this.projectContext.togglePin(project);
   }

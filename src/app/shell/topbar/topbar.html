@@ -24,6 +24,7 @@
     [selectedProject]="projectContext.selectedProject()"
     (projectSelected)="selectProject($event)"
     (pinToggled)="togglePin($event)"
+    (viewAllRequested)="openProjectsPage()"
   />
 
   @if (projectContext.pinnedProjects().length) {

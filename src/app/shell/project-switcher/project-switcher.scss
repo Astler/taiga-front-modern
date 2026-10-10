@@ -264,3 +264,31 @@
   font: var(--mat-sys-body-medium);
   text-align: center;
 }
+
+.menu-all-projects {
+  margin: 0.375rem 0.5rem 0.25rem;
+  border-top: 1px solid var(--app-border-color);
+  padding-top: 0.375rem;
+}
+
+.menu-all-projects > button {
+  width: 100%;
+  border-radius: var(--app-radius-md);
+}
+
+.all-projects-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  color: var(--mat-sys-primary);
+  font: var(--mat-sys-label-large);
+  font-weight: 700;
+}
+
+.all-projects-label svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+}

@@ -39,6 +39,29 @@ describe('ProjectSwitcher', () => {
     expect(trigger.getAttribute('aria-expanded')).toBe('false');
   });
 
+  it('allows users to open the full projects directory', async () => {
+    const fixture = TestBed.createComponent(ProjectSwitcher);
+    let opened = false;
+
+    fixture.componentRef.setInput('projects', MOCK_SHELL_PROJECTS);
+    fixture.componentRef.setInput('selectedProject', MOCK_SHELL_PROJECTS[0]);
+    fixture.componentInstance.viewAllRequested.subscribe(() => (opened = true));
+    fixture.detectChanges();
+
+    const trigger = fixture.nativeElement.querySelector(
+      '[data-testid="project-switcher-trigger"]',
+    ) as HTMLButtonElement;
+    trigger.click();
+    await fixture.whenStable();
+
+    const openAll = document.querySelector(
+      '[data-testid="view-all-projects"]',
+    ) as HTMLButtonElement;
+    expect(openAll).toBeTruthy();
+    openAll.click();
+    expect(opened).toBe(true);
+  });
+
   it('exposes pin actions as keyboard-operable menu items', async () => {
     const fixture = TestBed.createComponent(ProjectSwitcher);
     let pinnedProject: ShellProject | undefined;
