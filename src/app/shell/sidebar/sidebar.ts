@@ -1,9 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, inject, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ShellProjectContext } from '../project-context/shell-project-context';
+import type { ShellRouteContext } from '../app-shell/shell-route-context';
 
 interface NavigationItem {
   readonly iconPath: string;
@@ -24,19 +25,38 @@ export class Sidebar {
 
   protected readonly projectContext = inject(ShellProjectContext);
 
+  readonly location = input<ShellRouteContext>({
+    scope: 'project',
+    projectSlug: null,
+    accountPage: 'dashboard',
+  });
+
+  protected readonly inProject = computed(() => this.location().scope === 'project');
+  protected readonly activeProject = computed(() => {
+    const slug = this.location().projectSlug;
+    if (slug) {
+      const project = this.projectContext.projects().find((entry) => entry.slug === slug);
+      if (project) return project;
+    }
+    return this.projectContext.selectedProject();
+  });
+
+  protected readonly accountNavigation: readonly NavigationItem[] = [
+    {
+      iconPath: 'M4 13h6V4H4v9Zm0 7h6v-4H4v4Zm10 0h6v-9h-6v9Zm0-16v4h6V4h-6Z',
+      label: 'My dashboard',
+      route: '/dashboard',
+    },
+    {
+      iconPath: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',
+      label: 'Projects',
+      route: '/projects',
+    },
+  ];
+
   protected readonly primaryNavigation = computed<readonly NavigationItem[]>(() => {
-    const projectSlug = this.projectContext.selectedProject().slug;
+    const projectSlug = this.location().projectSlug ?? this.projectContext.selectedProject().slug;
     return [
-      {
-        iconPath: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',
-        label: 'Projects',
-        route: '/projects',
-      },
-      {
-        iconPath: 'M4 13h6V4H4v9Zm0 7h6v-4H4v4Zm10 0h6v-9h-6v9Zm0-16v4h6V4h-6Z',
-        label: 'My dashboard',
-        route: '/dashboard',
-      },
       {
         iconPath: 'M4 5.5h4.5v13H4v-13Zm5.75 0h4.5v13h-4.5v-13Zm5.75 0H20v13h-4.5v-13Z',
         label: 'Kanban',
@@ -57,11 +77,11 @@ export class Sidebar {
   });
 
   protected readonly secondaryNavigation = computed<readonly NavigationItem[]>(() => {
-    const projectSlug = this.projectContext.selectedProject().slug;
+    const projectSlug = this.location().projectSlug ?? this.projectContext.selectedProject().slug;
     return [
       {
         iconPath:
-          'M8.5 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7-1a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM3 19a5.5 5.5 0 0 1 11 0m0-5.5a5 5 0 0 1 7 4.5',
+          'M8.5 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7-1a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM3 19a5.5 5 0 0 1 11 0m0-5.5a5 5 0 0 1 7 4.5',
         label: 'Team',
         route: projectSlug ? `/project/${projectSlug}/team` : '/team',
       },

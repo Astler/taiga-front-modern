@@ -11,6 +11,7 @@ import { ShellProjectContext } from '../project-context/shell-project-context';
 import { TopbarNotification, TopbarNotificationsService } from './topbar-notifications.service';
 import { TopbarSearchService } from './topbar-search.service';
 import { Topbar } from './topbar';
+import { resolveShellRoute } from '../app-shell/shell-route-context';
 
 describe('Topbar', () => {
   beforeEach(resetCompactMode);
@@ -101,6 +102,55 @@ describe('Topbar', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     expect(document.querySelector('.notifications-overlay-pane .notifications-panel')).toBeTruthy();
+  });
+
+  it('does not show project controls or project search in account context', () => {
+    TestBed.configureTestingModule({
+      imports: [Topbar],
+      providers: [
+        { provide: Router, useValue: { navigate: vi.fn(), url: '/dashboard' } },
+        {
+          provide: ShellProjectContext,
+          useValue: {
+            projects: signal([project]),
+            pinnedProjects: signal([project]),
+            selectedProject: signal(project),
+            selectProject: vi.fn(),
+            togglePin: vi.fn(),
+          },
+        },
+        {
+          provide: AuthService,
+          useValue: { logout: vi.fn(), user: signal(null) },
+        },
+        { provide: TopbarNotificationsService, useValue: notificationService() },
+        { provide: TopbarSearchService, useValue: searchService() },
+      ],
+    });
+
+    const fixture = TestBed.createComponent(Topbar);
+    fixture.componentRef.setInput('navigationExpanded', true);
+    fixture.componentRef.setInput('location', resolveShellRoute('/dashboard'));
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelector('.account-location')?.textContent).toContain('My dashboard');
+    expect(host.querySelector('pf-project-switcher')).toBeNull();
+    expect(host.querySelector('.quick-projects')).toBeNull();
+    expect(host.querySelector('.global-search')).toBeNull();
+    expect(host.querySelector('.compact-search')).toBeNull();
+    expect(host.querySelector('.notification-button')).toBeTruthy();
+    expect(host.querySelector('.profile-button')).toBeTruthy();
+
+    fixture.componentRef.setInput('location', resolveShellRoute('/projects'));
+    fixture.detectChanges();
+    expect(host.querySelector('.account-location')?.textContent).toContain('Projects');
+
+    fixture.componentRef.setInput('location', resolveShellRoute('/project/beta/kanban'));
+    fixture.detectChanges();
+    expect(host.querySelector('.account-location')).toBeNull();
+    expect(host.querySelector('pf-project-switcher')).toBeTruthy();
+    expect(host.querySelector('.global-search')).toBeTruthy();
   });
 
   it.each([

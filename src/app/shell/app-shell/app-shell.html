@@ -11,13 +11,18 @@
     (openedChange)="navigationOpen.set($event)"
   >
     <pf-sidebar
+      [location]="shellRoute()"
       (collapseRequested)="toggleNavigation()"
       (navigationSelected)="closeCompactNavigation()"
     />
   </mat-sidenav>
 
   <mat-sidenav-content class="shell-main">
-    <pf-topbar [navigationExpanded]="navigationOpen()" (navigationToggle)="toggleNavigation()" />
+    <pf-topbar
+      [location]="shellRoute()"
+      [navigationExpanded]="navigationOpen()"
+      (navigationToggle)="toggleNavigation()"
+    />
     <main #routeContent id="main-content" class="route-content" tabindex="-1">
       <router-outlet (activate)="routeActivated()" />
     </main>

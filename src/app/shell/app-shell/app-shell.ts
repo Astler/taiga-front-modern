@@ -10,13 +10,15 @@ import {
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Router, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { Title } from '@angular/platform-browser';
+import { filter } from 'rxjs';
 import { AuthService } from '../../core/auth';
 import { ShellProjectContext } from '../project-context/shell-project-context';
 import { Sidebar } from '../sidebar/sidebar';
 import { Topbar } from '../topbar/topbar';
+import { resolveShellRoute } from './shell-route-context';
 
 const COMPACT_VIEWPORT_QUERY = '(max-width: 839px)';
 
@@ -38,8 +40,18 @@ export class AppShell {
   private readonly routeContent = viewChild.required<ElementRef<HTMLElement>>('routeContent');
   private readonly router = inject(Router);
   private readonly title = inject(Title);
+  protected readonly shellRoute = signal(resolveShellRoute(this.router.url));
 
   constructor() {
+    this.router.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(({ urlAfterRedirects }) => {
+        this.shellRoute.set(resolveShellRoute(urlAfterRedirects));
+      });
+
     effect(() => {
       const status = this.auth.status();
       if (status === 'anonymous' || status === 'restore-error') {

@@ -24,6 +24,21 @@
   flex: 1;
 }
 
+.account-location {
+  display: inline-flex;
+  min-width: 0;
+  max-width: calc(100vw - 13rem);
+  align-items: center;
+  overflow: hidden;
+  padding-inline: 0.625rem;
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-title-small);
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
 button svg,
 .global-search svg,
 .compact-board-search svg {

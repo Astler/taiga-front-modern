@@ -15,6 +15,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import type { ShellRouteContext } from '../app-shell/shell-route-context';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth';
@@ -47,10 +48,21 @@ import {
   templateUrl: './topbar.html',
 })
 export class Topbar {
+  readonly location = input<ShellRouteContext>({
+    scope: 'project',
+    projectSlug: null,
+    accountPage: 'dashboard',
+  });
   readonly navigationExpanded = input.required<boolean>();
   readonly navigationToggle = output<void>();
 
   protected readonly projectContext = inject(ShellProjectContext);
+  protected readonly inProject = computed(() => this.location().scope === 'project');
+  protected readonly currentProject = computed(() => {
+    const slug = this.location().projectSlug;
+    return (slug ? this.projectContext.projects().find((project) => project.slug === slug) : null) ??
+      this.projectContext.selectedProject();
+  });
   protected readonly auth = inject(AuthService);
   protected readonly profileName = computed(
     () => this.auth.user()?.full_name_display || this.auth.user()?.username || 'Taiga user',
@@ -131,6 +143,13 @@ export class Topbar {
 
   constructor() {
     this.destroyRef.onDestroy(() => this.cancelSearchTimer());
+
+    effect(() => {
+      const scope = this.location().scope;
+      untracked(() => {
+        if (scope === 'account') this.resetGlobalSearch();
+      });
+    });
 
     effect(() => {
       const projectId = this.projectContext.selectedProject().id;

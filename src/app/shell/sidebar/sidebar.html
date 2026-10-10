@@ -13,23 +13,25 @@
   </span>
 </div>
 
-<div class="active-project">
-  <span
-    class="active-project-mark"
-    aria-hidden="true"
-    [style.--project-accent]="projectContext.selectedProject().accent"
-  >
-    {{ projectContext.selectedProject().code }}
-  </span>
-  <span>
-    <small>Active project</small>
-    <strong>{{ projectContext.selectedProject().name }}</strong>
-  </span>
-</div>
+@if (inProject()) {
+  <div class="active-project">
+    <span
+      class="active-project-mark"
+      aria-hidden="true"
+      [style.--project-accent]="activeProject().accent"
+    >
+      {{ activeProject().code }}
+    </span>
+    <span>
+      <small>Active project</small>
+      <strong>{{ activeProject().name }}</strong>
+    </span>
+  </div>
+}
 
-<nav aria-label="Project navigation">
-  <span class="navigation-label">Workspace</span>
-  @for (item of primaryNavigation(); track item.route) {
+<nav aria-label="Workspace navigation">
+  <span class="navigation-label">Account</span>
+  @for (item of accountNavigation; track item.route) {
     <a
       class="navigation-item"
       [routerLink]="item.route"
@@ -44,22 +46,42 @@
     </a>
   }
 
-  <mat-divider />
+  @if (inProject()) {
+    <mat-divider />
 
-  <span class="navigation-label navigation-label-secondary">Manage</span>
-  @for (item of secondaryNavigation(); track item.route) {
-    <a
-      class="navigation-item"
-      [routerLink]="item.route"
-      routerLinkActive="navigation-item-active"
-      ariaCurrentWhenActive="page"
-      (click)="navigationSelected.emit()"
-    >
-      <svg aria-hidden="true" viewBox="0 0 24 24">
-        <path [attr.d]="item.iconPath" />
-      </svg>
-      <span>{{ item.label }}</span>
-    </a>
+    <span class="navigation-label navigation-label-secondary">Project</span>
+    @for (item of primaryNavigation(); track item.route) {
+      <a
+        class="navigation-item"
+        [routerLink]="item.route"
+        routerLinkActive="navigation-item-active"
+        ariaCurrentWhenActive="page"
+        (click)="navigationSelected.emit()"
+      >
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path [attr.d]="item.iconPath" />
+        </svg>
+        <span>{{ item.label }}</span>
+      </a>
+    }
+
+    <mat-divider />
+
+    <span class="navigation-label navigation-label-secondary">Manage</span>
+    @for (item of secondaryNavigation(); track item.route) {
+      <a
+        class="navigation-item"
+        [routerLink]="item.route"
+        routerLinkActive="navigation-item-active"
+        ariaCurrentWhenActive="page"
+        (click)="navigationSelected.emit()"
+      >
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path [attr.d]="item.iconPath" />
+        </svg>
+        <span>{{ item.label }}</span>
+      </a>
+    }
   }
 </nav>
 
