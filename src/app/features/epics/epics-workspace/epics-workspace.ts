@@ -53,6 +53,10 @@ export class EpicsWorkspace implements OnDestroy {
 
   protected readonly store = inject(EpicsStore);
   protected readonly filterDefinitions = FILTERS;
+  protected readonly filterPanelOpen = signal(false);
+  protected readonly activeFilterCount = computed(() =>
+    Object.keys(this.store.query().filters).length,
+  );
   protected readonly searchValue = signal('');
   protected readonly editorMode = signal<EpicEditorMode | null>(null);
   protected readonly canCreateEpics = computed(() => this.canDo('add_epic'));
@@ -85,6 +89,7 @@ export class EpicsWorkspace implements OnDestroy {
         this.appliedInitialSearch = initialSearch;
         this.searchValue.set(initialSearch);
         if (projectChanged) {
+          this.filterPanelOpen.set(false);
           this.editorMode.set(null);
           this.store.closeEpic();
           this.store.loadProject(projectId);
@@ -188,6 +193,10 @@ export class EpicsWorkspace implements OnDestroy {
       this.searchTimer = null;
     }
     this.store.setSearch(this.searchValue());
+  }
+
+  protected toggleFilterPanel(): void {
+    this.filterPanelOpen.update((open) => !open);
   }
 
   protected updateFilter(definition: FilterDefinition, event: Event): void {
