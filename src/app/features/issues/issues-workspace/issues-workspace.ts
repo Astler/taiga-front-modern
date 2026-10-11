@@ -207,6 +207,16 @@ export class IssuesWorkspace implements OnDestroy {
     }
   }
 
+  protected discardFailedNewIssueUploads(): void {
+    const upload = this.newIssueUpload();
+    if (!upload || upload.processing) return;
+    if (!globalThis.confirm(
+      'Discard ' + upload.files.length + ' unuploaded file(s)? ' +
+      'Issue #' + upload.issue.ref + ' will remain created.',
+    )) return;
+    this.newIssueUpload.set(null);
+  }
+
   protected async deleteIssue(): Promise<void> {
     const issue = this.store.selectedIssue();
     if (!issue || !this.canDeleteIssues()) return;
