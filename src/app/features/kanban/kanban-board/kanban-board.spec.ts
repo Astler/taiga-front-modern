@@ -294,6 +294,9 @@ describe('KanbanBoard', () => {
     fixture.detectChanges();
 
     expect(getUserStory).toHaveBeenCalledWith(101);
+    const modal = host.querySelector<HTMLDialogElement>('dialog.story-drawer-backdrop')!;
+    expect(modal?.open).toBe(true);
+    expect(modal.getAttribute('aria-labelledby')).toBe('story-detail-101');
     expect(host.querySelector('.story-drawer h2')?.textContent).toContain('Build login');
     expect(host.querySelector<HTMLTextAreaElement>('.editor-field textarea')?.value).toContain(
       'Login work that must ship with the release.',
@@ -324,6 +327,8 @@ describe('KanbanBoard', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
+    const dialog = host.querySelector<HTMLDialogElement>('dialog.story-drawer-backdrop')!;
+    expect(dialog?.open).toBe(true);
     const aside = host.querySelector<HTMLElement>('.story-drawer')!;
     const title = aside.querySelector<HTMLInputElement>('input[type="text"]')!;
     setControlValue(title, 'Unsaved new title', 'input');
@@ -335,6 +340,8 @@ describe('KanbanBoard', () => {
     fixture.detectChanges();
 
     expect(aside.classList.contains('story-drawer-fullscreen')).toBe(true);
+    expect(host.querySelector('dialog.story-drawer-backdrop')).toBe(dialog);
+    expect(dialog.open).toBe(true);
     expect(aside.querySelector('input[type="text"]')).toBe(title);
     expect(title.value).toBe('Unsaved new title');
     expect(host.querySelector('.story-drawer-backdrop')?.classList
@@ -354,6 +361,31 @@ describe('KanbanBoard', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     expect(host.querySelector('.story-drawer-fullscreen')).toBeTruthy();
+  });
+
+  it('closes a native story dialog on browser cancel without leaving a stale editor', async () => {
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', project());
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    host.querySelector<HTMLButtonElement>('.story-subject')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const dialog = host.querySelector<HTMLDialogElement>('dialog.story-drawer-backdrop')!;
+    expect(dialog.open).toBe(true);
+    const cancel = new Event('cancel', { cancelable: true });
+    dialog.dispatchEvent(cancel);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(cancel.defaultPrevented).toBe(true);
+    expect(host.querySelector('.story-drawer')).toBeNull();
   });
 
   it('requires delete_us permission and explicit confirmation before deleting a story', async () => {

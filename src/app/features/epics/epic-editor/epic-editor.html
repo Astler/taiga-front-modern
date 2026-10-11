@@ -1,15 +1,12 @@
-<div
+<dialog
+  pfModalTopLayer
   class="epic-editor-backdrop"
-  role="presentation"
-  tabindex="-1"
+  aria-labelledby="epic-editor-title"
   (click)="requestClose()"
-  (keydown.escape)="requestClose()"
+  (cancel)="onDialogCancel($event)"
 >
   <section
     class="epic-editor-panel"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="epic-editor-title"
     (click)="$event.stopPropagation()"
     (keydown)="handleKeydown($event)"
   >
@@ -168,4 +165,4 @@
       }
     </footer>
   </section>
-</div>
+</dialog>

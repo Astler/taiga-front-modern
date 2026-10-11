@@ -604,20 +604,18 @@
   }
 
   @if (store.selectedStory(); as detail) {
-    <div
+    <dialog
+      pfModalTopLayer
       class="story-drawer-backdrop"
       [class.story-editor-fullscreen]="editorFullscreen()"
-      role="presentation"
-      tabindex="-1"
+      [attr.aria-labelledby]="'story-detail-' + detail.id"
       (click)="closeStoryDetails()"
-      (keydown.escape)="closeStoryDetails()"
+      (cancel)="onStoryDialogCancel($event)"
+      (keydown.escape)="onStoryDialogEscape($event)"
     >
       <aside
         class="story-drawer"
         [class.story-drawer-fullscreen]="editorFullscreen()"
-        role="dialog"
-        aria-modal="true"
-        [attr.aria-labelledby]="'story-detail-' + detail.id"
         (click)="$event.stopPropagation()"
       >
         <header class="story-drawer-header">
@@ -1224,7 +1222,7 @@
           }
         </footer>
       </aside>
-    </div>
+    </dialog>
   }
 
   <p class="visually-hidden board-live-region" aria-live="polite">{{ liveAnnouncement() }}</p>

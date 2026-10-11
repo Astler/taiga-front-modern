@@ -1,12 +1,28 @@
 .story-drawer-backdrop {
   position: fixed;
-  z-index: 1000;
   inset: 0;
   display: flex;
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  overflow: hidden;
   justify-content: flex-end;
   background: rgb(0 0 0 / 54%);
   backdrop-filter: blur(2px);
   animation: drawer-backdrop-in 160ms ease-out;
+}
+
+/* The native modal enters the browser top layer above mat-sidenav. */
+.story-drawer-backdrop:not([open]) {
+  display: none;
+}
+
+.story-drawer-backdrop::backdrop {
+  background: transparent;
 }
 
 .story-drawer {

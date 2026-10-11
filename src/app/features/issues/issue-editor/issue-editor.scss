@@ -9,9 +9,26 @@
   display: flex;
   position: fixed;
   inset: 0;
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  overflow: hidden;
   justify-content: flex-end;
   background: rgb(0 0 0 / 58%);
   backdrop-filter: blur(2px);
+}
+
+/* showModal() promotes the editor over the sidenav, regardless of stacking context. */
+.issue-editor-backdrop:not([open]) {
+  display: none;
+}
+
+.issue-editor-backdrop::backdrop {
+  background: transparent;
 }
 
 .issue-editor-panel {

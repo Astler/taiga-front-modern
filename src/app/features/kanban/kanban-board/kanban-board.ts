@@ -20,6 +20,7 @@ import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../core/auth';
 import { CompactKanbanToolbarService } from '../../../shared/compact-kanban-toolbar.service';
 import { StoryEditorLayoutService } from '../../../shared/story-editor-layout.service';
+import { ModalTopLayerDirective } from '../../../shared/modal-top-layer.directive';
 import { KanbanSortPreferenceService } from '../data/kanban-sort-preference.service';
 import type { TaigaId } from '../../../shared/models';
 import {
@@ -105,6 +106,7 @@ const SORT_OPTIONS: readonly SortOption[] = [
     MatMenuModule,
     MatProgressBarModule,
     MatTooltipModule,
+    ModalTopLayerDirective,
   ],
   providers: [KanbanStore],
   selector: 'pf-kanban-board',
@@ -968,6 +970,19 @@ export class KanbanBoard {
   protected toggleEditorFullscreen(): void {
     // Only switch layout, never recreate the form or discard its unsaved draft.
     this.editorLayoutOverride.set(!this.editorFullscreen());
+  }
+
+  protected onStoryDialogCancel(event: Event): void {
+    // Prevent the browser closing the modal without clearing the current selection.
+    event.preventDefault();
+    this.closeStoryDetails();
+  }
+
+  protected onStoryDialogEscape(event: Event): void {
+    // Escape also works in test DOMs that lack showModal().
+    event.preventDefault();
+    event.stopPropagation();
+    this.closeStoryDetails();
   }
 
   protected closeStoryDetails(): void {

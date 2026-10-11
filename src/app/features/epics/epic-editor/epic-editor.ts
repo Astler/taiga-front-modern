@@ -9,6 +9,7 @@ import {
   untracked,
 } from '@angular/core';
 import type { TaigaProjectDetail } from '../../projects/data';
+import { ModalTopLayerDirective } from '../../../shared/modal-top-layer.directive';
 import type { EpicChanges, EpicFilterOption, EpicFiltersData, TaigaEpic } from '../data';
 
 export type EpicEditorMode = 'create' | 'edit';
@@ -37,6 +38,7 @@ const EMPTY_DRAFT: EpicDraft = {
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [ModalTopLayerDirective],
   selector: 'pf-epic-editor',
   templateUrl: './epic-editor.html',
   styleUrl: './epic-editor.scss',
@@ -168,8 +170,15 @@ export class EpicEditor {
     this.closeRequested.emit();
   }
 
+  protected onDialogCancel(event: Event): void {
+    // Prevent the browser dismissing the dialog before discard confirmation.
+    event.preventDefault();
+    this.requestClose();
+  }
+
   protected handleKeydown(event: KeyboardEvent): void {
     if (event.key === 'Escape') {
+      event.preventDefault();
       event.stopPropagation();
       this.requestClose();
     } else if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {

@@ -9,6 +9,7 @@ import {
   untracked,
 } from '@angular/core';
 import type { TaigaProjectDetail } from '../../projects/data';
+import { ModalTopLayerDirective } from '../../../shared/modal-top-layer.directive';
 import type { IssueChanges, IssueFilterOption, IssueFiltersData, TaigaIssue } from '../data';
 
 export type IssueEditorMode = 'create' | 'edit';
@@ -43,6 +44,7 @@ const EMPTY_DRAFT: IssueEditorDraft = {
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [ModalTopLayerDirective],
   selector: 'pf-issue-editor',
   templateUrl: './issue-editor.html',
   styleUrl: './issue-editor.scss',
@@ -196,8 +198,15 @@ export class IssueEditor {
     this.closeRequested.emit();
   }
 
+  protected onDialogCancel(event: Event): void {
+    // Prevent the browser dismissing the dialog before discard confirmation.
+    event.preventDefault();
+    this.requestClose();
+  }
+
   protected onKeydown(event: KeyboardEvent): void {
     if (event.key === 'Escape') {
+      event.preventDefault();
       event.stopPropagation();
       this.requestClose();
     }

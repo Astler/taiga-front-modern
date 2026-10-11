@@ -87,6 +87,7 @@ describe('EpicEditor', () => {
     fixture.componentInstance.saved.subscribe(save);
     fixture.detectChanges();
     const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelector<HTMLDialogElement>('dialog.epic-editor-backdrop')?.open).toBe(true);
 
     const title = host.querySelector<HTMLInputElement>('input[maxlength="500"]')!;
     title.value = 'Release preparation';
@@ -134,8 +135,12 @@ describe('EpicEditor', () => {
     const confirm = vi.spyOn(globalThis, 'confirm').mockReturnValueOnce(false)
       .mockReturnValueOnce(true);
     try {
-      host.querySelector<HTMLButtonElement>('.epic-cancel')!.click();
+      const dialog = host.querySelector<HTMLDialogElement>('dialog.epic-editor-backdrop')!;
+      const cancel = new Event('cancel', { cancelable: true });
+      dialog.dispatchEvent(cancel);
+      expect(cancel.defaultPrevented).toBe(true);
       expect(close).not.toHaveBeenCalled();
+      expect(dialog.open).toBe(true);
       host.querySelector<HTMLButtonElement>('.epic-cancel')!.click();
       expect(close).toHaveBeenCalledOnce();
     } finally {
