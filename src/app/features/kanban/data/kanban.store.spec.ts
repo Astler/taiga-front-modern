@@ -40,6 +40,12 @@ describe('KanbanStore', () => {
     updateTask: ReturnType<typeof vi.fn<(taskId: number, changes: any, version?: number) => Observable<any>>>;
     deleteTask: ReturnType<typeof vi.fn<(taskId: number) => Observable<void>>>;
     getStoryHistory: ReturnType<typeof vi.fn<(storyId: number) => Observable<any[]>>>;
+    editStoryHistoryComment: ReturnType<
+      typeof vi.fn<(storyId: number, historyId: string, comment: string) => Observable<void>>
+    >;
+    deleteStoryHistoryComment: ReturnType<
+      typeof vi.fn<(storyId: number, historyId: string) => Observable<void>>
+    >;
     addStoryComment: ReturnType<typeof vi.fn<(storyId: number, comment: string, version?: number) => Observable<KanbanUserStory>>>;
     updateStoryPoints: ReturnType<typeof vi.fn<(storyId: number, points: Readonly<Record<string, number>>, version?: number) => Observable<KanbanUserStory>>>;
   };
@@ -60,6 +66,8 @@ describe('KanbanStore', () => {
       updateTask: vi.fn(),
       deleteTask: vi.fn(),
       getStoryHistory: vi.fn(),
+      editStoryHistoryComment: vi.fn(),
+      deleteStoryHistoryComment: vi.fn(),
       addStoryComment: vi.fn(),
       updateStoryPoints: vi.fn(),
     };
@@ -332,6 +340,81 @@ describe('KanbanStore', () => {
     await expect(store.updateStoryPoints(17, 1, { '8': 5 })).resolves.toBe('failed');
     expect(store.selectedStory()?.points).toEqual({ '8': 4 });
     expect(store.mutationError()).toContain('changed elsewhere');
+  });
+
+  it('edits and deletes a comment through Taiga history and updates the visible list', async () => {
+    const story = { ...userStory(1, 1), total_comments: 1 };
+    const initial = { id: 'history-1', comment: 'Original', user: { pk: 7, name: 'Ada' } };
+    const edited = { ...initial, comment: 'Corrected' };
+    api.load.mockReturnValue(of({ swimlanes: [], userStories: [story] }));
+    api.getUserStory.mockReturnValue(of(story));
+    api.getStoryHistory
+      .mockReturnValueOnce(of([initial]))
+      .mockReturnValueOnce(of([edited]))
+      .mockReturnValueOnce(of([{ ...edited, delete_comment_date: '2026-10-11T00:00:00Z' }]));
+    api.editStoryHistoryComment.mockReturnValue(of(undefined));
+    api.deleteStoryHistoryComment.mockReturnValue(of(undefined));
+
+    store.load(17);
+    store.openStoryDetails(1);
+    store.loadStoryHistory(1);
+    expect(store.storyComments()).toHaveLength(1);
+    expect(await store.editHistoryComment(17, 1, 'history-1', 'Corrected')).toBe('updated');
+    expect(api.editStoryHistoryComment).toHaveBeenCalledWith(1, 'history-1', 'Corrected');
+    expect(store.storyComments()[0]?.comment).toBe('Corrected');
+
+    expect(await store.deleteHistoryComment(17, 1, 'history-1')).toBe('updated');
+    expect(api.deleteStoryHistoryComment).toHaveBeenCalledWith(1, 'history-1');
+    expect(store.storyComments()).toEqual([]);
+    expect(store.selectedStory()?.total_comments).toBe(0);
+    expect(store.userStories()[0]?.total_comments).toBe(0);
+  });
+
+  it('keeps the comment on a forbidden delete and ignores an ambiguous edit retry', async () => {
+    const story = { ...userStory(1, 1), total_comments: 1 };
+    const entry = { id: 'history-1', comment: 'Keep me', user: { pk: 7 } };
+    api.load.mockReturnValue(of({ swimlanes: [], userStories: [story] }));
+    api.getUserStory.mockReturnValue(of(story));
+    api.getStoryHistory.mockReturnValue(of([entry]));
+    api.deleteStoryHistoryComment.mockReturnValue(throwError(() =>
+      new HttpErrorResponse({ status: 403, statusText: 'Forbidden' }),
+    ));
+    api.editStoryHistoryComment.mockReturnValue(throwError(() =>
+      new HttpErrorResponse({ status: 0, statusText: 'Network disconnected' }),
+    ));
+
+    store.load(17);
+    store.openStoryDetails(1);
+    store.loadStoryHistory(1);
+    expect(await store.deleteHistoryComment(17, 1, 'history-1')).toBe('failed');
+    expect(store.storyComments()[0]?.comment).toBe('Keep me');
+    expect(store.mutationError()).toContain('author');
+    expect(await store.editHistoryComment(17, 1, 'history-1', 'Attempted')).toBe('uncertain');
+    expect(api.editStoryHistoryComment).toHaveBeenCalledTimes(1);
+    expect(store.storyComments()[0]?.comment).toBe('Keep me');
+    expect(store.mutationError()).toContain('history refreshed');
+  });
+
+  it('ignores stale comment modification results after switching projects', async () => {
+    const pending = new Subject<void>();
+    const story = userStory(1, 1);
+    api.load.mockImplementation((id) => of({
+      swimlanes: [], userStories: [userStory(id, 1, id)],
+    }));
+    api.getUserStory.mockReturnValue(of(story));
+    api.getStoryHistory.mockReturnValue(of([{ id: 'history-1', comment: 'Note' }]));
+    api.editStoryHistoryComment.mockReturnValue(pending);
+    store.load(1);
+    store.openStoryDetails(1);
+    store.loadStoryHistory(1);
+
+    const editing = store.editHistoryComment(1, 1, 'history-1', 'Late edit');
+    store.load(2);
+    pending.next();
+    pending.complete();
+    await expect(editing).resolves.toBe('failed');
+    expect(store.projectId()).toBe(2);
+    expect(store.storyComments()).toEqual([]);
   });
 
   it('loads visible story comments and appends a comment without changing the story draft', async () => {

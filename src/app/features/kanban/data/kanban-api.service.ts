@@ -138,6 +138,26 @@ export class KanbanApiService {
     );
   }
 
+  editStoryHistoryComment(
+    storyId: TaigaId,
+    historyId: string,
+    comment: string,
+  ): Observable<void> {
+    return this.http.post<void>(
+      `${this.config.resolveApiPath('history/userstory')}/${storyId}/edit_comment`,
+      { comment },
+      { params: new HttpParams().set('id', historyId) },
+    );
+  }
+
+  deleteStoryHistoryComment(storyId: TaigaId, historyId: string): Observable<void> {
+    return this.http.post<void>(
+      `${this.config.resolveApiPath('history/userstory')}/${storyId}/delete_comment`,
+      {},
+      { params: new HttpParams().set('id', historyId) },
+    );
+  }
+
   updateStoryPoints(
     storyId: TaigaId,
     points: Readonly<Record<string, TaigaId>>,

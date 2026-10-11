@@ -95,9 +95,11 @@ export interface KanbanStoryHistoryEntry {
   readonly created_at?: string;
   readonly created_date?: string;
   readonly is_comment_deleted?: boolean;
+  readonly delete_comment_date?: string | null;
   readonly is_hidden?: boolean;
   readonly user?: {
     readonly id?: TaigaId;
+    readonly pk?: TaigaId;
     readonly name?: string;
     readonly username?: string;
     readonly full_name_display?: string;

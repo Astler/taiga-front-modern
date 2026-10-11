@@ -154,6 +154,28 @@ describe('KanbanApiService', () => {
     expect((await patch).total_points).toBe(8);
   });
 
+  it('edits and deletes existing user-story history comments through their UUID endpoints', async () => {
+    const edit = firstValueFrom(service.editStoryHistoryComment(101, 'history-uuid-1', 'New wording'));
+    const editRequest = httpTesting.expectOne((req) =>
+      req.url === '/api/v1/history/userstory/101/edit_comment' &&
+      req.params.get('id') === 'history-uuid-1',
+    );
+    expect(editRequest.request.method).toBe('POST');
+    expect(editRequest.request.body).toEqual({ comment: 'New wording' });
+    editRequest.flush(null, { status: 204, statusText: 'No Content' });
+    await expect(edit).resolves.toBeUndefined();
+
+    const deletion = firstValueFrom(service.deleteStoryHistoryComment(101, 'history-uuid-1'));
+    const deleteRequest = httpTesting.expectOne((req) =>
+      req.url === '/api/v1/history/userstory/101/delete_comment' &&
+      req.params.get('id') === 'history-uuid-1',
+    );
+    expect(deleteRequest.request.method).toBe('POST');
+    expect(deleteRequest.request.body).toEqual({});
+    deleteRequest.flush(null, { status: 204, statusText: 'No Content' });
+    await expect(deletion).resolves.toBeUndefined();
+  });
+
   it('loads story history and posts a comment without changing unrelated story fields', async () => {
     const entries = [
       { id: 'comment-1', comment: 'Useful note', user: { name: 'Ada' } },

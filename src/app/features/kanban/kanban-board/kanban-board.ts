@@ -153,6 +153,8 @@ export class KanbanBoard {
   protected readonly storyDraft = signal<StoryEditorDraft | null>(null);
   protected readonly storyDraftDirty = signal(false);
   protected readonly commentDraft = signal('');
+  protected readonly commentEditingId = signal<string | null>(null);
+  protected readonly commentEditDraft = signal('');
   protected readonly taskCreateOpen = signal(false);
   protected readonly taskNewSubject = signal('');
   protected readonly taskEditingId = signal<TaigaId | null>(null);
@@ -909,6 +911,7 @@ export class KanbanBoard {
 
   protected openStoryDetails(story: KanbanUserStory): void {
     this.commentDraft.set('');
+    this.cancelCommentEdit();
     this.resetTaskEditor();
     this.store.loadTaskStatuses(this.project().id);
     // Each new story uses the profile preference. Manual expansion stays local to the open card.
@@ -926,6 +929,7 @@ export class KanbanBoard {
 
   protected closeStoryDetails(): void {
     this.commentDraft.set('');
+    this.cancelCommentEdit();
     this.resetTaskEditor();
     this.editorLayoutOverride.set(null);
     const storyId = this.store.selectedStory()?.id;
@@ -986,6 +990,70 @@ export class KanbanBoard {
     if (result === 'updated') {
       this.commentDraft.set('');
       this.liveAnnouncement.set(`Comment added to story #${story.ref}.`);
+    }
+  }
+
+  protected commentId(entry: KanbanStoryHistoryEntry): string {
+    return String(entry.id ?? '');
+  }
+
+  protected canManageComment(entry: KanbanStoryHistoryEntry): boolean {
+    const authorId = entry.user?.id ?? entry.user?.pk;
+    const currentUserId = this.auth.user()?.id;
+    return this.canComment() &&
+      typeof currentUserId === 'number' &&
+      typeof authorId === 'number' &&
+      authorId === currentUserId &&
+      (typeof entry.id === 'string' || typeof entry.id === 'number');
+  }
+
+  protected beginCommentEdit(entry: KanbanStoryHistoryEntry): void {
+    if (!this.canManageComment(entry) || this.store.isMutating()) return;
+    this.commentEditingId.set(String(entry.id));
+    this.commentEditDraft.set(entry.comment ?? '');
+  }
+
+  protected cancelCommentEdit(): void {
+    this.commentEditingId.set(null);
+    this.commentEditDraft.set('');
+  }
+
+  protected updateCommentEditDraft(event: Event): void {
+    this.commentEditDraft.set((event.target as HTMLTextAreaElement).value);
+  }
+
+  protected async saveCommentEdit(event: Event, entry: KanbanStoryHistoryEntry): Promise<void> {
+    event.preventDefault();
+    const story = this.store.selectedStory();
+    const value = this.commentEditDraft().trim();
+    const historyId = String(entry.id ?? '');
+    if (!story || !this.canManageComment(entry) ||
+      this.commentEditingId() !== historyId || !value) return;
+    if (entry.comment?.trim() === value) {
+      this.cancelCommentEdit();
+      return;
+    }
+
+    const projectId = this.project().id;
+    const result = await this.store.editHistoryComment(projectId, story.id, historyId, value);
+    if (projectId !== this.project().id || this.store.selectedStory()?.id !== story.id) return;
+    if (result === 'updated') {
+      this.cancelCommentEdit();
+      this.liveAnnouncement.set('Comment updated.');
+    }
+  }
+
+  protected async removeStoryComment(entry: KanbanStoryHistoryEntry): Promise<void> {
+    const story = this.store.selectedStory();
+    if (!story || !this.canManageComment(entry) || this.store.isMutating()) return;
+    if (!globalThis.confirm('Delete this comment from the discussion?')) return;
+
+    const projectId = this.project().id;
+    const result = await this.store.deleteHistoryComment(projectId, story.id, String(entry.id));
+    if (projectId !== this.project().id || this.store.selectedStory()?.id !== story.id) return;
+    if (result === 'updated') {
+      this.cancelCommentEdit();
+      this.liveAnnouncement.set('Comment deleted.');
     }
   }
 

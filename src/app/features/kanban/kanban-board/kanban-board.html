@@ -869,7 +869,7 @@
             </div>
 
             @if (taskCreateOpen()) {
-              <form class="task-edit-form task-new-form" (submit)="submitNewTask($event)">
+              <div class="task-edit-form task-new-form">
                 <label>
                   <span class="visually-hidden">New task title</span>
                   <input
@@ -880,13 +880,18 @@
                     [value]="taskNewSubject()"
                     [disabled]="store.isMutating()"
                     (input)="updateNewTaskSubject($event)"
+                    (keydown.enter)="submitNewTask($event)"
                   />
                 </label>
-                <button type="submit" [disabled]="!taskNewSubject().trim() || store.isMutating()">
+                <button
+                  type="button"
+                  [disabled]="!taskNewSubject().trim() || store.isMutating()"
+                  (click)="submitNewTask($event)"
+                >
                   Add
                 </button>
                 <button type="button" (click)="cancelTaskCreate()">Cancel</button>
-              </form>
+              </div>
             }
 
             <ul class="detail-task-list detail-task-editor-list">
@@ -897,7 +902,7 @@
                   </span>
 
                   @if (taskEditingId() === task.id) {
-                    <form class="task-edit-form" (submit)="saveTaskSubject($event, task)">
+                    <div class="task-edit-form">
                       <label>
                         <span class="visually-hidden">Task title</span>
                         <input
@@ -906,13 +911,18 @@
                           maxlength="500"
                           [value]="taskEditingSubject()"
                           (input)="updateTaskDraft($event)"
+                          (keydown.enter)="saveTaskSubject($event, task)"
                         />
                       </label>
-                      <button type="submit" [disabled]="!taskEditingSubject().trim() || store.isMutating()">
+                      <button
+                        type="button"
+                        [disabled]="!taskEditingSubject().trim() || store.isMutating()"
+                        (click)="saveTaskSubject($event, task)"
+                      >
                         Save
                       </button>
                       <button type="button" (click)="cancelTaskEditing()">Cancel</button>
-                    </form>
+                    </div>
                   } @else {
                     <span class="task-title">{{ task.subject || 'Task ' + task.id }}</span>
                   }
@@ -1089,8 +1099,49 @@
                             {{ formatTimestamp(entry.created_at || entry.created_date) }}
                           </time>
                         }
+                        @if (canManageComment(entry)) {
+                          <span class="story-comment-actions">
+                            <button
+                              type="button"
+                              [attr.aria-label]="'Edit comment by ' + commentAuthor(entry)"
+                              [disabled]="store.isMutating() || store.isRefreshing() || store.requiresReconciliation()"
+                              (click)="beginCommentEdit(entry)"
+                            >Edit</button>
+                            <button
+                              type="button"
+                              class="story-comment-delete"
+                              [attr.aria-label]="'Delete comment by ' + commentAuthor(entry)"
+                              [disabled]="store.isMutating() || store.isRefreshing() || store.requiresReconciliation()"
+                              (click)="removeStoryComment(entry)"
+                            >Delete</button>
+                          </span>
+                        }
                       </span>
-                      <span class="story-comment-text">{{ entry.comment }}</span>
+                      @if (commentEditingId() === commentId(entry)) {
+                        <div class="story-comment-edit">
+                          <label>
+                            <span class="visually-hidden">Edit comment text</span>
+                            <textarea
+                              rows="3"
+                              maxlength="10000"
+                              [value]="commentEditDraft()"
+                              [disabled]="store.isMutating() || store.isRefreshing() || store.requiresReconciliation()"
+                              (input)="updateCommentEditDraft($event)"
+                            ></textarea>
+                          </label>
+                          <span class="story-comment-edit-actions">
+                            <button
+                              type="button"
+                              [disabled]="!commentEditDraft().trim() || store.isMutating() ||
+                                store.isRefreshing() || store.requiresReconciliation()"
+                              (click)="saveCommentEdit($event, entry)"
+                            >Save</button>
+                            <button type="button" (click)="cancelCommentEdit()">Cancel</button>
+                          </span>
+                        </div>
+                      } @else {
+                        <span class="story-comment-text">{{ entry.comment }}</span>
+                      }
                     </span>
                   </li>
                 } @empty {
@@ -1099,7 +1150,7 @@
               </ul>
             }
             @if (canComment()) {
-              <form class="story-comment-form" (submit)="postStoryComment($event)">
+              <div class="story-comment-form">
                 <label>
                   <span class="visually-hidden">Write a story comment</span>
                   <textarea
@@ -1112,13 +1163,14 @@
                   ></textarea>
                 </label>
                 <button
-                  type="submit"
+                  type="button"
+                  (click)="postStoryComment($event)"
                   [disabled]="!commentDraft().trim() ||
                     store.isMutating() || store.isRefreshing() || store.requiresReconciliation()"
                 >
                   {{ store.mutation()?.kind === 'comment' ? 'Posting…' : 'Post comment' }}
                 </button>
-              </form>
+              </div>
             }
           </section>
 

@@ -33,6 +33,8 @@ describe('KanbanBoard', () => {
   const updateTask = vi.fn();
   const deleteTask = vi.fn();
   const getStoryHistory = vi.fn();
+  const editStoryHistoryComment = vi.fn();
+  const deleteStoryHistoryComment = vi.fn();
   const addStoryComment = vi.fn();
   const updateStoryPoints = vi.fn();
   const loadPresets = vi.fn();
@@ -62,6 +64,10 @@ describe('KanbanBoard', () => {
     updateTask.mockReturnValue(of({ id: 321, subject: 'Renamed task', status: 2, is_closed: true }));
     deleteTask.mockReturnValue(of(undefined));
     getStoryHistory.mockReset();
+    editStoryHistoryComment.mockReset();
+    deleteStoryHistoryComment.mockReset();
+    editStoryHistoryComment.mockReturnValue(of(undefined));
+    deleteStoryHistoryComment.mockReturnValue(of(undefined));
     addStoryComment.mockReset();
     updateStoryPoints.mockReset();
     updateStoryPoints.mockReturnValue(of(stories()[0]));
@@ -116,6 +122,8 @@ describe('KanbanBoard', () => {
             updateTask,
             deleteTask,
             getStoryHistory,
+            editStoryHistoryComment,
+            deleteStoryHistoryComment,
             addStoryComment,
             updateStoryPoints,
           },
@@ -408,9 +416,7 @@ describe('KanbanBoard', () => {
     const input = host.querySelector<HTMLInputElement>('.task-new-form input')!;
     setControlValue(input, 'New task', 'input');
     fixture.detectChanges();
-    host.querySelector<HTMLFormElement>('.task-new-form')!.dispatchEvent(
-      new Event('submit', { bubbles: true, cancelable: true }),
-    );
+    host.querySelector<HTMLButtonElement>('.task-new-form button')!.click();
     await fixture.whenStable();
     fixture.detectChanges();
     expect(createTask).toHaveBeenCalledWith(17, 101, 'New task');
@@ -422,9 +428,7 @@ describe('KanbanBoard', () => {
     const renameInput = host.querySelector<HTMLInputElement>('.detail-task-row .task-edit-form input')!;
     setControlValue(renameInput, 'Renamed task', 'input');
     fixture.detectChanges();
-    host.querySelector<HTMLFormElement>('.detail-task-row .task-edit-form')!.dispatchEvent(
-      new Event('submit', { bubbles: true, cancelable: true }),
-    );
+    host.querySelector<HTMLButtonElement>('.detail-task-row .task-edit-form button')!.click();
     await fixture.whenStable();
     fixture.detectChanges();
     expect(updateTask).toHaveBeenCalledWith(321, { subject: 'Renamed task' }, 1);
@@ -547,14 +551,62 @@ describe('KanbanBoard', () => {
     const textarea = host.querySelector<HTMLTextAreaElement>('.story-comment-form textarea')!;
     setControlValue(textarea, 'Looks done', 'input');
     fixture.detectChanges();
-    host.querySelector<HTMLFormElement>('.story-comment-form')!.dispatchEvent(
-      new Event('submit', { bubbles: true, cancelable: true }),
-    );
+    host.querySelector<HTMLButtonElement>('.story-comment-form button')!.click();
     await fixture.whenStable();
     fixture.detectChanges();
     expect(addStoryComment).toHaveBeenCalledWith(101, 'Looks done', undefined);
     expect(host.querySelector('.story-comments-list')?.textContent).toContain('Looks done');
     expect(textarea.value).toBe('');
+  });
+
+  it('shows edit and delete only for own comments and saves changes from the same editor', async () => {
+    const own = { id: 'own-1', comment: 'My original', user: { pk: 7, name: 'Ada' } };
+    const other = { id: 'other-1', comment: 'Other comment', user: { pk: 8, name: 'Grace' } };
+    getStoryHistory.mockReturnValueOnce(of([own, other]))
+      .mockReturnValueOnce(of([{ ...own, comment: 'Revised wording' }, other]))
+      .mockReturnValueOnce(of([other]));
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', {
+      ...project(), my_permissions: ['comment_us'],
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    host.querySelector<HTMLButtonElement>('.story-subject')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(host.querySelectorAll('.story-comment-actions')).toHaveLength(1);
+    expect(host.querySelector('[aria-label="Edit comment by Grace"]')).toBeNull();
+    host.querySelector<HTMLButtonElement>('[aria-label="Edit comment by Ada"]')!.click();
+    fixture.detectChanges();
+    const textarea = host.querySelector<HTMLTextAreaElement>('.story-comment-edit textarea')!;
+    textarea.value = 'Revised wording';
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    host.querySelector<HTMLButtonElement>('.story-comment-edit-actions button')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(editStoryHistoryComment).toHaveBeenCalledWith(101, 'own-1', 'Revised wording');
+    expect(host.querySelector('.story-comments-list')?.textContent).toContain('Revised wording');
+
+    const confirm = vi.spyOn(globalThis, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
+    try {
+      const del = host.querySelector<HTMLButtonElement>('[aria-label="Delete comment by Ada"]')!;
+      del.click();
+      fixture.detectChanges();
+      expect(deleteStoryHistoryComment).not.toHaveBeenCalled();
+      del.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(deleteStoryHistoryComment).toHaveBeenCalledWith(101, 'own-1');
+      expect(host.querySelector('.story-comments-list')?.textContent).not.toContain('Revised wording');
+      expect(host.querySelector('.story-comments-list')?.textContent).toContain('Other comment');
+    } finally {
+      confirm.mockRestore();
+    }
   });
 
   it('renders existing comments read-only without comment_us permission', async () => {
