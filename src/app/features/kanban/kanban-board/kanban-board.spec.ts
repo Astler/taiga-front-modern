@@ -34,6 +34,7 @@ describe('KanbanBoard', () => {
   const deleteTask = vi.fn();
   const getStoryHistory = vi.fn();
   const addStoryComment = vi.fn();
+  const updateStoryPoints = vi.fn();
   const loadPresets = vi.fn();
   const savePresets = vi.fn();
   const fullscreenPreference = signal(false);
@@ -62,6 +63,8 @@ describe('KanbanBoard', () => {
     deleteTask.mockReturnValue(of(undefined));
     getStoryHistory.mockReset();
     addStoryComment.mockReset();
+    updateStoryPoints.mockReset();
+    updateStoryPoints.mockReturnValue(of(stories()[0]));
     getStoryHistory.mockReturnValue(of([]));
     addStoryComment.mockImplementation((storyId, comment) => of({
       ...stories().find(({ id }) => id === storyId)!,
@@ -114,6 +117,7 @@ describe('KanbanBoard', () => {
             deleteTask,
             getStoryHistory,
             addStoryComment,
+            updateStoryPoints,
           },
         },
         {
@@ -459,6 +463,63 @@ describe('KanbanBoard', () => {
     expect(host.querySelector('.task-add-button')).toBeNull();
     expect(host.querySelector('.task-delete-button')).toBeNull();
     expect(host.querySelector('.detail-task-row select')).toBeNull();
+  });
+
+  it('edits Taiga story points by computable role and hides non-computable roles', async () => {
+    const detail = {
+      ...stories()[0]!,
+      points: { '8': 4 },
+      total_points: null,
+      version: 6,
+    };
+    getUserStory.mockReturnValue(of(detail));
+    updateStoryPoints.mockReturnValue(of({
+      ...detail, points: { '8': 5 }, total_points: 3, version: 7,
+    }));
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', {
+      ...project(),
+      roles: [
+        { id: 8, name: 'Frontend', computable: true },
+        { id: 9, name: 'Viewer', computable: false },
+      ],
+      points: [
+        { id: 4, name: '?', value: null, order: 0 },
+        { id: 5, name: '3', value: 3, order: 1 },
+      ],
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    host.querySelector<HTMLButtonElement>('.story-subject')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const selected = host.querySelector<HTMLSelectElement>('[aria-label="Points for Frontend"]')!;
+    expect(selected).toBeTruthy();
+    expect(selected.value).toBe('4');
+    expect(host.querySelector('[aria-label="Points for Viewer"]')).toBeNull();
+    setControlValue(selected, '5', 'change');
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(updateStoryPoints).toHaveBeenCalledWith(101, { '8': 5 }, 6);
+    expect(host.querySelector('.points-value')?.textContent).toContain('3');
+    expect(selected.value).toBe('5');
+
+    fixture.componentRef.setInput('project', {
+      ...project(),
+      my_permissions: [],
+      roles: [{ id: 8, name: 'Frontend', computable: true }],
+      points: [
+        { id: 4, name: '?', value: null, order: 0 },
+        { id: 5, name: '3', value: 3, order: 1 },
+      ],
+    });
+    fixture.detectChanges();
+    expect(selected.disabled).toBe(true);
   });
 
   it('loads and posts comments inside the editor when comment_us is granted', async () => {

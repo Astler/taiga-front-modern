@@ -29,7 +29,7 @@ export type KanbanTaskResult = 'updated' | 'failed' | 'uncertain';
 export type KanbanStoryDetailStatus = 'idle' | 'loading' | 'loaded' | 'error';
 
 export interface KanbanMutation {
-  readonly kind: 'attachment' | 'comment' | 'create' | 'delete' | 'move' | 'task' | 'update';
+  readonly kind: 'attachment' | 'comment' | 'create' | 'delete' | 'move' | 'points' | 'task' | 'update';
   readonly storyIds: readonly TaigaId[];
 }
 
@@ -506,6 +506,62 @@ export class KanbanStore {
         this.storyHistoryLoadingState.set(false);
       },
     });
+  }
+
+  async updateStoryPoints(
+    projectId: TaigaId,
+    storyId: TaigaId,
+    points: Readonly<Record<string, TaigaId>>,
+  ): Promise<KanbanUpdateResult> {
+    if (
+      this.projectIdState() !== projectId ||
+      this.selectedStoryState()?.id !== storyId ||
+      this.isMutating() ||
+      this.refreshingState() ||
+      this.requiresReconciliationState()
+    ) return 'failed';
+
+    const revision = ++this.mutationRevision;
+    const version = this.selectedStoryState()?.version;
+    this.mutationState.set({ kind: 'points', storyIds: [storyId] });
+    this.mutationErrorState.set(null);
+    try {
+      const updated = await firstValueFrom(this.api.updateStoryPoints(storyId, points, version));
+      if (!this.isCurrentMutation(revision, projectId) ||
+          this.selectedStoryState()?.id !== storyId) return 'failed';
+
+      const merge = (story: KanbanUserStory): KanbanUserStory => ({
+        ...story,
+        points: updated.points ?? points,
+        total_points: updated.total_points === undefined ? story.total_points : updated.total_points,
+        version: updated.version ?? story.version,
+        modified_date: updated.modified_date ?? story.modified_date,
+      });
+      this.userStoriesState.update((stories) =>
+        stories.map((story) => story.id === storyId ? merge(story) : story),
+      );
+      this.selectedStoryState.update((story) => story ? merge(story) : story);
+      this.lastSyncedAtState.set(new Date());
+      this.mutationState.set(null);
+      return 'updated';
+    } catch (error: unknown) {
+      if (!this.isCurrentMutation(revision, projectId)) return 'failed';
+      this.mutationState.set(null);
+      if (isAmbiguousMutationFailure(error)) {
+        this.requiresReconciliationState.set(true);
+        this.mutationErrorState.set(
+          'Taiga did not confirm the estimation. The board is syncing before another change.',
+        );
+        this.refresh();
+        return 'uncertain';
+      }
+      this.mutationErrorState.set(
+        error instanceof HttpErrorResponse && error.status === 409
+          ? 'This story changed elsewhere. Reopen it before changing points.'
+          : 'Story points could not be saved. Please try again.',
+      );
+      return 'failed';
+    }
   }
 
   async addStoryComment(

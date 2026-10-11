@@ -113,6 +113,7 @@ const SORT_OPTIONS: readonly SortOption[] = [
     './kanban-story-drawer.scss',
     './kanban-task-editor.scss',
     './kanban-comment-editor.scss',
+    './kanban-points-editor.scss',
   ],
   templateUrl: './kanban-board.html',
 })
@@ -242,6 +243,16 @@ export class KanbanBoard {
     [...(this.project().members ?? [])].sort((a, b) =>
       this.assigneeName(a).localeCompare(this.assigneeName(b)),
     ),
+  );
+
+  protected readonly estimationRoles = computed(() =>
+    [...(this.project().roles ?? [])]
+      .filter(({ computable }) => computable !== false)
+      .sort((a, b) => a.name.localeCompare(b.name)),
+  );
+
+  protected readonly estimationOptions = computed(() =>
+    [...(this.project().points ?? [])].sort((a, b) => a.order - b.order),
   );
 
   protected readonly editorTags = computed(() => {
@@ -930,6 +941,32 @@ export class KanbanBoard {
         ].find((candidate) => candidate.dataset['storyDetailsTrigger'] === String(storyId));
         trigger?.focus();
       });
+    }
+  }
+
+  protected pointsForRole(story: KanbanUserStory, roleId: TaigaId): TaigaId | null {
+    return story.points?.[String(roleId)] ?? null;
+  }
+
+  protected async changeRolePoints(
+    story: KanbanUserStory,
+    roleId: TaigaId,
+    event: Event,
+  ): Promise<void> {
+    const input = event.target as HTMLSelectElement;
+    const optionId = Number(input.value);
+    if (!this.canModify() ||
+      !this.estimationRoles().some(({ id }) => id === roleId) ||
+      !this.estimationOptions().some(({ id }) => id === optionId)) return;
+
+    const current = this.store.selectedStory();
+    if (!current || current.id !== story.id) return;
+
+    const projectId = this.project().id;
+    const points = { ...current.points, [String(roleId)]: optionId };
+    const result = await this.store.updateStoryPoints(projectId, story.id, points);
+    if (result !== 'updated') {
+      input.value = String(this.pointsForRole(story, roleId) ?? '');
     }
   }
 

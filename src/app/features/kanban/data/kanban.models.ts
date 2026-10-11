@@ -10,12 +10,27 @@ export interface KanbanStatus {
   readonly wip_limit?: number | null;
 }
 
+export interface KanbanProjectPoint {
+  readonly id: TaigaId;
+  readonly name: string;
+  readonly value: number | null;
+  readonly order: number;
+}
+
+export interface KanbanProjectRole {
+  readonly id: TaigaId;
+  readonly name: string;
+  readonly computable?: boolean;
+}
+
 export interface KanbanProjectSnapshot {
   readonly id: TaigaId;
   readonly name: string;
   readonly slug: string;
   readonly us_statuses: readonly KanbanStatus[];
   readonly members?: readonly KanbanAssignee[];
+  readonly points?: readonly KanbanProjectPoint[];
+  readonly roles?: readonly KanbanProjectRole[];
   readonly my_permissions?: readonly string[];
   readonly archived_code?: string | null;
   readonly blocked_code?: string | null;
@@ -109,6 +124,7 @@ export interface KanbanUserStory {
   readonly created_date?: string;
   readonly modified_date?: string;
   readonly total_points?: number | null;
+  readonly points?: Readonly<Record<string, TaigaId>>;
   readonly due_date?: string | null;
   readonly due_date_reason?: string;
   readonly milestone?: TaigaId | null;

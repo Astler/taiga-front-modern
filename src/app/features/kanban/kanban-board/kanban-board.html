@@ -754,6 +754,34 @@
               </div>
             </div>
 
+            @if (estimationRoles().length && estimationOptions().length) {
+              <fieldset class="editor-choice-group story-estimation">
+                <legend>Story Points by role</legend>
+                <div class="story-estimation-grid">
+                  @for (role of estimationRoles(); track role.id) {
+                    <label class="story-estimation-role">
+                      <span>{{ role.name }}</span>
+                      <select
+                        [attr.aria-label]="'Points for ' + role.name"
+                        [value]="pointsForRole(detail, role.id) ?? ''"
+                        [disabled]="!canModify() || store.isMutating() ||
+                          store.isRefreshing() || store.requiresReconciliation()"
+                        (change)="changeRolePoints(detail, role.id, $event)"
+                      >
+                        <option value="" disabled>Select estimate</option>
+                        @for (point of estimationOptions(); track point.id) {
+                          <option [value]="point.id">
+                            {{ point.value === null ? 'Not estimated' : point.name }}
+                          </option>
+                        }
+                      </select>
+                    </label>
+                  }
+                </div>
+                <small>Estimates are saved to Taiga for each project role.</small>
+              </fieldset>
+            }
+
             <fieldset class="editor-choice-group" [disabled]="!canModify()">
               <legend>Assignees</legend>
               <div class="editor-choice-list">

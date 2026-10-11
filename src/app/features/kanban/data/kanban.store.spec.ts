@@ -41,6 +41,7 @@ describe('KanbanStore', () => {
     deleteTask: ReturnType<typeof vi.fn<(taskId: number) => Observable<void>>>;
     getStoryHistory: ReturnType<typeof vi.fn<(storyId: number) => Observable<any[]>>>;
     addStoryComment: ReturnType<typeof vi.fn<(storyId: number, comment: string, version?: number) => Observable<KanbanUserStory>>>;
+    updateStoryPoints: ReturnType<typeof vi.fn<(storyId: number, points: Readonly<Record<string, number>>, version?: number) => Observable<KanbanUserStory>>>;
   };
   let store: KanbanStore;
 
@@ -60,6 +61,7 @@ describe('KanbanStore', () => {
       deleteTask: vi.fn(),
       getStoryHistory: vi.fn(),
       addStoryComment: vi.fn(),
+      updateStoryPoints: vi.fn(),
     };
     TestBed.configureTestingModule({
       providers: [KanbanStore, { provide: KanbanApiService, useValue: api }],
@@ -294,6 +296,42 @@ describe('KanbanStore', () => {
     await expect(store.deleteTask(17, 1, 9)).resolves.toBe('failed');
     expect(store.userStories()[0]?.tasks?.[0]?.subject).toBe('Keep me');
     expect(store.mutationError()).toContain('permission');
+  });
+
+  it('updates estimates by role with optimistic concurrency without editing other fields', async () => {
+    const story = {
+      ...userStory(1, 1),
+      points: { '8': 4 },
+      total_points: null,
+      version: 4,
+    };
+    api.load.mockReturnValue(of({ swimlanes: [], userStories: [story] }));
+    api.getUserStory.mockReturnValue(of(story));
+    api.updateStoryPoints.mockReturnValue(of({
+      ...story, points: { '8': 5 }, total_points: 3, version: 5,
+    }));
+    store.load(17);
+    store.openStoryDetails(1);
+    await expect(store.updateStoryPoints(17, 1, { '8': 5 })).resolves.toBe('updated');
+    expect(api.updateStoryPoints).toHaveBeenCalledWith(1, { '8': 5 }, 4);
+    expect(store.selectedStory()?.points).toEqual({ '8': 5 });
+    expect(store.selectedStory()?.total_points).toBe(3);
+    expect(store.userStories()[0]?.total_points).toBe(3);
+    expect(store.selectedStory()?.version).toBe(5);
+  });
+
+  it('does not change a role estimate when Taiga rejects the version', async () => {
+    const story = { ...userStory(1, 1), points: { '8': 4 }, version: 4 };
+    api.load.mockReturnValue(of({ swimlanes: [], userStories: [story] }));
+    api.getUserStory.mockReturnValue(of(story));
+    api.updateStoryPoints.mockReturnValue(throwError(() =>
+      new HttpErrorResponse({ status: 409, statusText: 'Conflict' }),
+    ));
+    store.load(17);
+    store.openStoryDetails(1);
+    await expect(store.updateStoryPoints(17, 1, { '8': 5 })).resolves.toBe('failed');
+    expect(store.selectedStory()?.points).toEqual({ '8': 4 });
+    expect(store.mutationError()).toContain('changed elsewhere');
   });
 
   it('loads visible story comments and appends a comment without changing the story draft', async () => {

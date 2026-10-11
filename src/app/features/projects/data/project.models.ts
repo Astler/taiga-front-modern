@@ -22,11 +22,26 @@ export interface TaigaUserStoryStatus {
   readonly slug?: string;
 }
 
+export interface TaigaProjectPoint {
+  readonly id: TaigaId;
+  readonly name: string;
+  readonly value: number | null;
+  readonly order: number;
+}
+
+export interface TaigaProjectRole {
+  readonly id: TaigaId;
+  readonly name: string;
+  readonly computable?: boolean;
+}
+
 export type TaigaTagColors = Readonly<Record<string, string | null>>;
 
 export interface TaigaProjectDetail extends TaigaProjectListItem {
   readonly members: readonly TaigaProjectMember[];
   readonly us_statuses: readonly TaigaUserStoryStatus[];
+  readonly points?: readonly TaigaProjectPoint[];
+  readonly roles?: readonly TaigaProjectRole[];
   readonly tags: readonly string[];
   readonly tags_colors: TaigaTagColors;
 }

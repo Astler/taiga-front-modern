@@ -1,0 +1,50 @@
+.story-estimation {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.story-estimation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.story-estimation-role {
+  display: grid;
+  min-width: 0;
+  gap: 0.35rem;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-medium);
+}
+
+.story-estimation-role select {
+  width: 100%;
+  min-height: 2.5rem;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-md);
+  background: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
+  padding-inline: 0.65rem;
+  font: var(--mat-sys-body-medium);
+}
+
+.story-estimation-role select:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 1px;
+}
+
+.story-estimation-role select:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.story-estimation > small {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+
+@media (max-width: 599px) {
+  .story-estimation-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

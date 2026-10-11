@@ -138,6 +138,22 @@ describe('KanbanApiService', () => {
     await expect(deletion).resolves.toBeUndefined();
   });
 
+  it('updates estimation using role-to-point ID mapping and story version', async () => {
+    const patch = firstValueFrom(service.updateStoryPoints(101, { '8': 5, '9': 3 }, 4));
+    const request = httpTesting.expectOne('/api/v1/userstories/101');
+    expect(request.request.method).toBe('PATCH');
+    expect(request.request.body).toEqual({
+      points: { '8': 5, '9': 3 }, version: 4,
+    });
+    request.flush({
+      ...userStory(101),
+      points: { '8': 5, '9': 3 },
+      total_points: 8,
+      version: 5,
+    });
+    expect((await patch).total_points).toBe(8);
+  });
+
   it('loads story history and posts a comment without changing unrelated story fields', async () => {
     const entries = [
       { id: 'comment-1', comment: 'Useful note', user: { name: 'Ada' } },

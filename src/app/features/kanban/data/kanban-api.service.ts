@@ -138,6 +138,17 @@ export class KanbanApiService {
     );
   }
 
+  updateStoryPoints(
+    storyId: TaigaId,
+    points: Readonly<Record<string, TaigaId>>,
+    version?: number,
+  ): Observable<KanbanUserStory> {
+    return this.http.patch<KanbanUserStory>(
+      `${this.config.resolveApiPath('userstories')}/${storyId}`,
+      { points, ...(version === undefined ? {} : { version }) },
+    );
+  }
+
   addStoryComment(
     storyId: TaigaId,
     comment: string,
