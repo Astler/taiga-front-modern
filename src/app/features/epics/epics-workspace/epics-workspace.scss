@@ -90,13 +90,6 @@
   font-weight: 700;
 }
 
-.epic-toolbar-divider {
-  width: 1px;
-  height: 1.6rem;
-  flex: 0 0 1px;
-  background: var(--app-border-color);
-}
-
 .epic-toolbar-icon {
   display: grid;
   position: relative;
@@ -122,25 +115,6 @@
 .epic-toolbar-icon.epic-toolbar-active {
   border-color: color-mix(in srgb, var(--mat-sys-primary) 58%, var(--app-border-color));
   color: var(--mat-sys-primary);
-}
-
-.epic-sort-dot {
-  position: absolute;
-  top: 0.25rem;
-  right: 0.25rem;
-  width: 0.42rem;
-  height: 0.42rem;
-  border: 1px solid var(--mat-sys-surface-container);
-  border-radius: 50%;
-  background: var(--mat-sys-primary);
-}
-
-.epic-menu-check {
-  display: inline-grid;
-  width: 1.25rem;
-  place-items: center;
-  color: var(--mat-sys-primary);
-  font-weight: 750;
 }
 
 .epic-filter-badge {
@@ -588,8 +562,7 @@ time {
     padding-inline: 0.625rem;
   }
 
-  .epics-count,
-  .epic-toolbar-divider {
+  .epics-count {
     display: none;
   }
 
