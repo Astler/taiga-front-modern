@@ -129,6 +129,7 @@
         <div class="issue-upload-actions">
           <button type="button" (click)="retryNewIssueUpload()">Retry uploads</button>
           <button type="button" (click)="openIssue(upload.issue)">Open issue #{{ upload.issue.ref }}</button>
+          <button type="button" (click)="discardFailedNewIssueUploads()">Discard pending files</button>
         </div>
       }
     </div>
