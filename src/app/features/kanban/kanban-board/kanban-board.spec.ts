@@ -32,6 +32,8 @@ describe('KanbanBoard', () => {
   const createTask = vi.fn();
   const updateTask = vi.fn();
   const deleteTask = vi.fn();
+  const getStoryHistory = vi.fn();
+  const addStoryComment = vi.fn();
   const loadPresets = vi.fn();
   const savePresets = vi.fn();
   const fullscreenPreference = signal(false);
@@ -58,6 +60,13 @@ describe('KanbanBoard', () => {
     createTask.mockReturnValue(of({ id: 322, subject: 'New task', status: 1, is_closed: false }));
     updateTask.mockReturnValue(of({ id: 321, subject: 'Renamed task', status: 2, is_closed: true }));
     deleteTask.mockReturnValue(of(undefined));
+    getStoryHistory.mockReset();
+    addStoryComment.mockReset();
+    getStoryHistory.mockReturnValue(of([]));
+    addStoryComment.mockImplementation((storyId, comment) => of({
+      ...stories().find(({ id }) => id === storyId)!,
+      total_comments: 1,
+    }));
     loadPresets.mockReset();
     savePresets.mockReset();
     load.mockReturnValue(of({ swimlanes: [], userStories: stories() }));
@@ -103,6 +112,8 @@ describe('KanbanBoard', () => {
             createTask,
             updateTask,
             deleteTask,
+            getStoryHistory,
+            addStoryComment,
           },
         },
         {
@@ -448,6 +459,61 @@ describe('KanbanBoard', () => {
     expect(host.querySelector('.task-add-button')).toBeNull();
     expect(host.querySelector('.task-delete-button')).toBeNull();
     expect(host.querySelector('.detail-task-row select')).toBeNull();
+  });
+
+  it('loads and posts comments inside the editor when comment_us is granted', async () => {
+    getStoryHistory.mockReturnValueOnce(of([
+      { id: 'old', comment: 'Nice work', user: { name: 'Grace' } },
+    ])).mockReturnValueOnce(of([
+      { id: 'old', comment: 'Nice work', user: { name: 'Grace' } },
+      { id: 'new', comment: 'Looks done', user: { name: 'Ada' } },
+    ]));
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', {
+      ...project(), my_permissions: ['modify_us', 'comment_us'],
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    host.querySelector<HTMLButtonElement>('.story-subject')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(host.querySelector('.story-comments-list')?.textContent).toContain('Nice work');
+    const textarea = host.querySelector<HTMLTextAreaElement>('.story-comment-form textarea')!;
+    setControlValue(textarea, 'Looks done', 'input');
+    fixture.detectChanges();
+    host.querySelector<HTMLFormElement>('.story-comment-form')!.dispatchEvent(
+      new Event('submit', { bubbles: true, cancelable: true }),
+    );
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(addStoryComment).toHaveBeenCalledWith(101, 'Looks done', undefined);
+    expect(host.querySelector('.story-comments-list')?.textContent).toContain('Looks done');
+    expect(textarea.value).toBe('');
+  });
+
+  it('renders existing comments read-only without comment_us permission', async () => {
+    getStoryHistory.mockReturnValue(of([
+      { id: 'old', comment: 'Read-only comment', user: { name: 'Grace' } },
+    ]));
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', {
+      ...project(), my_permissions: [],
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    host.querySelector<HTMLButtonElement>('.story-subject')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(host.querySelector('.story-comments-list')?.textContent).toContain('Read-only comment');
+    expect(host.querySelector('.story-comment-form')).toBeNull();
   });
 
   it('saves story edits from the modern drawer without an external editor', async () => {

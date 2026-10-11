@@ -39,6 +39,8 @@ describe('KanbanStore', () => {
     createTask: ReturnType<typeof vi.fn<(projectId: number, storyId: number, subject: string) => Observable<any>>>;
     updateTask: ReturnType<typeof vi.fn<(taskId: number, changes: any, version?: number) => Observable<any>>>;
     deleteTask: ReturnType<typeof vi.fn<(taskId: number) => Observable<void>>>;
+    getStoryHistory: ReturnType<typeof vi.fn<(storyId: number) => Observable<any[]>>>;
+    addStoryComment: ReturnType<typeof vi.fn<(storyId: number, comment: string, version?: number) => Observable<KanbanUserStory>>>;
   };
   let store: KanbanStore;
 
@@ -56,6 +58,8 @@ describe('KanbanStore', () => {
       createTask: vi.fn(),
       updateTask: vi.fn(),
       deleteTask: vi.fn(),
+      getStoryHistory: vi.fn(),
+      addStoryComment: vi.fn(),
     };
     TestBed.configureTestingModule({
       providers: [KanbanStore, { provide: KanbanApiService, useValue: api }],
@@ -290,6 +294,54 @@ describe('KanbanStore', () => {
     await expect(store.deleteTask(17, 1, 9)).resolves.toBe('failed');
     expect(store.userStories()[0]?.tasks?.[0]?.subject).toBe('Keep me');
     expect(store.mutationError()).toContain('permission');
+  });
+
+  it('loads visible story comments and appends a comment without changing the story draft', async () => {
+    const original = { ...userStory(1, 1), version: 3, total_comments: 1 };
+    api.load.mockReturnValue(of({ swimlanes: [], userStories: [original] }));
+    api.getUserStory.mockReturnValue(of(original));
+    api.getStoryHistory.mockReturnValueOnce(of([
+      { id: 'a', comment: 'Original', user: { name: 'Ada' } },
+      { id: 'b', comment: '', user: { name: 'Bot' } },
+      { id: 'c', comment: 'Deleted', is_comment_deleted: true },
+    ])).mockReturnValueOnce(of([
+      { id: 'a', comment: 'Original', user: { name: 'Ada' } },
+      { id: 'd', comment: 'New message', user: { name: 'Grace' } },
+    ]));
+    api.addStoryComment.mockReturnValue(of({
+      ...original, version: 4, total_comments: 2,
+    }));
+    store.load(17);
+    store.openStoryDetails(1);
+    store.loadStoryHistory(1);
+
+    expect(store.storyComments().map(({ id }) => id)).toEqual(['a']);
+    await expect(store.addStoryComment(17, 1, 'New message')).resolves.toBe('updated');
+    expect(api.addStoryComment).toHaveBeenCalledWith(1, 'New message', 3);
+    expect(store.storyComments().map(({ id }) => id)).toEqual(['a', 'd']);
+    expect(store.selectedStory()?.total_comments).toBe(2);
+    expect(store.selectedStory()?.version).toBe(4);
+    expect(store.mutationError()).toBeNull();
+  });
+
+  it('keeps a comment visible after a failed post and ignores stale history', async () => {
+    const first = userStory(1, 1);
+    api.load.mockReturnValue(of({ swimlanes: [], userStories: [first] }));
+    api.getUserStory.mockReturnValue(of(first));
+    const delayed = new Subject<any[]>();
+    api.getStoryHistory.mockReturnValue(delayed);
+    api.addStoryComment.mockReturnValue(throwError(
+      () => new HttpErrorResponse({ status: 403, statusText: 'Forbidden' }),
+    ));
+    store.load(17);
+    store.openStoryDetails(1);
+    store.loadStoryHistory(1);
+    await expect(store.addStoryComment(17, 1, 'Not allowed')).resolves.toBe('failed');
+    expect(store.mutationError()).toContain('permission');
+    store.closeStoryDetails();
+    delayed.next([{ id: 'stale', comment: 'Old comment' }]);
+    delayed.complete();
+    expect(store.storyComments()).toEqual([]);
   });
 
   it('adds and removes attachments in both the board and open editor', async () => {

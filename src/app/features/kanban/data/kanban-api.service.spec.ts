@@ -138,6 +138,24 @@ describe('KanbanApiService', () => {
     await expect(deletion).resolves.toBeUndefined();
   });
 
+  it('loads story history and posts a comment without changing unrelated story fields', async () => {
+    const entries = [
+      { id: 'comment-1', comment: 'Useful note', user: { name: 'Ada' } },
+    ];
+    const history = firstValueFrom(service.getStoryHistory(101));
+    const historyRequest = httpTesting.expectOne('/api/v1/history/userstory/101');
+    expect(historyRequest.request.method).toBe('GET');
+    historyRequest.flush(entries);
+    expect(await history).toEqual(entries);
+
+    const posted = firstValueFrom(service.addStoryComment(101, 'Next steps', 7));
+    const request = httpTesting.expectOne('/api/v1/userstories/101');
+    expect(request.request.method).toBe('PATCH');
+    expect(request.request.body).toEqual({ comment: 'Next steps', version: 7 });
+    request.flush({ ...userStory(101), total_comments: 2, version: 8 });
+    expect((await posted).total_comments).toBe(2);
+  });
+
   it('deletes a user story by numeric Taiga ID, not its display reference', async () => {
     const promise = firstValueFrom(service.deleteUserStory(101));
     const request = httpTesting.expectOne('/api/v1/userstories/101');

@@ -1,0 +1,140 @@
+.story-comments {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.story-comments-list {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.story-comment {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 0.75rem;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-lg);
+  background: var(--mat-sys-surface-container-high);
+  padding: 0.75rem;
+}
+
+.story-comment-avatar {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 2.25rem;
+  overflow: hidden;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+  font: var(--mat-sys-label-small);
+  font-weight: 750;
+}
+
+.story-comment-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.story-comment-copy {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 0.375rem;
+}
+
+.story-comment-meta {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.story-comment-meta strong {
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-label-large);
+  font-weight: 700;
+}
+
+.story-comment-meta time {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-small);
+}
+
+.story-comment-text {
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-medium);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.story-comments-state {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+  padding: 0.5rem 0;
+}
+
+.story-comments-error {
+  color: var(--mat-sys-error);
+}
+
+.story-comments-error button {
+  border: 0;
+  background: transparent;
+  color: var(--mat-sys-primary);
+  cursor: pointer;
+  font: inherit;
+  text-decoration: underline;
+}
+
+.story-comment-form {
+  display: grid;
+  justify-items: end;
+  gap: 0.55rem;
+}
+
+.story-comment-form label {
+  width: 100%;
+}
+
+.story-comment-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-md);
+  outline: 0;
+  background: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
+  padding: 0.75rem 0.85rem;
+  font: var(--mat-sys-body-medium);
+  line-height: 1.5;
+}
+
+.story-comment-form textarea:focus-visible {
+  border-color: var(--mat-sys-primary);
+}
+
+.story-comment-form button[type='submit'] {
+  min-height: 2.35rem;
+  border: 0;
+  border-radius: var(--app-radius-full);
+  background: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
+  cursor: pointer;
+  padding: 0.4rem 1rem;
+  font: var(--mat-sys-label-medium);
+  font-weight: 700;
+}
+
+.story-comment-form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

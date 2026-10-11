@@ -73,6 +73,23 @@ export interface KanbanAttachmentSummary {
   readonly created_date?: string;
 }
 
+export interface KanbanStoryHistoryEntry {
+  readonly id?: string | number;
+  readonly key?: string;
+  readonly comment?: string | null;
+  readonly created_at?: string;
+  readonly created_date?: string;
+  readonly is_comment_deleted?: boolean;
+  readonly is_hidden?: boolean;
+  readonly user?: {
+    readonly id?: TaigaId;
+    readonly name?: string;
+    readonly username?: string;
+    readonly full_name_display?: string;
+    readonly photo?: string | null;
+  };
+}
+
 export interface KanbanUserStory {
   readonly id: TaigaId;
   readonly ref: number;

@@ -17,6 +17,7 @@ import type {
   KanbanTaskSummary,
   KanbanTaskStatus,
   KanbanTaskUpdate,
+  KanbanStoryHistoryEntry,
 } from './kanban.models';
 
 export interface KanbanPayload {
@@ -129,6 +130,23 @@ export class KanbanApiService {
 
   deleteTask(taskId: TaigaId): Observable<void> {
     return this.http.delete<void>(`${this.config.resolveApiPath('tasks')}/${taskId}`);
+  }
+
+  getStoryHistory(storyId: TaigaId): Observable<readonly KanbanStoryHistoryEntry[]> {
+    return this.http.get<readonly KanbanStoryHistoryEntry[]>(
+      `${this.config.resolveApiPath('history/userstory')}/${storyId}`,
+    );
+  }
+
+  addStoryComment(
+    storyId: TaigaId,
+    comment: string,
+    version?: number,
+  ): Observable<KanbanUserStory> {
+    return this.http.patch<KanbanUserStory>(
+      `${this.config.resolveApiPath('userstories')}/${storyId}`,
+      { comment, ...(version === undefined ? {} : { version }) },
+    );
   }
 
   deleteUserStory(storyId: TaigaId): Observable<void> {

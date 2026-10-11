@@ -1030,6 +1030,70 @@
             }
           </section>
 
+          <section class="detail-section story-comments" aria-label="Story comments">
+            <div class="detail-section-heading">
+              <h3>Comments</h3>
+              <span>{{ store.storyComments().length }} shown</span>
+            </div>
+            @if (store.storyHistoryLoading()) {
+              <div class="story-comments-state" role="status">Loading comments…</div>
+            } @else if (store.storyHistoryError(); as error) {
+              <div class="story-comments-state story-comments-error" role="status">
+                {{ error }}
+                <button type="button" (click)="store.loadStoryHistory(detail.id)">Retry</button>
+              </div>
+            } @else {
+              <ul class="story-comments-list">
+                @for (entry of store.storyComments(); track entry.id ?? entry.key ?? $index) {
+                  <li class="story-comment">
+                    <span class="story-comment-avatar" aria-hidden="true">
+                      @if (entry.user?.photo) {
+                        <img [src]="entry.user?.photo" alt="" />
+                      } @else {
+                        {{ commentInitials(entry) }}
+                      }
+                    </span>
+                    <span class="story-comment-copy">
+                      <span class="story-comment-meta">
+                        <strong>{{ commentAuthor(entry) }}</strong>
+                        @if (entry.created_at || entry.created_date) {
+                          <time [attr.datetime]="entry.created_at || entry.created_date">
+                            {{ formatTimestamp(entry.created_at || entry.created_date) }}
+                          </time>
+                        }
+                      </span>
+                      <span class="story-comment-text">{{ entry.comment }}</span>
+                    </span>
+                  </li>
+                } @empty {
+                  <li class="story-comments-state">No comments yet.</li>
+                }
+              </ul>
+            }
+            @if (canComment()) {
+              <form class="story-comment-form" (submit)="postStoryComment($event)">
+                <label>
+                  <span class="visually-hidden">Write a story comment</span>
+                  <textarea
+                    rows="3"
+                    maxlength="10000"
+                    placeholder="Write a comment…"
+                    [disabled]="store.isMutating() || store.isRefreshing() || store.requiresReconciliation()"
+                    [value]="commentDraft()"
+                    (input)="updateCommentDraft($event)"
+                  ></textarea>
+                </label>
+                <button
+                  type="submit"
+                  [disabled]="!commentDraft().trim() ||
+                    store.isMutating() || store.isRefreshing() || store.requiresReconciliation()"
+                >
+                  {{ store.mutation()?.kind === 'comment' ? 'Posting…' : 'Post comment' }}
+                </button>
+              </form>
+            }
+          </section>
+
           <section class="detail-section detail-dates">
             <h3>Activity</h3>
             <p>Created {{ formatTimestamp(detail.created_date) }}</p>

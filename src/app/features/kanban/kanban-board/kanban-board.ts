@@ -27,6 +27,7 @@ import {
   type KanbanAttachmentSummary,
   type KanbanAssignee,
   type KanbanTaskSummary,
+  type KanbanStoryHistoryEntry,
   type KanbanFilterCategory,
   type KanbanFilterClause,
   type KanbanFilterMode,
@@ -111,6 +112,7 @@ const SORT_OPTIONS: readonly SortOption[] = [
     './kanban-filter-panel.scss',
     './kanban-story-drawer.scss',
     './kanban-task-editor.scss',
+    './kanban-comment-editor.scss',
   ],
   templateUrl: './kanban-board.html',
 })
@@ -149,6 +151,7 @@ export class KanbanBoard {
   protected readonly activeStory = signal<KanbanUserStory | null>(null);
   protected readonly storyDraft = signal<StoryEditorDraft | null>(null);
   protected readonly storyDraftDirty = signal(false);
+  protected readonly commentDraft = signal('');
   protected readonly taskCreateOpen = signal(false);
   protected readonly taskNewSubject = signal('');
   protected readonly taskEditingId = signal<TaigaId | null>(null);
@@ -174,6 +177,11 @@ export class KanbanBoard {
       (this.project().my_permissions ?? []).includes('modify_us') &&
       !this.project().archived_code &&
       !this.project().blocked_code,
+  );
+
+  protected readonly canComment = computed(
+    () => (this.project().my_permissions ?? []).includes('comment_us') &&
+      !this.project().archived_code && !this.project().blocked_code,
   );
 
   protected readonly canCreateTasks = computed(
@@ -889,6 +897,7 @@ export class KanbanBoard {
   }
 
   protected openStoryDetails(story: KanbanUserStory): void {
+    this.commentDraft.set('');
     this.resetTaskEditor();
     this.store.loadTaskStatuses(this.project().id);
     // Each new story uses the profile preference. Manual expansion stays local to the open card.
@@ -896,6 +905,7 @@ export class KanbanBoard {
     this.storyDraft.set(storyDraftFrom(story));
     this.storyDraftDirty.set(false);
     this.store.openStoryDetails(story.id);
+    this.store.loadStoryHistory(story.id);
   }
 
   protected toggleEditorFullscreen(): void {
@@ -904,6 +914,7 @@ export class KanbanBoard {
   }
 
   protected closeStoryDetails(): void {
+    this.commentDraft.set('');
     this.resetTaskEditor();
     this.editorLayoutOverride.set(null);
     const storyId = this.store.selectedStory()?.id;
@@ -920,6 +931,35 @@ export class KanbanBoard {
         trigger?.focus();
       });
     }
+  }
+
+  protected updateCommentDraft(event: Event): void {
+    this.commentDraft.set((event.target as HTMLTextAreaElement).value);
+  }
+
+  protected async postStoryComment(event: Event): Promise<void> {
+    event.preventDefault();
+    const story = this.store.selectedStory();
+    const comment = this.commentDraft().trim();
+    if (!story || !comment || !this.canComment()) return;
+
+    const projectId = this.project().id;
+    const result = await this.store.addStoryComment(projectId, story.id, comment);
+    if (projectId !== this.project().id || this.store.selectedStory()?.id !== story.id) return;
+    if (result === 'updated') {
+      this.commentDraft.set('');
+      this.liveAnnouncement.set(`Comment added to story #${story.ref}.`);
+    }
+  }
+
+  protected commentAuthor(entry: KanbanStoryHistoryEntry): string {
+    return entry.user?.name || entry.user?.full_name_display ||
+      entry.user?.username || 'Taiga user';
+  }
+
+  protected commentInitials(entry: KanbanStoryHistoryEntry): string {
+    return this.commentAuthor(entry).split(/\s+/).filter(Boolean)
+      .slice(0, 2).map((part) => part[0]).join('').toUpperCase() || '?';
   }
 
   protected openTaskCreate(): void {

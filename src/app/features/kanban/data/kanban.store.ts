@@ -16,6 +16,7 @@ import type {
   KanbanTaskSummary,
   KanbanTaskStatus,
   KanbanTaskUpdate,
+  KanbanStoryHistoryEntry,
 } from './kanban.models';
 
 export type KanbanLoadStatus = 'idle' | 'loading' | 'loaded' | 'error';
@@ -28,7 +29,7 @@ export type KanbanTaskResult = 'updated' | 'failed' | 'uncertain';
 export type KanbanStoryDetailStatus = 'idle' | 'loading' | 'loaded' | 'error';
 
 export interface KanbanMutation {
-  readonly kind: 'attachment' | 'create' | 'delete' | 'move' | 'task' | 'update';
+  readonly kind: 'attachment' | 'comment' | 'create' | 'delete' | 'move' | 'task' | 'update';
   readonly storyIds: readonly TaigaId[];
 }
 
@@ -53,6 +54,10 @@ export class KanbanStore {
   private readonly selectedStoryState = signal<KanbanUserStory | null>(null);
   private readonly selectedStoryStatusState = signal<KanbanStoryDetailStatus>('idle');
   private readonly selectedStoryErrorState = signal<string | null>(null);
+  private readonly storyHistoryState = signal<readonly KanbanStoryHistoryEntry[]>([]);
+  private readonly storyHistoryLoadingState = signal(false);
+  private readonly storyHistoryErrorState = signal<string | null>(null);
+  private historyRevision = 0;
   private requestRevision = 0;
   private mutationRevision = 0;
   private storyDetailRevision = 0;
@@ -73,6 +78,13 @@ export class KanbanStore {
   readonly selectedStory = this.selectedStoryState.asReadonly();
   readonly selectedStoryStatus = this.selectedStoryStatusState.asReadonly();
   readonly selectedStoryError = this.selectedStoryErrorState.asReadonly();
+  readonly storyHistory = this.storyHistoryState.asReadonly();
+  readonly storyComments = computed(() =>
+    this.storyHistoryState().filter(({ comment, is_comment_deleted, is_hidden }) =>
+      typeof comment === 'string' && comment.trim() && !is_comment_deleted && !is_hidden),
+  );
+  readonly storyHistoryLoading = this.storyHistoryLoadingState.asReadonly();
+  readonly storyHistoryError = this.storyHistoryErrorState.asReadonly();
   readonly isLoading = computed(() => this.statusState() === 'loading');
   readonly isMutating = computed(() => this.mutationState() !== null);
 
@@ -472,6 +484,97 @@ export class KanbanStore {
     }
   }
 
+  loadStoryHistory(storyId: TaigaId): void {
+    const projectId = this.projectIdState();
+    if (projectId === null || this.selectedStoryState()?.id !== storyId) return;
+
+    const revision = ++this.historyRevision;
+    this.storyHistoryState.set([]);
+    this.storyHistoryErrorState.set(null);
+    this.storyHistoryLoadingState.set(true);
+    this.api.getStoryHistory(storyId).subscribe({
+      next: (entries) => {
+        if (revision !== this.historyRevision || this.projectIdState() !== projectId ||
+            this.selectedStoryState()?.id !== storyId) return;
+        this.storyHistoryState.set(Array.isArray(entries) ? entries : []);
+        this.storyHistoryLoadingState.set(false);
+      },
+      error: () => {
+        if (revision !== this.historyRevision || this.projectIdState() !== projectId ||
+            this.selectedStoryState()?.id !== storyId) return;
+        this.storyHistoryErrorState.set('Comments could not be loaded.');
+        this.storyHistoryLoadingState.set(false);
+      },
+    });
+  }
+
+  async addStoryComment(
+    projectId: TaigaId,
+    storyId: TaigaId,
+    comment: string,
+  ): Promise<KanbanUpdateResult> {
+    if (
+      this.projectIdState() !== projectId ||
+      this.selectedStoryState()?.id !== storyId ||
+      !comment.trim() ||
+      this.isMutating() ||
+      this.refreshingState() ||
+      this.requiresReconciliationState()
+    ) {
+      return 'failed';
+    }
+
+    const revision = ++this.mutationRevision;
+    this.mutationState.set({ kind: 'comment', storyIds: [storyId] });
+    this.mutationErrorState.set(null);
+    try {
+      const detail = this.selectedStoryState();
+      const updated = await firstValueFrom(this.api.addStoryComment(
+        storyId,
+        comment.trim(),
+        detail?.version,
+      ));
+      if (!this.isCurrentMutation(revision, projectId) ||
+          this.selectedStoryState()?.id !== storyId) return 'failed';
+
+      const patch = (story: KanbanUserStory): KanbanUserStory => ({
+        ...story,
+        version: updated.version ?? story.version,
+        modified_date: updated.modified_date ?? story.modified_date,
+        total_comments: updated.total_comments ?? (story.total_comments ?? 0) + 1,
+      });
+      this.userStoriesState.update((stories) =>
+        stories.map((story) => story.id === storyId ? patch(story) : story),
+      );
+      this.selectedStoryState.update((story) => story ? patch(story) : story);
+      this.lastSyncedAtState.set(new Date());
+      this.mutationState.set(null);
+      this.loadStoryHistory(storyId);
+      return 'updated';
+    } catch (error: unknown) {
+      if (!this.isCurrentMutation(revision, projectId)) return 'failed';
+      this.mutationState.set(null);
+      if (isAmbiguousMutationFailure(error)) {
+        this.requiresReconciliationState.set(true);
+        this.mutationErrorState.set(
+          'Taiga did not confirm the comment. Check recent comments before posting again.',
+        );
+        // Do not resend automatically: the comment may have reached Taiga.
+        this.loadStoryHistory(storyId);
+        this.refresh();
+        return 'uncertain';
+      }
+      this.mutationErrorState.set(
+        error instanceof HttpErrorResponse && error.status === 403
+          ? 'You do not have permission to comment on this story.'
+          : error instanceof HttpErrorResponse && error.status === 409
+            ? 'This story changed elsewhere. Reopen it to comment on the latest version.'
+            : 'The comment could not be posted. Please try again.',
+      );
+      return 'failed';
+    }
+  }
+
   async deleteStory(projectId: TaigaId, storyId: TaigaId): Promise<KanbanDeleteResult> {
     if (
       this.projectIdState() !== projectId ||
@@ -653,6 +756,10 @@ export class KanbanStore {
   }
 
   closeStoryDetails(): void {
+    ++this.historyRevision;
+    this.storyHistoryState.set([]);
+    this.storyHistoryLoadingState.set(false);
+    this.storyHistoryErrorState.set(null);
     ++this.storyDetailRevision;
     this.selectedStoryState.set(null);
     this.selectedStoryStatusState.set('idle');
