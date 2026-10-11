@@ -1121,6 +1121,191 @@ describe('KanbanBoard', () => {
     expect(host.textContent).not.toContain('Clear filters to drag cards');
   });
 
+  it('keeps automatic sorting after a cross-column drop and uses canonical Taiga anchors', async () => {
+    const existing = [
+      { ...story(101, 'Move me', 1, 10, 'frontend'), created_date: '2026-10-06' },
+      { ...story(102, 'Older done', 2, 30, 'backend'), created_date: '2026-10-01' },
+      { ...story(104, 'Newer done', 2, 40, 'frontend'), created_date: '2026-10-10' },
+    ];
+    const refreshed = existing.map((candidate) =>
+      candidate.id === 101 ? { ...candidate, status: 2, kanban_order: 50 } : candidate,
+    );
+    load.mockReturnValueOnce(of({ swimlanes: [], userStories: existing }))
+      .mockReturnValueOnce(of({ swimlanes: [], userStories: refreshed }));
+    moveUserStories.mockReturnValue(
+      of([{ id: 101, status: 2, swimlane: null, kanban_order: 50 }]),
+    );
+
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', project());
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const board = fixture.componentInstance as unknown as {
+      selectSort(mode: KanbanSortMode): void;
+      sortMode(): KanbanSortMode;
+      dropStory(
+        event: CdkDragDrop<readonly KanbanUserStory[]>,
+        lane: KanbanLane,
+        status: KanbanStatus,
+      ): Promise<void>;
+    };
+    board.selectSort('newest');
+    fixture.detectChanges();
+    // Sorted order is 104, 102; the underlying manual order is 102, 104.
+    // Dropping on a sorted list must NOT use sorted neighbours as manual anchors.
+    await board.dropStory(
+      {
+        item: { data: existing[0] },
+        currentIndex: 0,
+        isPointerOverContainer: true,
+      } as unknown as CdkDragDrop<readonly KanbanUserStory[]>,
+      { id: null, name: null },
+      status(2, 'Done', 20),
+    );
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(moveUserStories).toHaveBeenCalledWith({
+      projectId: 17,
+      statusId: 2,
+      swimlaneId: null,
+      storyIds: [101],
+      afterStoryId: 104,
+    } satisfies KanbanMoveRequest);
+    expect(board.sortMode()).toBe('newest');
+    expect(saveSort).toHaveBeenCalledOnce();
+    expect(saveSort).toHaveBeenCalledWith(7, 17, 'newest');
+    expect(cardSubjects(fixture.nativeElement as HTMLElement)).toEqual([
+      '#104 Newer done',
+      '#101 Move me',
+      '#102 Older done',
+    ]);
+  });
+
+  it('disables intra-column reordering under automatic sort without blocking cross-column drags', async () => {
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', project());
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const board = fixture.componentInstance as unknown as {
+      selectSort(mode: KanbanSortMode): void;
+      sortMode(): KanbanSortMode;
+      selectStory(story: KanbanUserStory): void;
+      moveActiveStory(lane: KanbanLane, status: KanbanStatus): Promise<void>;
+      dropStory(
+        event: CdkDragDrop<readonly KanbanUserStory[]>,
+        lane: KanbanLane,
+        status: KanbanStatus,
+      ): Promise<void>;
+    };
+
+    board.selectSort('title');
+    fixture.detectChanges();
+    const lists = fixture.debugElement
+      .queryAll(By.directive(CdkDropList))
+      .map((element) => element.injector.get(CdkDropList));
+    const drags = fixture.debugElement
+      .queryAll(By.directive(CdkDrag))
+      .map((element) => element.injector.get(CdkDrag));
+    expect(lists.every(({ disabled }) => !disabled)).toBe(true);
+    expect(lists.every(({ sortingDisabled }) => sortingDisabled)).toBe(true);
+    expect(drags.every(({ disabled }) => !disabled)).toBe(true);
+
+    await board.dropStory(
+      {
+        item: { data: stories()[0] },
+        currentIndex: 1,
+        isPointerOverContainer: true,
+      } as unknown as CdkDragDrop<readonly KanbanUserStory[]>,
+      { id: null, name: null },
+      status(1, 'Ready', 10),
+    );
+    board.selectStory(stories()[0]!);
+    await board.moveActiveStory({ id: null, name: null }, status(1, 'Ready', 10));
+    fixture.detectChanges();
+    expect(moveUserStories).not.toHaveBeenCalled();
+    expect(board.sortMode()).toBe('title');
+    expect(saveSort).toHaveBeenCalledOnce();
+    expect((fixture.nativeElement as HTMLElement).textContent)
+      .toContain('Choose Manual board order');
+
+    board.selectSort('manual');
+    fixture.detectChanges();
+    expect(lists.every(({ sortingDisabled }) => !sortingDisabled)).toBe(true);
+  });
+
+  it('retains automatic sort when moving from the story actions menu', async () => {
+    const before = stories();
+    const after = before.map((candidate) =>
+      candidate.id === 101 ? { ...candidate, status: 2, kanban_order: 40 } : candidate,
+    );
+    load.mockReturnValueOnce(of({ swimlanes: [], userStories: before }))
+      .mockReturnValueOnce(of({ swimlanes: [], userStories: after }));
+    moveUserStories.mockReturnValue(
+      of([{ id: 101, status: 2, swimlane: null, kanban_order: 40 }]),
+    );
+
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', project());
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const board = fixture.componentInstance as unknown as {
+      selectSort(mode: KanbanSortMode): void;
+      sortMode(): KanbanSortMode;
+      selectStory(story: KanbanUserStory): void;
+      moveActiveStory(lane: KanbanLane, status: KanbanStatus): Promise<void>;
+    };
+    board.selectSort('updated');
+    board.selectStory(before[0]!);
+    await board.moveActiveStory({ id: null, name: null }, status(2, 'Done', 20));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(moveUserStories).toHaveBeenCalledWith({
+      projectId: 17,
+      statusId: 2,
+      swimlaneId: null,
+      storyIds: [101],
+      afterStoryId: 102,
+    } satisfies KanbanMoveRequest);
+    expect(board.sortMode()).toBe('updated');
+    expect(saveSort).toHaveBeenCalledOnce();
+    expect(saveSort).toHaveBeenCalledWith(7, 17, 'updated');
+  });
+
+  it('uses a stable ID tie breaker in sorted views rather than mutable kanban order', async () => {
+    load.mockReturnValue(of({
+      swimlanes: [],
+      userStories: [
+        story(110, 'Shared subject', 1, 10, 'frontend'),
+        story(101, 'Shared subject', 1, 20, 'frontend'),
+      ],
+    }));
+
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', project());
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const board = fixture.componentInstance as unknown as {
+      selectSort(mode: KanbanSortMode): void;
+    };
+    board.selectSort('title');
+    fixture.detectChanges();
+
+    expect(cardSubjects(fixture.nativeElement as HTMLElement)).toEqual([
+      '#101 Shared subject',
+      '#110 Shared subject',
+    ]);
+  });
+
   it('moves a dropped story to the top with the correct relative anchor', async () => {
     const refreshed = stories().map((candidate) =>
       candidate.id === 101 ? { ...candidate, status: 2, kanban_order: 1 } : candidate,

@@ -933,19 +933,35 @@ export class KanbanBoard {
 
     const story = event.item.data as KanbanUserStory;
     const projectId = this.project().id;
-    const currentIndex = this.cardsFor(story.swimlane, story.status).findIndex(
-      ({ id }) => id === story.id,
-    );
-    if (
-      story.swimlane === lane.id &&
-      story.status === status.id &&
-      currentIndex === event.currentIndex
-    ) {
+    const sameColumn = story.swimlane === lane.id && story.status === status.id;
+    const manualOrder = this.sortMode() === 'manual';
+
+    if (sameColumn && !manualOrder) {
+      // Automatic sorting determines each card's position. Reordering here would
+      // silently change the server's manual order and then reshuffle the view.
+      this.liveAnnouncement.set('Choose Manual board order to reorder within a column.');
       return;
     }
 
-    const destination = this.cardsFor(lane.id, status.id).filter(({ id }) => id !== story.id);
-    const destinationIndex = Math.max(0, Math.min(event.currentIndex, destination.length));
+    const currentIndex = this.cardsFor(story.swimlane, story.status).findIndex(
+      ({ id }) => id === story.id,
+    );
+    if (sameColumn && currentIndex === event.currentIndex) return;
+
+    // When sorted by date/title, the drop position does not represent a manual
+    // order. Append moves to the destination's canonical Taiga order instead.
+    const destination = manualOrder
+      ? this.cardsFor(lane.id, status.id).filter(({ id }) => id !== story.id)
+      : this.store.userStories()
+          .filter(({ id, swimlane, status: storyStatus }) =>
+            id !== story.id && swimlane === lane.id && storyStatus === status.id,
+          )
+          .sort((left, right) =>
+            left.kanban_order - right.kanban_order || left.id - right.id,
+          );
+    const destinationIndex = manualOrder
+      ? Math.max(0, Math.min(event.currentIndex, destination.length))
+      : destination.length;
     const previousStory = destination[destinationIndex - 1];
     const nextStory = destination[destinationIndex];
     const result = await this.store.moveStory({
@@ -962,9 +978,6 @@ export class KanbanBoard {
       return;
     }
     this.announceMoveResult(result, story, lane, status);
-    if (result === 'moved' && this.sortMode() !== 'manual') {
-      this.selectSort('manual');
-    }
   }
 
   protected selectStory(story: KanbanUserStory): void {
@@ -1478,6 +1491,16 @@ export class KanbanBoard {
       return;
     }
 
+    if (
+      this.sortMode() !== 'manual' &&
+      story.swimlane === lane.id &&
+      story.status === status.id
+    ) {
+      this.liveAnnouncement.set('Choose Manual board order to reorder within a column.');
+      this.activeStory.set(null);
+      return;
+    }
+
     const destination = this.store
       .userStories()
       .filter(
@@ -1504,9 +1527,6 @@ export class KanbanBoard {
       return;
     }
     this.announceMoveResult(result, story, lane, status);
-    if (result === 'moved' && this.sortMode() !== 'manual') {
-      this.selectSort('manual');
-    }
     this.activeStory.set(null);
     this.restoreStoryMenuFocus(story.id);
   }
@@ -1756,7 +1776,8 @@ function sortVisibleStories(
       case 'manual':
         break;
     }
-    return result || left.kanban_order - right.kanban_order || left.id - right.id;
+    return result || (mode === 'manual' ? left.kanban_order - right.kanban_order : 0) ||
+      left.id - right.id;
   });
   return sorted;
 }

@@ -31,7 +31,11 @@
       type="button"
       [class.toolbar-icon-active]="sortMode() !== 'manual'"
       [attr.aria-label]="'Sort stories. Current: ' + sortLabel()"
-      [matTooltip]="'Sort: ' + sortLabel()"
+      [matTooltip]="
+        sortMode() === 'manual'
+          ? 'Manual board order: drag to reorder cards'
+          : 'Sort: ' + sortLabel() + ' · drag between columns; use Manual to reorder within a column'
+      "
       [matMenuTriggerFor]="sortMenu"
     >
       <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -363,6 +367,7 @@
                   cdkDropList
                   [cdkDropListData]="visibleCards"
                   [cdkDropListDisabled]="!canReorder()"
+                  [cdkDropListSortingDisabled]="sortMode() !== 'manual'"
                   (cdkDropListDropped)="dropStory($event, lane, status)"
                 >
                   @if (isQuickCreating(lane.id, status.id)) {
@@ -1239,28 +1244,34 @@
           <button mat-menu-item disabled>{{ lane.name || 'Unclassified' }}</button>
         }
         @for (status of statuses(); track status.id) {
-          <button
-            mat-menu-item
-            type="button"
-            [attr.aria-label]="
-              (lane.name ? lane.name + ', ' : '') +
-              status.name +
-              (selectedStory.swimlane === lane.id && selectedStory.status === status.id
-                ? ', move to bottom'
-                : '')
-            "
-            [disabled]="
-              store.isMutating() || store.isRefreshing() || store.requiresReconciliation()
-            "
-            (click)="moveActiveStory(lane, status)"
-          >
-            <span class="menu-status-dot" [style.background]="status.color"></span>
-            @if (selectedStory.swimlane === lane.id && selectedStory.status === status.id) {
-              Move to bottom of {{ status.name }}
-            } @else {
-              {{ status.name }}
-            }
-          </button>
+          @if (
+            sortMode() === 'manual' ||
+            selectedStory.swimlane !== lane.id ||
+            selectedStory.status !== status.id
+          ) {
+            <button
+              mat-menu-item
+              type="button"
+              [attr.aria-label]="
+                (lane.name ? lane.name + ', ' : '') +
+                status.name +
+                (selectedStory.swimlane === lane.id && selectedStory.status === status.id
+                  ? ', move to bottom'
+                  : '')
+              "
+              [disabled]="
+                store.isMutating() || store.isRefreshing() || store.requiresReconciliation()
+              "
+              (click)="moveActiveStory(lane, status)"
+            >
+              <span class="menu-status-dot" [style.background]="status.color"></span>
+              @if (selectedStory.swimlane === lane.id && selectedStory.status === status.id) {
+                Move to bottom of {{ status.name }}
+              } @else {
+                {{ status.name }}
+              }
+            </button>
+          }
         }
       }
     }

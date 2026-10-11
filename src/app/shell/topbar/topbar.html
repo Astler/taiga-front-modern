@@ -81,7 +81,11 @@
         type="button"
         [class.compact-board-control-active]="boardToolbar.sortMode() !== 'manual'"
         [attr.aria-label]="'Sort cards. Current: ' + boardToolbar.sortLabel()"
-        [matTooltip]="'Sort: ' + boardToolbar.sortLabel()"
+        [matTooltip]="
+          boardToolbar.sortMode() === 'manual'
+            ? 'Manual board order: drag to reorder cards'
+            : 'Sort: ' + boardToolbar.sortLabel() + ' · drag between columns; use Manual to reorder within a column'
+        "
         [matMenuTriggerFor]="compactSortMenu"
       >
         <svg aria-hidden="true" viewBox="0 0 24 24">
