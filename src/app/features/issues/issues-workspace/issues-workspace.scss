@@ -780,3 +780,32 @@ time {
   outline: 2px solid var(--mat-sys-primary);
   outline-offset: 2px;
 }
+
+/* Follow the same density preference as Kanban without hiding issue controls. */
+:host-context(html[data-ui-density='compact']) .issues-page {
+  padding: 0.45rem 0.65rem;
+}
+
+:host-context(html[data-ui-density='compact']) .issues-toolbar {
+  padding-block-end: 0.4rem;
+}
+
+:host-context(html[data-ui-density='compact']) .issue-table-wrap {
+  border-radius: 0.4rem;
+  box-shadow: none;
+}
+
+:host-context(html[data-ui-density='compact']) .pagination {
+  padding-block-start: 0.35rem;
+}
+
+@media (min-width: 48.01rem) {
+  :host-context(html[data-ui-density='compact']) .issue-table th {
+    height: 2.25rem;
+  }
+
+  :host-context(html[data-ui-density='compact']) .issue-table td {
+    height: 3rem;
+    padding-block: 0.35rem;
+  }
+}
