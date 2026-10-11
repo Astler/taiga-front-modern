@@ -71,8 +71,7 @@
 .issue-assignee-chip:focus-visible,
 .issue-date-quick button:focus-visible,
 .issue-tag-suggestions button:focus-visible,
-.issue-tag-entry button:focus-visible,
-.issue-tag-entry input:focus-visible,
+.issue-tag-add:focus-visible,
 .issue-selected-tag button:focus-visible {
   outline: 2px solid var(--mat-sys-primary);
   outline-offset: 2px;
@@ -81,7 +80,7 @@
 .issue-choice-pill:disabled,
 .issue-assignee-chip:disabled,
 .issue-date-quick button:disabled,
-.issue-tag-entry button:disabled,
+.issue-tag-add:disabled,
 .issue-tag-suggestions button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
@@ -268,38 +267,46 @@
   color: var(--mat-sys-error);
 }
 
+.issue-tag-count {
+  margin-inline-start: auto;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-small);
+  font-weight: 600;
+}
+
 .issue-selected-tags,
 .issue-tag-suggestions {
   align-items: center;
+  gap: 0.4rem;
 }
 
 .issue-selected-tag {
   --tag-color: var(--mat-sys-primary);
   display: inline-flex;
-  min-height: 2rem;
+  min-height: 1.85rem;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.4rem;
   border: 1px solid color-mix(in srgb, var(--tag-color) 55%, var(--app-border-color));
   border-radius: var(--app-radius-full);
   background: color-mix(in srgb, var(--tag-color) 16%, var(--mat-sys-surface-container));
   color: var(--mat-sys-on-surface);
-  padding: 0.25rem 0.4rem 0.25rem 0.7rem;
+  padding: 0.2rem 0.35rem 0.2rem 0.65rem;
   font: var(--mat-sys-label-medium);
-  font-weight: 630;
+  font-weight: 650;
 }
 
 .issue-tag-dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  flex: 0 0 0.5rem;
+  width: 0.48rem;
+  height: 0.48rem;
+  flex: 0 0 0.48rem;
   border-radius: 50%;
   background: var(--tag-color);
 }
 
 .issue-selected-tag button {
   display: grid;
-  width: 1.35rem;
-  height: 1.35rem;
+  width: 1.4rem;
+  height: 1.4rem;
   place-items: center;
   border: 0;
   border-radius: 50%;
@@ -311,75 +318,121 @@
 }
 
 .issue-selected-tag button:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--tag-color) 26%, transparent);
+  background: color-mix(in srgb, var(--tag-color) 25%, transparent);
+  color: var(--mat-sys-on-surface);
 }
 
-.issue-tag-empty {
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-body-small);
-}
-
-.issue-tag-entry {
+.issue-tag-composer {
   display: flex;
   min-width: 0;
-  align-items: center;
-  gap: 0.55rem;
-}
-
-.issue-tag-entry label {
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-.issue-tag-entry input {
-  width: 100%;
-  min-height: 2.6rem;
+  min-height: 2.7rem;
   box-sizing: border-box;
+  align-items: center;
+  gap: 0.5rem;
   border: 1px solid var(--app-border-color);
   border-radius: var(--app-radius-md);
-  outline: none;
   background: var(--mat-sys-surface-container-low);
+  padding: 0.2rem 0.25rem 0.2rem 0.75rem;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.issue-tag-composer:focus-within {
+  border-color: var(--mat-sys-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--mat-sys-primary) 16%, transparent);
+}
+
+.issue-tag-compose-icon {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 1rem;
+  fill: none;
+  stroke: var(--mat-sys-on-surface-variant);
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.issue-tag-composer input {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.1rem;
+  flex: 1 1 auto;
+  border: 0;
+  outline: none;
+  background: transparent;
   color: var(--mat-sys-on-surface);
-  padding: 0.65rem 0.75rem;
+  padding: 0.35rem 0;
   font: var(--mat-sys-body-medium);
 }
 
+.issue-tag-composer input::placeholder {
+  color: var(--mat-sys-on-surface-variant);
+  opacity: 0.8;
+}
+
 .issue-tag-add {
-  min-height: 2.6rem;
+  display: inline-flex;
+  min-height: 2.1rem;
   flex: 0 0 auto;
+  align-items: center;
+  gap: 0.35rem;
   border: 0;
-  border-radius: var(--app-radius-full);
-  background: var(--mat-sys-secondary-container);
-  color: var(--mat-sys-on-secondary-container);
+  border-radius: 0.6rem;
+  background: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
   cursor: pointer;
-  padding: 0.45rem 0.85rem;
-  font: var(--mat-sys-label-large);
+  padding: 0.35rem 0.75rem;
+  font: var(--mat-sys-label-medium);
   font-weight: 700;
 }
 
-.issue-tag-suggestions {
-  gap: 0.4rem;
+.issue-tag-add span {
+  font-size: 1rem;
+  line-height: 1;
 }
 
-.issue-tag-suggestions > span {
+.issue-tag-add:disabled {
+  background: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface-variant);
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.issue-tag-add:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.issue-tag-suggestions {
+  row-gap: 0.4rem;
+}
+
+.issue-tag-suggestions-label {
+  margin-inline-end: 0.1rem;
   color: var(--mat-sys-on-surface-variant);
   font: var(--mat-sys-label-small);
+  white-space: nowrap;
 }
 
 .issue-tag-suggestions button {
   --tag-color: var(--mat-sys-primary);
-  border: 1px dashed color-mix(in srgb, var(--tag-color) 55%, var(--app-border-color));
+  display: inline-flex;
+  min-height: 1.85rem;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid color-mix(in srgb, var(--tag-color) 40%, var(--app-border-color));
   border-radius: var(--app-radius-full);
-  background: transparent;
-  color: var(--mat-sys-on-surface-variant);
+  background: color-mix(in srgb, var(--tag-color) 9%, var(--mat-sys-surface-container-high));
+  color: var(--mat-sys-on-surface);
   cursor: pointer;
-  padding: 0.3rem 0.65rem;
-  font: var(--mat-sys-label-small);
+  padding: 0.25rem 0.65rem;
+  font: var(--mat-sys-label-medium);
+  font-weight: 600;
+  transition: background-color 140ms ease, border-color 140ms ease;
 }
 
 .issue-tag-suggestions button:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--tag-color) 12%, var(--mat-sys-surface-container));
-  color: var(--mat-sys-on-surface);
+  border-color: color-mix(in srgb, var(--tag-color) 70%, var(--app-border-color));
+  background: color-mix(in srgb, var(--tag-color) 19%, var(--mat-sys-surface-container-high));
 }
 
 .issue-blocked-section {

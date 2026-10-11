@@ -92,6 +92,9 @@
               <div>
                 <h3>Tags</h3>
               </div>
+              @if (selectedTags().length) {
+                <span class="issue-tag-count">{{ selectedTags().length }} selected</span>
+              }
             </header>
 
             @if (selectedTags().length) {
@@ -111,42 +114,47 @@
                   </span>
                 }
               </div>
-            } @else {
-              <span class="issue-tag-empty">No tags selected</span>
             }
 
             @if (canEdit()) {
-              <div class="issue-tag-entry">
-                <label>
-                  <span class="visually-hidden">Add a tag</span>
-                  <input
-                    type="text"
-                    aria-label="Add a tag"
-                    placeholder="Type a tag and press Enter"
-                    maxlength="120"
-                    [value]="tagInput()"
-                    [disabled]="busy()"
-                    (input)="updateTagInput($event)"
-                    (keydown)="tagInputKeydown($event)"
-                  />
-                </label>
+              <div class="issue-tag-composer">
+                <svg class="issue-tag-compose-icon" aria-hidden="true" viewBox="0 0 24 24">
+                  <path d="M12 3H5a2 2 0 0 0-2 2v7l9 9 9-9-9-9Z" />
+                  <circle cx="8" cy="8" r="1.3" />
+                </svg>
+                <input
+                  type="text"
+                  aria-label="Add a tag"
+                  placeholder="Add tag · Enter to confirm"
+                  maxlength="120"
+                  [value]="tagInput()"
+                  [disabled]="busy()"
+                  (input)="updateTagInput($event)"
+                  (keydown)="tagInputKeydown($event)"
+                />
                 <button
                   type="button"
                   class="issue-tag-add"
                   [disabled]="!tagInput().trim() || busy()"
                   (click)="commitTagInput()"
-                >+ Add</button>
+                >
+                  <span aria-hidden="true">+</span>
+                  Add
+                </button>
               </div>
               @if (suggestedTags().length) {
                 <div class="issue-tag-suggestions" role="group" aria-label="Suggested tags">
-                  <span>Suggested</span>
+                  <span class="issue-tag-suggestions-label">Quick add</span>
                   @for (tag of suggestedTags(); track tag) {
                     <button
                       type="button"
                       [style.--tag-color]="tagColor(tag)"
                       [disabled]="busy()"
                       (click)="addKnownTag(tag)"
-                    >+ {{ tag }}</button>
+                    >
+                      <span class="issue-tag-dot" aria-hidden="true"></span>
+                      {{ tag }}
+                    </button>
                   }
                 </div>
               }

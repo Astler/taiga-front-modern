@@ -201,6 +201,44 @@ describe('IssueEditor', () => {
     expect(saved).toHaveBeenCalledWith(expect.objectContaining({ assigned_to: 26 }));
   });
 
+  it('uses a compact unified tag composer without redundant empty-state labels', () => {
+    const { fixture, host } = createEditor(['add_issue']);
+    const tagsSection = host.querySelector<HTMLElement>('.issue-tags-section')!;
+
+    expect(tagsSection.textContent).not.toContain('No tags selected');
+    expect(tagsSection.textContent).not.toContain('Suggested');
+    expect(tagsSection.querySelector('.issue-tag-empty')).toBeNull();
+    expect(tagsSection.querySelector('.issue-tag-entry')).toBeNull();
+
+    const composer = tagsSection.querySelector<HTMLElement>('.issue-tag-composer')!;
+    const input = composer.querySelector<HTMLInputElement>('input[aria-label="Add a tag"]')!;
+    const addButton = composer.querySelector<HTMLButtonElement>('.issue-tag-add')!;
+    expect(input.placeholder).toContain('Enter');
+    expect(composer.querySelector('.issue-tag-compose-icon')).toBeTruthy();
+    expect(addButton.disabled).toBe(true);
+    expect(tagsSection.querySelector('.issue-tag-suggestions-label')?.textContent).toBe('Quick add');
+    expect(tagsSection.querySelector('.issue-tag-suggestions button .issue-tag-dot')).toBeTruthy();
+
+    input.value = 'urgent';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    expect(addButton.disabled).toBe(false);
+    addButton.click();
+    fixture.detectChanges();
+
+    expect(tagsSection.querySelector('.issue-selected-tags')?.textContent).toContain('urgent');
+    expect(tagsSection.querySelector('.issue-tag-count')?.textContent).toContain('1 selected');
+    expect(input.value).toBe('');
+    expect(tagsSection.querySelector('.issue-tag-composer')).toBe(composer);
+    expect(addButton.disabled).toBe(true);
+
+    tagsSection.querySelector<HTMLButtonElement>('[aria-label="Remove tag urgent"]')!.click();
+    fixture.detectChanges();
+    expect(tagsSection.querySelector('.issue-selected-tags')).toBeNull();
+    expect(tagsSection.querySelector('.issue-tag-count')).toBeNull();
+    expect(tagsSection.textContent).not.toContain('No tags selected');
+  });
+
   it('supports suggested tags, Enter-to-chip, removal, and uncommitted tags at save time', () => {
     const { fixture, host } = createEditor(['add_issue']);
     const saved = vi.fn<(changes: IssueChanges) => void>();
