@@ -510,3 +510,81 @@ time {
     grid-column: auto;
   }
 }
+
+.issue-create-button {
+  flex: 0 0 auto;
+}
+
+.issue-open {
+  min-width: 0;
+  border: 0;
+  border-radius: 0.35rem;
+  background: transparent;
+  color: var(--mat-sys-on-surface);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
+  text-align: left;
+  padding: 0;
+  overflow-wrap: anywhere;
+}
+
+.issue-open:hover,
+.issue-open:focus-visible {
+  color: var(--mat-sys-primary);
+  text-decoration: underline;
+  text-underline-offset: 0.2rem;
+}
+
+.issue-mutation-error {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--mat-sys-error) 45%, var(--app-border-color));
+  border-radius: var(--app-radius-md);
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+  margin-bottom: 0.75rem;
+  padding: 0.7rem;
+  font: var(--mat-sys-body-small);
+}
+
+.issue-mutation-error button {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: var(--mat-sys-title-medium);
+}
+
+.issue-detail-loading-backdrop {
+  display: grid;
+  position: fixed;
+  z-index: 1020;
+  inset: 0;
+  place-items: center;
+  background: rgb(0 0 0 / 54%);
+}
+
+.issue-detail-loading {
+  display: grid;
+  width: min(25rem, 90vw);
+  gap: 0.75rem;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-xl);
+  background: var(--mat-sys-surface-container);
+  box-shadow: var(--mat-sys-level4);
+  padding: 1.5rem;
+}
+
+.issue-detail-loading p {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.issue-detail-loading button {
+  justify-self: end;
+}

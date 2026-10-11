@@ -1,0 +1,265 @@
+:host {
+  display: block;
+  position: fixed;
+  z-index: 1020;
+  inset: 0;
+}
+
+.issue-editor-backdrop {
+  display: flex;
+  position: fixed;
+  inset: 0;
+  justify-content: flex-end;
+  background: rgb(0 0 0 / 58%);
+  backdrop-filter: blur(2px);
+}
+
+.issue-editor-panel {
+  display: flex;
+  width: min(45rem, 95vw);
+  min-width: 0;
+  height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  border-inline-start: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-xl) 0 0 var(--app-radius-xl);
+  background: var(--mat-sys-surface-container-low);
+  box-shadow: var(--mat-sys-level5);
+  color: var(--mat-sys-on-surface);
+}
+
+.issue-editor-header,
+.issue-editor-footer {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.75rem;
+  border-color: var(--app-border-color);
+  background: var(--mat-sys-surface-container);
+  padding: 1rem 1.25rem;
+}
+
+.issue-editor-header {
+  justify-content: space-between;
+  border-block-end: 1px solid var(--app-border-color);
+}
+
+.issue-editor-header h2 {
+  margin: 0.2rem 0 0;
+  font: var(--mat-sys-headline-small);
+  font-weight: 700;
+}
+
+.issue-editor-eyebrow {
+  color: var(--mat-sys-primary);
+  font: var(--mat-sys-label-medium);
+}
+
+.issue-editor-close {
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 2.5rem;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--mat-sys-on-surface-variant);
+  cursor: pointer;
+  font-size: 1.7rem;
+}
+
+.issue-editor-close:hover,
+.issue-editor-close:focus-visible {
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface);
+}
+
+.issue-editor-fields {
+  display: grid;
+  min-height: 0;
+  flex: 1 1 auto;
+  align-content: start;
+  gap: 1rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 1.25rem;
+}
+
+.issue-field {
+  display: grid;
+  min-width: 0;
+  gap: 0.4rem;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-medium);
+}
+
+.issue-field small {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-small);
+}
+
+.issue-field input,
+.issue-field select,
+.issue-field textarea,
+.issue-blocked {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-md);
+  background: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
+}
+
+.issue-field input,
+.issue-field select,
+.issue-field textarea {
+  outline: none;
+  padding: 0.75rem 0.85rem;
+  font: var(--mat-sys-body-medium);
+}
+
+.issue-field textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.issue-field input:focus-visible,
+.issue-field select:focus-visible,
+.issue-field textarea:focus-visible {
+  border-color: var(--mat-sys-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--mat-sys-primary) 18%, transparent);
+}
+
+.issue-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.875rem;
+}
+
+.issue-blocked {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.875rem;
+}
+
+.issue-blocked legend {
+  padding-inline: 0.3rem;
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-label-large);
+  font-weight: 700;
+}
+
+.issue-blocked-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-medium);
+  cursor: pointer;
+}
+
+.issue-blocked-toggle input {
+  accent-color: var(--mat-sys-primary);
+}
+
+.issue-editor-footer {
+  border-block-start: 1px solid var(--app-border-color);
+}
+
+.issue-editor-spacer { flex: 1 1 auto; }
+
+.issue-editor-footer button {
+  min-height: 2.5rem;
+  border-radius: var(--app-radius-full);
+  cursor: pointer;
+  padding: 0.5rem 0.9rem;
+  font: var(--mat-sys-label-large);
+  font-weight: 700;
+}
+
+.issue-cancel,
+.issue-delete {
+  border: 1px solid var(--app-border-color);
+  background: transparent;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.issue-delete {
+  border-color: color-mix(in srgb, var(--mat-sys-error) 45%, var(--app-border-color));
+  color: var(--mat-sys-error);
+}
+
+.issue-save {
+  border: 0;
+  background: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
+}
+
+.issue-editor-footer button:hover:not(:disabled) {
+  filter: brightness(1.14);
+}
+
+.issue-editor-footer button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.issue-editor-error,
+.issue-editor-note {
+  margin: 0;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-md);
+  padding: 0.75rem;
+  font: var(--mat-sys-body-small);
+}
+
+.issue-editor-error {
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+}
+
+.issue-editor-note {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+@media (max-width: 1399px), (max-height: 799px) {
+  .issue-editor-panel {
+    width: 100%;
+    border-inline-start: 0;
+    border-radius: 0;
+  }
+
+  .issue-editor-header,
+  .issue-editor-footer {
+    padding-inline: max(1rem, calc((100vw - 62rem) / 2));
+  }
+
+  .issue-editor-fields {
+    width: 100%;
+    max-width: 62rem;
+    box-sizing: border-box;
+    margin-inline: auto;
+  }
+}
+
+@media (max-width: 540px) {
+  .issue-fields-grid { grid-template-columns: 1fr; }
+
+  .issue-editor-header h2 {
+    font: var(--mat-sys-title-large);
+    font-weight: 700;
+  }
+
+  .issue-editor-header,
+  .issue-editor-footer {
+    padding: 0.75rem;
+  }
+
+  .issue-editor-fields { padding: 0.9rem; }
+  .issue-editor-footer button { padding-inline: 0.7rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .issue-editor-backdrop { backdrop-filter: none; }
+}

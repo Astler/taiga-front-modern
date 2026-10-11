@@ -1,8 +1,16 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { Observable, Subject, of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { IssuesApiService } from './issues-api.service';
-import type { IssueFiltersData, IssueListPage, IssueListQuery } from './issues.models';
+import type {
+  IssueChanges,
+  IssueCreateRequest,
+  IssueFiltersData,
+  IssueListPage,
+  IssueListQuery,
+  TaigaIssue,
+} from './issues.models';
 import { IssuesStore } from './issues.store';
 
 describe('IssuesStore', () => {
@@ -13,11 +21,15 @@ describe('IssuesStore', () => {
     filters: ReturnType<
       typeof vi.fn<(projectId: number, query: IssueListQuery) => Observable<IssueFiltersData>>
     >;
+    get: ReturnType<typeof vi.fn<(issueId: number) => Observable<TaigaIssue>>>;
+    create: ReturnType<typeof vi.fn<(request: IssueCreateRequest) => Observable<TaigaIssue>>>;
+    update: ReturnType<typeof vi.fn<(issueId: number, changes: IssueChanges, version?: number) => Observable<TaigaIssue>>>;
+    delete: ReturnType<typeof vi.fn<(issueId: number) => Observable<void>>>;
   };
   let store: IssuesStore;
 
   beforeEach(() => {
-    api = { list: vi.fn(), filters: vi.fn() };
+    api = { list: vi.fn(), filters: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() };
     TestBed.configureTestingModule({
       providers: [IssuesStore, { provide: IssuesApiService, useValue: api }],
     });
@@ -97,6 +109,105 @@ describe('IssuesStore', () => {
     expect(store.issues()[0]?.id).toBe(3);
     expect(store.query().q).toBe('new');
     expect(store.filtersData()?.tags[0]?.name).toBe('new');
+  });
+
+  it('loads full issue detail and ignores a response after switching projects', () => {
+    const first = new Subject<TaigaIssue>();
+    api.list.mockReturnValue(of(page(1, 1)));
+    api.filters.mockReturnValue(of(filtersData()));
+    api.get.mockReturnValue(first);
+    store.loadProject(17);
+    store.openIssue(store.issues()[0]!);
+    expect(store.detailStatus()).toBe('loading');
+
+    store.loadProject(18);
+    first.next({ ...page(1, 1).items[0]!, description: 'Stale details' });
+    first.complete();
+    expect(store.projectId()).toBe(18);
+    expect(store.selectedIssue()).toBeNull();
+  });
+
+  it('creates, edits, and deletes issues while reconciling the current list', async () => {
+    const original = { ...page(1, 1).items[0]!, version: 2, description: 'Original' };
+    api.list.mockReturnValue(of({ ...page(1, 1), items: [original] }));
+    api.filters.mockReturnValue(of(filtersData()));
+    api.get.mockReturnValue(of(original));
+    api.create.mockReturnValue(of({ ...original, id: 4, ref: 4, subject: 'Created' }));
+    api.update.mockReturnValue(of({ ...original, subject: 'Edited', version: 3 }));
+    api.delete.mockReturnValue(of(undefined));
+    store.loadProject(17);
+
+    const changes: IssueChanges = {
+      subject: 'Edited', description: 'Updated', status: 1,
+      type: 1, severity: 1, priority: 1,
+      assigned_to: null, due_date: null, tags: [],
+      is_blocked: false, blocked_note: '',
+    };
+    expect(await store.createIssue({ ...changes, project: 17 })).toBe('created');
+    expect(api.create).toHaveBeenCalledWith({ ...changes, project: 17 });
+    expect(store.mutation()).toBeNull();
+
+    store.openIssue(original);
+    expect(store.selectedIssue()?.version).toBe(2);
+    expect(await store.updateIssue(1, changes)).toBe('updated');
+    expect(api.update).toHaveBeenCalledWith(1, changes, 2);
+    expect(store.selectedIssue()?.subject).toBe('Edited');
+
+    expect(await store.deleteIssue(1)).toBe('deleted');
+    expect(api.delete).toHaveBeenCalledWith(1);
+    expect(store.selectedIssue()).toBeNull();
+    expect(store.mutation()).toBeNull();
+    expect(api.list).toHaveBeenCalledTimes(4);
+  });
+
+  it('does not update the list when a version conflict or forbidden delete occurs', async () => {
+    const original = page(1, 1).items[0]!;
+    api.list.mockReturnValue(of(page(1, 1)));
+    api.filters.mockReturnValue(of(filtersData()));
+    api.get.mockReturnValue(of(original));
+    api.update.mockReturnValue(throwError(() =>
+      new HttpErrorResponse({ status: 409, statusText: 'Conflict' }),
+    ));
+    api.delete.mockReturnValue(throwError(() =>
+      new HttpErrorResponse({ status: 403, statusText: 'Forbidden' }),
+    ));
+    store.loadProject(17);
+    store.openIssue(original);
+    const changes: IssueChanges = {
+      subject: 'Attempted', description: '', status: 1, type: 1,
+      severity: 1, priority: 1, assigned_to: null, due_date: null,
+      tags: [], is_blocked: false, blocked_note: '',
+    };
+
+    expect(await store.updateIssue(1, changes)).toBe('failed');
+    expect(store.mutationError()).toContain('changed elsewhere');
+    expect(store.selectedIssue()?.subject).toBe('Issue 1');
+    expect(await store.deleteIssue(1)).toBe('failed');
+    expect(store.mutationError()).toContain('does not permit');
+    expect(store.issues()).toHaveLength(1);
+  });
+
+  it('avoids repeating an unconfirmed creation and reconciles after a connection error', async () => {
+    const load = new Subject<IssueListPage>();
+    api.list.mockReturnValueOnce(of(page(1, 1))).mockReturnValueOnce(load);
+    api.filters.mockReturnValue(of(filtersData()));
+    api.create.mockReturnValue(throwError(() =>
+      new HttpErrorResponse({ status: 0, statusText: 'Network error' }),
+    ));
+    store.loadProject(17);
+    const draft: IssueCreateRequest = {
+      project: 17, subject: 'Maybe created', description: '', status: 1,
+      type: 1, severity: 1, priority: 1, assigned_to: null,
+      due_date: null, tags: [], is_blocked: false, blocked_note: '',
+    };
+    expect(await store.createIssue(draft)).toBe('uncertain');
+    expect(store.requiresReconciliation()).toBe(true);
+    expect(await store.createIssue(draft)).toBe('failed');
+    expect(api.create).toHaveBeenCalledTimes(1);
+    load.next(page(4, 2));
+    load.complete();
+    expect(store.requiresReconciliation()).toBe(false);
+    expect(store.issues()[0]?.id).toBe(4);
   });
 
   it('surfaces failures and retries the current query', () => {

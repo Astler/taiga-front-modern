@@ -13,11 +13,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import type { TaigaProjectDetail } from '../../projects/data';
+import { IssueEditor, type IssueEditorMode } from '../issue-editor/issue-editor';
 import {
   IssuesStore,
   type IssueAssignee,
   type IssueFilterCategory,
   type IssueFilterMode,
+  type IssueChanges,
   type IssueFilterOption,
   type IssueFiltersData,
   type TaigaIssue,
@@ -42,7 +44,7 @@ const FILTERS: readonly FilterDefinition[] = [
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatButtonModule, MatProgressBarModule, MatTooltipModule],
+  imports: [IssueEditor, MatButtonModule, MatProgressBarModule, MatTooltipModule],
   providers: [IssuesStore],
   selector: 'pf-issues-workspace',
   styleUrl: './issues-workspace.scss',
@@ -55,6 +57,10 @@ export class IssuesWorkspace implements OnDestroy {
   protected readonly store = inject(IssuesStore);
   protected readonly filterDefinitions = FILTERS;
   protected readonly searchValue = signal('');
+  protected readonly editorMode = signal<IssueEditorMode | null>(null);
+  protected readonly canCreateIssues = computed(() => this.canDo('add_issue'));
+  protected readonly canModifyIssues = computed(() => this.canDo('modify_issue'));
+  protected readonly canDeleteIssues = computed(() => this.canDo('delete_issue'));
   protected readonly visiblePageNumbers = computed(() => {
     const page = this.store.page();
     if (!page) {
@@ -82,6 +88,8 @@ export class IssuesWorkspace implements OnDestroy {
         this.appliedInitialSearch = initialSearch;
         this.searchValue.set(initialSearch);
         if (projectChanged) {
+          this.editorMode.set(null);
+          this.store.closeIssue();
           this.store.loadProject(projectId);
         }
         if (initialSearch) {
@@ -97,6 +105,65 @@ export class IssuesWorkspace implements OnDestroy {
     if (this.searchTimer !== null) {
       clearTimeout(this.searchTimer);
     }
+  }
+
+  protected openNewIssue(): void {
+    if (!this.canCreateIssues()) return;
+    this.store.dismissMutationError();
+    this.store.closeIssue();
+    this.editorMode.set('create');
+  }
+
+  protected openIssue(issue: TaigaIssue): void {
+    this.store.dismissMutationError();
+    this.editorMode.set('edit');
+    this.store.openIssue(issue);
+  }
+
+  protected closeEditor(): void {
+    this.editorMode.set(null);
+    this.store.closeIssue();
+  }
+
+  protected async saveIssue(changes: IssueChanges): Promise<void> {
+    const mode = this.editorMode();
+    const projectId = this.project().id;
+    if (!mode) return;
+
+    const issueId = mode === 'edit' ? this.store.selectedIssue()?.id : null;
+    if (mode === 'create' && !this.canCreateIssues()) return;
+    if (mode === 'edit' && (!this.canModifyIssues() || issueId === undefined || issueId === null)) {
+      return;
+    }
+
+    const result = mode === 'create'
+      ? await this.store.createIssue({ ...changes, project: projectId })
+      : await this.store.updateIssue(issueId!, changes);
+
+    if (projectId !== this.project().id || this.editorMode() !== mode) return;
+    if (result === 'created' || result === 'updated') {
+      this.closeEditor();
+    }
+  }
+
+  protected async deleteIssue(): Promise<void> {
+    const issue = this.store.selectedIssue();
+    if (!issue || !this.canDeleteIssues()) return;
+    if (!globalThis.confirm(
+      'Permanently delete issue #' + issue.ref + ' "' + issue.subject + '"?\n\n' +
+      'Its comments and attachments may be removed as well. This cannot be undone.',
+    )) return;
+
+    const projectId = this.project().id;
+    const result = await this.store.deleteIssue(issue.id);
+    if (projectId !== this.project().id) return;
+    if (result === 'deleted') this.closeEditor();
+  }
+
+  private canDo(permission: string): boolean {
+    const project = this.project();
+    return !project.archived_code && !project.blocked_code &&
+      (project.my_permissions ?? []).includes(permission);
   }
 
   protected updateSearch(event: Event): void {

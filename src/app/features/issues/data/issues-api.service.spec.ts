@@ -96,6 +96,47 @@ describe('IssuesApiService', () => {
     await expect(result).resolves.toEqual(response);
   });
 
+  it('uses Taiga issue detail and CRUD endpoints with versioned PATCH', async () => {
+    const detail = firstValueFrom(service.get(38));
+    const get = httpTesting.expectOne('/api/v1/issues/38');
+    expect(get.request.method).toBe('GET');
+    get.flush({ ...issue(38), description: 'Details', version: 2 });
+    expect((await detail).version).toBe(2);
+
+    const values = {
+      subject: 'Refine crash',
+      description: 'Steps to reproduce',
+      status: 1,
+      type: 2,
+      severity: 3,
+      priority: 4,
+      assigned_to: null,
+      due_date: '2026-10-30',
+      tags: ['frontend'],
+      is_blocked: false,
+      blocked_note: '',
+    };
+    const creation = firstValueFrom(service.create({ project: 17, ...values }));
+    const post = httpTesting.expectOne('/api/v1/issues');
+    expect(post.request.method).toBe('POST');
+    expect(post.request.body).toEqual({ project: 17, ...values });
+    post.flush({ ...issue(39), subject: values.subject });
+    expect((await creation).id).toBe(39);
+
+    const update = firstValueFrom(service.update(38, values, 2));
+    const patch = httpTesting.expectOne('/api/v1/issues/38');
+    expect(patch.request.method).toBe('PATCH');
+    expect(patch.request.body).toEqual({ ...values, version: 2 });
+    patch.flush({ ...issue(38), ...values, version: 3 });
+    expect((await update).version).toBe(3);
+
+    const deletion = firstValueFrom(service.delete(38));
+    const del = httpTesting.expectOne('/api/v1/issues/38');
+    expect(del.request.method).toBe('DELETE');
+    del.flush(null, { status: 204, statusText: 'No content' });
+    await expect(deletion).resolves.toBeUndefined();
+  });
+
   it('omits blank optional query parameters', async () => {
     const result = firstValueFrom(service.list(17, DEFAULT_ISSUE_QUERY));
     const request = httpTesting.expectOne((candidate) => candidate.url === '/api/v1/issues');

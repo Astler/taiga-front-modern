@@ -5,6 +5,8 @@ import { RuntimeConfigService } from '../../../core/config';
 import type { TaigaId } from '../../../shared/models';
 import {
   ISSUE_FILTER_CATEGORIES,
+  type IssueChanges,
+  type IssueCreateRequest,
   type IssueFiltersData,
   type IssueListPage,
   type IssueListQuery,
@@ -36,6 +38,25 @@ export class IssuesApiService {
       headers: UNPAGINATED_HEADERS,
       params: issueFilterParams(projectId, query),
     });
+  }
+
+  get(issueId: TaigaId): Observable<TaigaIssue> {
+    return this.http.get<TaigaIssue>(`${this.config.resolveApiPath('issues')}/${issueId}`);
+  }
+
+  create(request: IssueCreateRequest): Observable<TaigaIssue> {
+    return this.http.post<TaigaIssue>(this.config.resolveApiPath('issues'), request);
+  }
+
+  update(issueId: TaigaId, changes: IssueChanges, version?: number): Observable<TaigaIssue> {
+    return this.http.patch<TaigaIssue>(`${this.config.resolveApiPath('issues')}/${issueId}`, {
+      ...changes,
+      ...(version === undefined ? {} : { version }),
+    });
+  }
+
+  delete(issueId: TaigaId): Observable<void> {
+    return this.http.delete<void>(`${this.config.resolveApiPath('issues')}/${issueId}`);
   }
 
   private toPage(

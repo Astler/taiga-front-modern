@@ -32,7 +32,31 @@ export interface TaigaIssue {
   readonly modified_date: string;
   readonly created_date?: string;
   readonly due_date?: string | null;
+  readonly description?: string;
+  readonly is_blocked?: boolean;
+  readonly blocked_note?: string;
+  readonly version?: number;
 }
+
+export interface IssueChanges {
+  readonly subject: string;
+  readonly description: string;
+  readonly status: TaigaId;
+  readonly type: TaigaId;
+  readonly severity: TaigaId;
+  readonly priority: TaigaId;
+  readonly assigned_to: TaigaId | null;
+  readonly due_date: string | null;
+  readonly tags: readonly string[];
+  readonly is_blocked: boolean;
+  readonly blocked_note: string;
+}
+
+export interface IssueCreateRequest extends IssueChanges {
+  readonly project: TaigaId;
+}
+
+export type IssueMutationResult = 'created' | 'updated' | 'deleted' | 'failed' | 'uncertain';
 
 export type IssueFilterCategory =
   'status' | 'type' | 'severity' | 'priority' | 'tags' | 'assigned_to';

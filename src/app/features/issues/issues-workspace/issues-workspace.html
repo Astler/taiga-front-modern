@@ -11,6 +11,15 @@
         }
       </p>
     </div>
+    @if (canCreateIssues()) {
+      <button
+        mat-flat-button
+        type="button"
+        class="issue-create-button"
+        [disabled]="store.isMutating() || store.isLoading() || store.requiresReconciliation()"
+        (click)="openNewIssue()"
+      >+ New issue</button>
+    }
   </header>
 
   <div class="issue-controls">
@@ -96,6 +105,17 @@
     }
   </div>
 
+  @if (store.mutationError(); as mutationError) {
+    <div class="issue-mutation-error" role="alert">
+      <span>{{ mutationError }}</span>
+      @if (!store.requiresReconciliation()) {
+        <button type="button" (click)="store.dismissMutationError()" aria-label="Dismiss issue error">
+          ×
+        </button>
+      }
+    </div>
+  }
+
   @if (store.isLoading()) {
     <mat-progress-bar class="page-progress" mode="indeterminate" />
   }
@@ -147,7 +167,12 @@
               <td data-label="Issue" class="issue-main-cell">
                 <div class="issue-title">
                   <span class="issue-reference">#{{ issue.ref }}</span>
-                  <strong>{{ issue.subject }}</strong>
+                  <button
+                    type="button"
+                    class="issue-open"
+                    [attr.aria-label]="'Open issue #' + issue.ref + ': ' + issue.subject"
+                    (click)="openIssue(issue)"
+                  >{{ issue.subject }}</button>
                 </div>
               </td>
               <td data-label="Status">
@@ -256,5 +281,44 @@
         </button>
       </div>
     </footer>
+  }
+
+  @if (editorMode() === 'create') {
+    <pf-issue-editor
+      mode="create"
+      [project]="project()"
+      [filters]="store.filtersData()"
+      [busy]="store.isMutating() || store.isLoading() || store.requiresReconciliation()"
+      [error]="store.mutationError()"
+      (saved)="saveIssue($event)"
+      (closeRequested)="closeEditor()"
+    />
+  } @else if (editorMode() === 'edit') {
+    @if (store.detailStatus() === 'loaded' && store.selectedIssue(); as issue) {
+      <pf-issue-editor
+        mode="edit"
+        [issue]="issue"
+        [project]="project()"
+        [filters]="store.filtersData()"
+        [busy]="store.isMutating() || store.isLoading() || store.requiresReconciliation()"
+        [error]="store.mutationError()"
+        (saved)="saveIssue($event)"
+        (deleteRequested)="deleteIssue()"
+        (closeRequested)="closeEditor()"
+      />
+    } @else {
+      <div class="issue-detail-loading-backdrop">
+        <section class="issue-detail-loading" role="dialog" aria-modal="true" aria-label="Load issue">
+          @if (store.detailStatus() === 'error') {
+            <p role="alert">{{ store.detailError() }}</p>
+            <button mat-flat-button type="button" (click)="closeEditor()">Close</button>
+          } @else {
+            <mat-progress-bar mode="indeterminate" />
+            <p>Loading issue details…</p>
+            <button mat-button type="button" (click)="closeEditor()">Cancel</button>
+          }
+        </section>
+      </div>
+    }
   }
 </section>

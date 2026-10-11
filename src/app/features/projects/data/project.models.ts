@@ -37,7 +37,19 @@ export interface TaigaProjectRole {
 
 export type TaigaTagColors = Readonly<Record<string, string | null>>;
 
+export interface TaigaProjectIssueValue {
+  readonly id: TaigaId;
+  readonly name: string;
+  readonly color?: string;
+  readonly order?: number;
+  readonly is_closed?: boolean;
+}
+
 export interface TaigaProjectDetail extends TaigaProjectListItem {
+  readonly issue_statuses?: readonly TaigaProjectIssueValue[];
+  readonly issue_types?: readonly TaigaProjectIssueValue[];
+  readonly priorities?: readonly TaigaProjectIssueValue[];
+  readonly severities?: readonly TaigaProjectIssueValue[];
   readonly members: readonly TaigaProjectMember[];
   readonly us_statuses: readonly TaigaUserStoryStatus[];
   readonly points?: readonly TaigaProjectPoint[];

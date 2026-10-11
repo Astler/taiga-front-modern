@@ -10,14 +10,27 @@ import { IssuesWorkspace } from './issues-workspace';
 describe('IssuesWorkspace', () => {
   const list = vi.fn();
   const filters = vi.fn();
+  const get = vi.fn();
+  const create = vi.fn();
+  const update = vi.fn();
+  const deleteIssue = vi.fn();
 
   beforeEach(async () => {
     list.mockReset().mockReturnValue(of(issuePage()));
     filters.mockReset().mockReturnValue(of(filtersData()));
+    get.mockReset().mockReturnValue(of({
+      ...issuePage().items[0]!, description: 'Crash details', version: 4,
+    }));
+    create.mockReset().mockReturnValue(of(issuePage().items[0]!));
+    update.mockReset().mockReturnValue(of(issuePage().items[0]!));
+    deleteIssue.mockReset().mockReturnValue(of(undefined));
 
     await TestBed.configureTestingModule({
       imports: [IssuesWorkspace],
-      providers: [{ provide: IssuesApiService, useValue: { list, filters } }],
+      providers: [{
+        provide: IssuesApiService,
+        useValue: { list, filters, get, create, update, delete: deleteIssue },
+      }],
     }).compileComponents();
   });
 
@@ -40,6 +53,95 @@ describe('IssuesWorkspace', () => {
     expect(host.querySelector('.issue-tags')?.textContent).toContain('frontend');
     expect(host.querySelector('.assignee-name')?.textContent).toContain('Ada Lovelace');
     expect(host.querySelector('.issue-main-cell a')).toBeNull();
+  });
+
+  it('creates an issue in the native editor with project metadata and permission checks', async () => {
+    const fixture = TestBed.createComponent(IssuesWorkspace);
+    fixture.componentRef.setInput('project', {
+      ...project(), my_permissions: ['add_issue'], issue_statuses: [
+        { id: 1, name: 'Open' },
+      ],
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    host.querySelector<HTMLButtonElement>('.issue-create-button')!.click();
+    fixture.detectChanges();
+    const editor = host.querySelector<HTMLElement>('pf-issue-editor')!;
+    expect(editor).toBeTruthy();
+    const title = editor.querySelector<HTMLInputElement>('input[maxlength="500"]')!;
+    title.value = 'Create login alert';
+    title.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    editor.querySelector<HTMLButtonElement>('.issue-save')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({
+      project: 17, subject: 'Create login alert', status: 1,
+      type: 2, severity: 3, priority: 4,
+    }));
+    expect(host.querySelector('pf-issue-editor')).toBeNull();
+  });
+
+  it('opens details and saves versioned changes without leaving the issue list', async () => {
+    const fixture = TestBed.createComponent(IssuesWorkspace);
+    fixture.componentRef.setInput('project', {
+      ...project(), my_permissions: ['modify_issue', 'delete_issue'],
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    host.querySelector<HTMLButtonElement>('.issue-open')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(get).toHaveBeenCalledWith(38);
+    const editor = host.querySelector<HTMLElement>('pf-issue-editor')!;
+    expect(editor.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe('Crash details');
+    const title = editor.querySelector<HTMLInputElement>('input[maxlength="500"]')!;
+    title.value = 'Fix login crash completely';
+    title.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    editor.querySelector<HTMLButtonElement>('.issue-save')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(update).toHaveBeenCalledWith(38, expect.objectContaining({
+      subject: 'Fix login crash completely',
+    }), 4);
+    expect(host.querySelector('pf-issue-editor')).toBeNull();
+  });
+
+  it('requires delete permission and confirmation before removing an issue', async () => {
+    const fixture = TestBed.createComponent(IssuesWorkspace);
+    fixture.componentRef.setInput('project', {
+      ...project(), my_permissions: ['delete_issue'],
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    host.querySelector<HTMLButtonElement>('.issue-open')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const editor = host.querySelector<HTMLElement>('pf-issue-editor')!;
+    const confirm = vi.spyOn(globalThis, 'confirm').mockReturnValueOnce(false)
+      .mockReturnValueOnce(true);
+    try {
+      const deleteButton = editor.querySelector<HTMLButtonElement>('.issue-delete')!;
+      deleteButton.click();
+      fixture.detectChanges();
+      expect(deleteIssue).not.toHaveBeenCalled();
+      deleteButton.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(deleteIssue).toHaveBeenCalledWith(38);
+      expect(host.querySelector('pf-issue-editor')).toBeNull();
+    } finally {
+      confirm.mockRestore();
+    }
   });
 
   it('shows only tag names in the overflow tooltip', async () => {
