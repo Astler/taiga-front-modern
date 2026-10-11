@@ -1091,7 +1091,7 @@
                         {{ commentInitials(entry) }}
                       }
                     </span>
-                    <span class="story-comment-copy">
+                    <div class="story-comment-copy">
                       <span class="story-comment-meta">
                         <strong>{{ commentAuthor(entry) }}</strong>
                         @if (entry.created_at || entry.created_date) {
@@ -1142,7 +1142,7 @@
                       } @else {
                         <span class="story-comment-text">{{ entry.comment }}</span>
                       }
-                    </span>
+                    </div>
                   </li>
                 } @empty {
                   <li class="story-comments-state">No comments yet.</li>
