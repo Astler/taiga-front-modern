@@ -498,7 +498,7 @@ export class Topbar {
       });
       return;
     }
-    void this.router.navigate(['/project', projectSlug, 'kanban']);
+    void this.router.navigate(['/project', projectSlug, 'dashboard']);
   }
 
   protected openNotificationProject(notification: TopbarNotification): void {
@@ -512,7 +512,7 @@ export class Topbar {
     if (project) {
       this.projectContext.selectProject(project);
     }
-    void this.router.navigate(['/project', projectSlug, 'kanban']);
+    void this.router.navigate(['/project', projectSlug, 'dashboard']);
   }
 
   protected markAllNotificationsRead(event: Event): void {
