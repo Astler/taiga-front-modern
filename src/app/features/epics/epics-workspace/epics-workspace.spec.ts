@@ -50,6 +50,74 @@ describe('EpicsWorkspace', () => {
     expect(host.querySelector('.epic-main-cell a')).toBeNull();
   });
 
+  it('shows compact search and actions without repeating the epic page heading', async () => {
+    const fixture = TestBed.createComponent(EpicsWorkspace);
+    fixture.componentRef.setInput('project', { ...project(), my_permissions: ['add_epic'] });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const toolbar = host.querySelector<HTMLElement>('.epics-toolbar')!;
+    expect(toolbar).toBeTruthy();
+    expect(host.querySelector('.epics-header')).toBeNull();
+    expect(host.querySelector('#epics-title')).toBeNull();
+    expect(toolbar.querySelector('form.search-field')).toBeTruthy();
+    expect(toolbar.querySelector('.epics-count')?.textContent).toContain('38 epics');
+    expect(toolbar.querySelector('[aria-label^="Sort epics"]')).toBeTruthy();
+    expect(toolbar.querySelector('.epic-filter-toggle')).toBeTruthy();
+    expect(toolbar.querySelector('.epic-create-button')).toBeTruthy();
+    expect(host.querySelector('.filter-rail')).toBeNull();
+
+    const toggle = toolbar.querySelector<HTMLButtonElement>('.epic-filter-toggle')!;
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    toggle.click();
+    fixture.detectChanges();
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(host.querySelectorAll('.filter-rail select')).toHaveLength(4);
+
+    toggle.click();
+    fixture.detectChanges();
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(host.querySelector('.filter-rail')).toBeNull();
+  });
+
+  it('sorts epics with the icon menu and restores native ordering', async () => {
+    const fixture = TestBed.createComponent(EpicsWorkspace);
+    fixture.componentRef.setInput('project', project());
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const sort = host.querySelector<HTMLButtonElement>('[aria-label^="Sort epics"]')!;
+    expect(sort.getAttribute('aria-label')).toContain('Default epic order');
+    sort.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const recent = [...document.querySelectorAll<HTMLButtonElement>('.mat-mdc-menu-item')]
+      .find((button) => button.textContent?.trim() === 'Recently updated')!;
+    expect(recent).toBeTruthy();
+    recent.click();
+    fixture.detectChanges();
+    expect(list).toHaveBeenLastCalledWith(
+      17,
+      expect.objectContaining({ orderBy: '-modified_date' }),
+    );
+    expect(sort.getAttribute('aria-label')).toContain('Recently updated');
+
+    sort.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const nativeOrder = [...document.querySelectorAll<HTMLButtonElement>('.mat-mdc-menu-item')]
+      .find((button) => button.textContent?.trim() === 'Default epic order')!;
+    expect(nativeOrder).toBeTruthy();
+    nativeOrder.click();
+    fixture.detectChanges();
+    expect(list).toHaveBeenLastCalledWith(17, expect.objectContaining({ orderBy: '' }));
+  });
+
   it('creates a new epic from the native editor with permission-gated controls', async () => {
     const fixture = TestBed.createComponent(EpicsWorkspace);
     fixture.componentRef.setInput('project', { ...project(), my_permissions: ['add_epic'] });
@@ -168,6 +236,8 @@ describe('EpicsWorkspace', () => {
     fixture.detectChanges();
 
     const host = fixture.nativeElement as HTMLElement;
+    host.querySelector<HTMLButtonElement>('.epic-filter-toggle')!.click();
+    fixture.detectChanges();
     const status = host.querySelector<HTMLSelectElement>('select[aria-label="Status"]')!;
     status.value = '2';
     status.dispatchEvent(new Event('change', { bubbles: true }));
@@ -184,6 +254,17 @@ describe('EpicsWorkspace', () => {
       expect.objectContaining({ filters: { status: { value: '2', mode: 'exclude' } } }),
     );
     expect(exclude.getAttribute('aria-pressed')).toBe('true');
+    expect(host.querySelector('.epic-filter-badge')?.textContent).toBe('1');
+
+    const clear = [...host.querySelectorAll<HTMLButtonElement>('.epic-filter-actions button')]
+      .find((button) => button.textContent?.trim() === 'Clear all')!;
+    clear.click();
+    fixture.detectChanges();
+    expect(host.querySelector('.epic-filter-badge')).toBeNull();
+    expect(list).toHaveBeenLastCalledWith(
+      17,
+      expect.objectContaining({ filters: {} }),
+    );
   });
 });
 
