@@ -10,6 +10,7 @@ import {
   untracked,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { firstValueFrom } from 'rxjs';
@@ -43,6 +44,19 @@ interface NewIssueAttachmentUpload {
   readonly error: string | null;
 }
 
+const ISSUE_SORT_OPTIONS: readonly { readonly value: string; readonly label: string }[] = [
+  { value: '-modified_date', label: 'Recently updated' },
+  { value: 'modified_date', label: 'Least recently updated' },
+  { value: '-ref', label: 'Newest reference' },
+  { value: 'ref', label: 'Oldest reference' },
+  { value: 'priority', label: 'Priority' },
+  { value: 'severity', label: 'Severity' },
+  { value: 'status', label: 'Status' },
+  { value: 'type', label: 'Type' },
+  { value: 'assigned_to', label: 'Assignee' },
+  { value: 'subject', label: 'Subject' },
+];
+
 const FILTERS: readonly FilterDefinition[] = [
   { category: 'status', label: 'Status', dataKey: 'statuses' },
   { category: 'type', label: 'Type', dataKey: 'types' },
@@ -54,7 +68,7 @@ const FILTERS: readonly FilterDefinition[] = [
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IssueEditor, MatButtonModule, MatProgressBarModule, MatTooltipModule],
+  imports: [IssueEditor, MatButtonModule, MatMenuModule, MatProgressBarModule, MatTooltipModule],
   providers: [IssuesStore],
   selector: 'pf-issues-workspace',
   styleUrl: './issues-workspace.scss',
@@ -69,6 +83,15 @@ export class IssuesWorkspace implements OnDestroy {
   protected readonly pendingFiles = signal<readonly File[]>([]);
   protected readonly newIssueUpload = signal<NewIssueAttachmentUpload | null>(null);
   protected readonly filterDefinitions = FILTERS;
+  protected readonly sortOptions = ISSUE_SORT_OPTIONS;
+  protected readonly filterPanelOpen = signal(false);
+  protected readonly activeFilterCount = computed(() =>
+    Object.keys(this.store.query().filters).length,
+  );
+  protected readonly sortLabel = computed(() =>
+    ISSUE_SORT_OPTIONS.find(({ value }) => value === this.store.query().orderBy)?.label ??
+    'Sort issues',
+  );
   protected readonly searchValue = signal('');
   protected readonly editorMode = signal<IssueEditorMode | null>(null);
   protected readonly canCreateIssues = computed(() => this.canDo('add_issue'));
@@ -103,6 +126,7 @@ export class IssuesWorkspace implements OnDestroy {
         if (projectChanged) {
           this.pendingFiles.set([]);
           this.newIssueUpload.set(null);
+          this.filterPanelOpen.set(false);
           this.editorMode.set(null);
           this.store.closeIssue();
           this.store.loadProject(projectId);
@@ -258,8 +282,12 @@ export class IssuesWorkspace implements OnDestroy {
     this.store.setSearch(this.searchValue());
   }
 
-  protected updateSort(event: Event): void {
-    this.store.setSort((event.target as HTMLSelectElement).value);
+  protected selectSort(orderBy: string): void {
+    this.store.setSort(orderBy);
+  }
+
+  protected toggleFilterPanel(): void {
+    this.filterPanelOpen.update((open) => !open);
   }
 
   protected updateFilter(definition: FilterDefinition, event: Event): void {
