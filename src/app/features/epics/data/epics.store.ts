@@ -231,6 +231,11 @@ export class EpicsStore {
     }
   }
 
+  setSort(orderBy: string): void {
+    if ((this.queryState().orderBy ?? '') === orderBy) return;
+    this.updateQuery({ ...this.queryState(), orderBy, page: 1 });
+  }
+
   setFilter(category: EpicFilterCategory, value: string, mode: EpicFilterMode): void {
     const filters = { ...this.queryState().filters };
     if (value) {
