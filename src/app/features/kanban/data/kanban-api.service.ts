@@ -14,6 +14,9 @@ import type {
   KanbanSwimlane,
   KanbanUserStory,
   KanbanStoryUpdateRequest,
+  KanbanTaskSummary,
+  KanbanTaskStatus,
+  KanbanTaskUpdate,
 } from './kanban.models';
 
 export interface KanbanPayload {
@@ -93,6 +96,39 @@ export class KanbanApiService {
         ...(request.version === undefined ? {} : { version: request.version }),
       },
     );
+  }
+
+  listTaskStatuses(projectId: TaigaId): Observable<readonly KanbanTaskStatus[]> {
+    return this.http.get<readonly KanbanTaskStatus[]>(
+      this.config.resolveApiPath('task-statuses'),
+      {
+        headers: UNPAGINATED_HEADERS,
+        params: new HttpParams().set('project', projectId),
+      },
+    );
+  }
+
+  createTask(projectId: TaigaId, storyId: TaigaId, subject: string): Observable<KanbanTaskSummary> {
+    return this.http.post<KanbanTaskSummary>(this.config.resolveApiPath('tasks'), {
+      project: projectId,
+      user_story: storyId,
+      subject,
+    });
+  }
+
+  updateTask(
+    taskId: TaigaId,
+    changes: KanbanTaskUpdate,
+    version?: number,
+  ): Observable<KanbanTaskSummary> {
+    return this.http.patch<KanbanTaskSummary>(
+      `${this.config.resolveApiPath('tasks')}/${taskId}`,
+      { ...changes, ...(version === undefined ? {} : { version }) },
+    );
+  }
+
+  deleteTask(taskId: TaigaId): Observable<void> {
+    return this.http.delete<void>(`${this.config.resolveApiPath('tasks')}/${taskId}`);
   }
 
   deleteUserStory(storyId: TaigaId): Observable<void> {

@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { finalize, firstValueFrom } from 'rxjs';
+import { Observable, finalize, firstValueFrom } from 'rxjs';
 import type { TaigaId } from '../../../shared/models';
 import { KanbanApiService } from './kanban-api.service';
 import type {
@@ -13,6 +13,9 @@ import type {
   KanbanSwimlane,
   KanbanUserStory,
   KanbanStoryUpdateRequest,
+  KanbanTaskSummary,
+  KanbanTaskStatus,
+  KanbanTaskUpdate,
 } from './kanban.models';
 
 export type KanbanLoadStatus = 'idle' | 'loading' | 'loaded' | 'error';
@@ -21,10 +24,11 @@ export type KanbanMoveResult = 'moved' | 'failed' | 'uncertain';
 export type KanbanUpdateResult = 'updated' | 'failed' | 'uncertain';
 export type KanbanAttachmentResult = 'deleted' | 'uploaded' | 'failed';
 export type KanbanDeleteResult = 'deleted' | 'failed' | 'uncertain';
+export type KanbanTaskResult = 'updated' | 'failed' | 'uncertain';
 export type KanbanStoryDetailStatus = 'idle' | 'loading' | 'loaded' | 'error';
 
 export interface KanbanMutation {
-  readonly kind: 'attachment' | 'create' | 'delete' | 'move' | 'update';
+  readonly kind: 'attachment' | 'create' | 'delete' | 'move' | 'task' | 'update';
   readonly storyIds: readonly TaigaId[];
 }
 
@@ -37,6 +41,9 @@ export class KanbanStore {
   private readonly swimlanesState = signal<readonly KanbanSwimlane[]>([]);
   private readonly filtersDataState = signal<KanbanFiltersData | null>(null);
   private readonly milestonesState = signal<readonly KanbanMilestone[]>([]);
+  private readonly taskStatusesState = signal<readonly KanbanTaskStatus[]>([]);
+  private taskStatusesProjectId: TaigaId | null = null;
+  private taskStatusesRevision = 0;
   private readonly errorState = signal<string | null>(null);
   private readonly mutationState = signal<KanbanMutation | null>(null);
   private readonly mutationErrorState = signal<string | null>(null);
@@ -56,6 +63,7 @@ export class KanbanStore {
   readonly swimlanes = this.swimlanesState.asReadonly();
   readonly filtersData = this.filtersDataState.asReadonly();
   readonly milestones = this.milestonesState.asReadonly();
+  readonly taskStatuses = this.taskStatusesState.asReadonly();
   readonly error = this.errorState.asReadonly();
   readonly mutation = this.mutationState.asReadonly();
   readonly mutationError = this.mutationErrorState.asReadonly();
@@ -82,6 +90,9 @@ export class KanbanStore {
     this.swimlanesState.set([]);
     this.filtersDataState.set(null);
     this.milestonesState.set([]);
+    this.taskStatusesProjectId = null;
+    ++this.taskStatusesRevision;
+    this.taskStatusesState.set([]);
     this.mutationState.set(null);
     this.mutationErrorState.set(null);
     this.refreshingState.set(false);
@@ -342,6 +353,122 @@ export class KanbanStore {
         );
       }
       return ambiguous ? 'uncertain' : 'failed';
+    }
+  }
+
+  loadTaskStatuses(projectId: TaigaId): void {
+    if (this.projectIdState() !== projectId || this.taskStatusesProjectId === projectId) {
+      return;
+    }
+    const revision = ++this.taskStatusesRevision;
+    this.taskStatusesProjectId = projectId;
+    this.taskStatusesState.set([]);
+    this.api.listTaskStatuses(projectId).subscribe({
+      next: (statuses) => {
+        if (revision !== this.taskStatusesRevision || this.projectIdState() !== projectId) return;
+        this.taskStatusesState.set([...statuses].sort((a, b) => a.order - b.order));
+      },
+      error: () => {
+        if (revision !== this.taskStatusesRevision || this.projectIdState() !== projectId) return;
+        // Story editing remains functional on installations without task statuses access.
+        this.taskStatusesState.set([]);
+      },
+    });
+  }
+
+  async createTask(projectId: TaigaId, storyId: TaigaId, subject: string): Promise<KanbanTaskResult> {
+    if (!subject.trim()) return 'failed';
+    return this.mutateTask(projectId, storyId, this.api.createTask(projectId, storyId, subject.trim()),
+      (current, response) => response ? [...current, response] : current);
+  }
+
+  async updateTask(
+    projectId: TaigaId,
+    storyId: TaigaId,
+    task: KanbanTaskSummary,
+    changes: KanbanTaskUpdate,
+  ): Promise<KanbanTaskResult> {
+    return this.mutateTask(
+      projectId,
+      storyId,
+      this.api.updateTask(task.id, changes, task.version),
+      (current, response) => current.map((entry) => {
+        if (entry.id !== task.id) return entry;
+        const statusClosed = changes.status === undefined
+          ? entry.is_closed
+          : (this.taskStatusesState().find(({ id }) => id === changes.status)?.is_closed ??
+            entry.is_closed);
+        return { ...entry, ...changes, ...response, is_closed: response?.is_closed ?? statusClosed };
+      }),
+    );
+  }
+
+  async deleteTask(
+    projectId: TaigaId,
+    storyId: TaigaId,
+    taskId: TaigaId,
+  ): Promise<KanbanTaskResult> {
+    return this.mutateTask(
+      projectId, storyId, this.api.deleteTask(taskId),
+      (current) => current.filter(({ id }) => id !== taskId),
+    );
+  }
+
+  private async mutateTask(
+    projectId: TaigaId,
+    storyId: TaigaId,
+    request: Observable<KanbanTaskSummary | void>,
+    apply: (
+      tasks: readonly KanbanTaskSummary[],
+      response: KanbanTaskSummary | void,
+    ) => readonly KanbanTaskSummary[],
+  ): Promise<KanbanTaskResult> {
+    if (
+      this.projectIdState() !== projectId ||
+      !this.userStoriesState().some(({ id }) => id === storyId) ||
+      this.isMutating() ||
+      this.refreshingState() ||
+      this.requiresReconciliationState()
+    ) {
+      return 'failed';
+    }
+
+    const revision = ++this.mutationRevision;
+    this.mutationState.set({ kind: 'task', storyIds: [storyId] });
+    this.mutationErrorState.set(null);
+    try {
+      const response = await firstValueFrom(request);
+      if (!this.isCurrentMutation(revision, projectId)) return 'failed';
+
+      const update = (story: KanbanUserStory): KanbanUserStory => ({
+        ...story, tasks: apply(story.tasks ?? [], response),
+      });
+      this.userStoriesState.update((stories) =>
+        stories.map((story) => story.id === storyId ? update(story) : story),
+      );
+      if (this.selectedStoryState()?.id === storyId) {
+        this.selectedStoryState.update((story) => story ? update(story) : story);
+      }
+      this.lastSyncedAtState.set(new Date());
+      this.mutationState.set(null);
+      return 'updated';
+    } catch (error: unknown) {
+      if (!this.isCurrentMutation(revision, projectId)) return 'failed';
+      this.mutationState.set(null);
+      if (isAmbiguousMutationFailure(error)) {
+        this.requiresReconciliationState.set(true);
+        this.mutationErrorState.set(
+          'Taiga did not confirm the task change. The board is syncing before another change.',
+        );
+        this.refresh();
+        return 'uncertain';
+      }
+      this.mutationErrorState.set(
+        error instanceof HttpErrorResponse && error.status === 403
+          ? 'You do not have permission to change tasks.'
+          : 'The task could not be saved. Please try again.',
+      );
+      return 'failed';
     }
   }
 

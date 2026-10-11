@@ -1,0 +1,164 @@
+.task-section-heading {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.task-section-heading > span,
+.task-empty {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+
+.task-add-button {
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-full);
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+  cursor: pointer;
+  padding: 0.4rem 0.7rem;
+  font: var(--mat-sys-label-medium);
+  font-weight: 700;
+}
+
+.detail-task-editor-list {
+  margin-top: 0.75rem;
+  gap: 0.5rem;
+}
+
+.detail-task-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-md);
+  background: var(--mat-sys-surface-container-high);
+  padding: 0.6rem;
+  text-decoration: none;
+}
+
+.task-completion-dot {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 1.25rem;
+  box-sizing: border-box;
+  place-items: center;
+  border: 1px solid var(--mat-sys-outline);
+  border-radius: 0.4rem;
+  font: var(--mat-sys-label-small);
+}
+
+.task-closed .task-completion-dot {
+  border-color: var(--mat-sys-tertiary);
+  background: color-mix(in srgb, var(--mat-sys-tertiary) 20%, transparent);
+  color: var(--mat-sys-tertiary);
+}
+
+.detail-task-row .task-title {
+  min-width: 10rem;
+  flex: 1 1 12rem;
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-medium);
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.detail-task-row.task-closed .task-title {
+  color: var(--mat-sys-on-surface-variant);
+  text-decoration: line-through;
+}
+
+.task-row-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.3rem;
+  margin-inline-start: auto;
+}
+
+.task-row-actions button,
+.task-edit-form button {
+  min-height: 2rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--mat-sys-primary);
+  cursor: pointer;
+  padding: 0.35rem 0.5rem;
+  font: var(--mat-sys-label-medium);
+}
+
+.task-row-actions select {
+  max-width: 10rem;
+  border: 1px solid var(--app-border-color);
+  border-radius: 0.5rem;
+  background: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
+  padding: 0.4rem;
+  font: var(--mat-sys-label-medium);
+}
+
+.task-row-actions .task-delete-button {
+  color: var(--mat-sys-error);
+}
+
+.task-edit-form {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 14rem;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.task-edit-form label {
+  min-width: 8rem;
+  flex: 1 1 10rem;
+}
+
+.task-edit-form input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--app-border-color);
+  border-radius: 0.5rem;
+  outline: 0;
+  background: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
+  padding: 0.5rem;
+  font: var(--mat-sys-body-medium);
+}
+
+.task-edit-form input:focus-visible {
+  border-color: var(--mat-sys-primary);
+}
+
+.task-new-form {
+  margin-block-start: 0.65rem;
+}
+
+.task-row-actions button:hover,
+.task-edit-form button:hover,
+.task-add-button:hover {
+  background: var(--mat-sys-surface-container-highest);
+}
+
+.task-row-actions button:disabled,
+.task-edit-form button:disabled,
+.task-add-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 540px) {
+  .task-row-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .task-row-actions select {
+    max-width: none;
+    flex: 1;
+  }
+}

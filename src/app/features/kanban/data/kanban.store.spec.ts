@@ -33,6 +33,12 @@ describe('KanbanStore', () => {
     >;
     deleteAttachment: ReturnType<typeof vi.fn<(attachmentId: number) => Observable<void>>>;
     deleteUserStory: ReturnType<typeof vi.fn<(storyId: number) => Observable<void>>>;
+    listTaskStatuses: ReturnType<
+      typeof vi.fn<(projectId: number) => Observable<readonly { id: number; name: string; color: string; order: number; is_closed: boolean }[]>>
+    >;
+    createTask: ReturnType<typeof vi.fn<(projectId: number, storyId: number, subject: string) => Observable<any>>>;
+    updateTask: ReturnType<typeof vi.fn<(taskId: number, changes: any, version?: number) => Observable<any>>>;
+    deleteTask: ReturnType<typeof vi.fn<(taskId: number) => Observable<void>>>;
   };
   let store: KanbanStore;
 
@@ -46,6 +52,10 @@ describe('KanbanStore', () => {
       uploadAttachment: vi.fn(),
       deleteAttachment: vi.fn(),
       deleteUserStory: vi.fn(),
+      listTaskStatuses: vi.fn(),
+      createTask: vi.fn(),
+      updateTask: vi.fn(),
+      deleteTask: vi.fn(),
     };
     TestBed.configureTestingModule({
       providers: [KanbanStore, { provide: KanbanApiService, useValue: api }],
@@ -229,6 +239,57 @@ describe('KanbanStore', () => {
     pending.complete();
     await expect(deleting).resolves.toBe('failed');
     expect(store.userStories()[0]?.project).toBe(18);
+  });
+
+  it('creates, renames, changes status, and deletes tasks in selected story and board', async () => {
+    const initial = { ...userStory(1, 1), tasks: [], total_attachments: 0 };
+    api.load.mockReturnValue(of({ swimlanes: [], userStories: [initial] }));
+    api.getUserStory.mockReturnValue(of(initial));
+    api.listTaskStatuses.mockReturnValue(of([
+      { id: 1, name: 'Ready', color: '#777', order: 0, is_closed: false },
+      { id: 2, name: 'Done', color: '#7f7', order: 1, is_closed: true },
+    ]));
+    api.createTask.mockReturnValue(of({ id: 9, subject: 'Initial task', is_closed: false, version: 3, status: 1 }));
+    api.updateTask.mockReturnValueOnce(of({
+      id: 9, subject: 'Renamed', is_closed: false, version: 4, status: 1,
+    })).mockReturnValueOnce(of({
+      id: 9, subject: 'Renamed', is_closed: true, version: 5, status: 2,
+    }));
+    api.deleteTask.mockReturnValue(of(undefined));
+
+    store.load(17);
+    store.openStoryDetails(1);
+    store.loadTaskStatuses(17);
+    expect(store.taskStatuses()).toHaveLength(2);
+
+    expect(await store.createTask(17, 1, 'Initial task')).toBe('updated');
+    expect(store.selectedStory()?.tasks?.[0]?.subject).toBe('Initial task');
+    expect(store.userStories()[0]?.tasks).toHaveLength(1);
+    const created = store.selectedStory()!.tasks![0]!;
+
+    expect(await store.updateTask(17, 1, created, { subject: 'Renamed' })).toBe('updated');
+    expect(api.updateTask).toHaveBeenLastCalledWith(9, { subject: 'Renamed' }, 3);
+    const renamed = store.selectedStory()!.tasks![0]!;
+    expect(renamed.subject).toBe('Renamed');
+    expect(await store.updateTask(17, 1, renamed, { status: 2 })).toBe('updated');
+    expect(store.selectedStory()?.tasks?.[0]?.is_closed).toBe(true);
+    expect(store.userStories()[0]?.tasks?.[0]?.status).toBe(2);
+
+    expect(await store.deleteTask(17, 1, 9)).toBe('updated');
+    expect(store.selectedStory()?.tasks).toEqual([]);
+    expect(store.userStories()[0]?.tasks).toEqual([]);
+  });
+
+  it('keeps task state unchanged on server rejection', async () => {
+    const initial = { ...userStory(1, 1), tasks: [{ id: 9, subject: 'Keep me', is_closed: false }] };
+    api.load.mockReturnValue(of({ swimlanes: [], userStories: [initial] }));
+    api.deleteTask.mockReturnValue(throwError(
+      () => new HttpErrorResponse({ status: 403, statusText: 'Forbidden' }),
+    ));
+    store.load(17);
+    await expect(store.deleteTask(17, 1, 9)).resolves.toBe('failed');
+    expect(store.userStories()[0]?.tasks?.[0]?.subject).toBe('Keep me');
+    expect(store.mutationError()).toContain('permission');
   });
 
   it('adds and removes attachments in both the board and open editor', async () => {

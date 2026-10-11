@@ -107,6 +107,37 @@ describe('KanbanApiService', () => {
     await expect(result).resolves.toEqual(response);
   });
 
+  it('uses stable Taiga task endpoints for CRUD and status metadata', async () => {
+    const projectId = 17;
+    const statusResult = firstValueFrom(service.listTaskStatuses(projectId));
+    const statuses = httpTesting.expectOne('/api/v1/task-statuses?project=17');
+    expect(statuses.request.headers.get('x-disable-pagination')).toBe('1');
+    statuses.flush([{ id: 2, name: 'Done', color: '#4f6', order: 1, is_closed: true }]);
+    expect((await statusResult)[0]?.name).toBe('Done');
+
+    const create = firstValueFrom(service.createTask(17, 101, 'Write tests'));
+    const createRequest = httpTesting.expectOne('/api/v1/tasks');
+    expect(createRequest.request.method).toBe('POST');
+    expect(createRequest.request.body).toEqual({
+      project: 17, user_story: 101, subject: 'Write tests',
+    });
+    createRequest.flush({ id: 201, subject: 'Write tests', is_closed: false });
+    expect((await create).id).toBe(201);
+
+    const update = firstValueFrom(service.updateTask(201, { status: 2 }, 4));
+    const updateRequest = httpTesting.expectOne('/api/v1/tasks/201');
+    expect(updateRequest.request.method).toBe('PATCH');
+    expect(updateRequest.request.body).toEqual({ status: 2, version: 4 });
+    updateRequest.flush({ id: 201, status: 2, is_closed: true });
+    expect((await update).is_closed).toBe(true);
+
+    const deletion = firstValueFrom(service.deleteTask(201));
+    const deleteRequest = httpTesting.expectOne('/api/v1/tasks/201');
+    expect(deleteRequest.request.method).toBe('DELETE');
+    deleteRequest.flush(null, { status: 204, statusText: 'No content' });
+    await expect(deletion).resolves.toBeUndefined();
+  });
+
   it('deletes a user story by numeric Taiga ID, not its display reference', async () => {
     const promise = firstValueFrom(service.deleteUserStory(101));
     const request = httpTesting.expectOne('/api/v1/userstories/101');

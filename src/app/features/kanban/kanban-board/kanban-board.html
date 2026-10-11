@@ -822,22 +822,111 @@
             </section>
           }
 
-          @if (detail.tasks?.length) {
-            <section class="detail-section">
-              <div class="detail-section-heading">
+          <section class="detail-section detail-tasks">
+            <div class="detail-section-heading">
+              <div class="task-section-heading">
                 <h3>Tasks</h3>
-                <span>{{ taskSummary(detail) }} complete</span>
+                <span>{{ taskSummary(detail) || '0/0' }} complete</span>
               </div>
-              <ul class="detail-task-list">
-                @for (task of detail.tasks; track task.id) {
-                  <li [class.task-closed]="task.is_closed">
-                    <span aria-hidden="true">{{ task.is_closed ? '✓' : '○' }}</span>
-                    {{ task.subject || 'Task ' + task.id }}
-                  </li>
-                }
-              </ul>
-            </section>
-          }
+              @if (canCreateTasks()) {
+                <button
+                  class="task-add-button"
+                  type="button"
+                  [disabled]="store.isMutating() || store.isRefreshing() || store.requiresReconciliation()"
+                  (click)="openTaskCreate()"
+                >
+                  + Add task
+                </button>
+              }
+            </div>
+
+            @if (taskCreateOpen()) {
+              <form class="task-edit-form task-new-form" (submit)="submitNewTask($event)">
+                <label>
+                  <span class="visually-hidden">New task title</span>
+                  <input
+                    type="text"
+                    required
+                    maxlength="500"
+                    placeholder="What needs to be done?"
+                    [value]="taskNewSubject()"
+                    [disabled]="store.isMutating()"
+                    (input)="updateNewTaskSubject($event)"
+                  />
+                </label>
+                <button type="submit" [disabled]="!taskNewSubject().trim() || store.isMutating()">
+                  Add
+                </button>
+                <button type="button" (click)="cancelTaskCreate()">Cancel</button>
+              </form>
+            }
+
+            <ul class="detail-task-list detail-task-editor-list">
+              @for (task of detail.tasks ?? []; track task.id) {
+                <li class="detail-task-row" [class.task-closed]="task.is_closed">
+                  <span class="task-completion-dot" aria-hidden="true">
+                    {{ task.is_closed ? '✓' : '' }}
+                  </span>
+
+                  @if (taskEditingId() === task.id) {
+                    <form class="task-edit-form" (submit)="saveTaskSubject($event, task)">
+                      <label>
+                        <span class="visually-hidden">Task title</span>
+                        <input
+                          type="text"
+                          required
+                          maxlength="500"
+                          [value]="taskEditingSubject()"
+                          (input)="updateTaskDraft($event)"
+                        />
+                      </label>
+                      <button type="submit" [disabled]="!taskEditingSubject().trim() || store.isMutating()">
+                        Save
+                      </button>
+                      <button type="button" (click)="cancelTaskEditing()">Cancel</button>
+                    </form>
+                  } @else {
+                    <span class="task-title">{{ task.subject || 'Task ' + task.id }}</span>
+                  }
+
+                  <span class="task-row-actions">
+                    @if (canModifyTasks() && store.taskStatuses().length) {
+                      <select
+                        [attr.aria-label]="'Status for task ' + (task.subject || task.id)"
+                        [value]="task.status ?? ''"
+                        [disabled]="store.isMutating() || store.isRefreshing() || store.requiresReconciliation()"
+                        (change)="changeTaskStatus(task, $event)"
+                      >
+                        <option value="" disabled>Status</option>
+                        @for (status of store.taskStatuses(); track status.id) {
+                          <option [value]="status.id">{{ status.name }}</option>
+                        }
+                      </select>
+                    }
+                    @if (canModifyTasks() && taskEditingId() !== task.id) {
+                      <button
+                        type="button"
+                        [attr.aria-label]="'Rename task ' + (task.subject || task.id)"
+                        [disabled]="store.isMutating()"
+                        (click)="beginTaskEditing(task)"
+                      >Edit</button>
+                    }
+                    @if (canDeleteTasks()) {
+                      <button
+                        class="task-delete-button"
+                        type="button"
+                        [attr.aria-label]="'Delete task ' + (task.subject || task.id)"
+                        [disabled]="store.isMutating() || store.isRefreshing() || store.requiresReconciliation()"
+                        (click)="deleteStoryTask(task)"
+                      >Delete</button>
+                    }
+                  </span>
+                </li>
+              } @empty {
+                <li class="task-empty">No tasks yet.</li>
+              }
+            </ul>
+          </section>
 
           <section class="detail-section files-section">
             <div class="detail-section-heading">

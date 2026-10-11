@@ -39,6 +39,22 @@ export interface KanbanTaskSummary {
   readonly is_closed: boolean;
   readonly subject?: string;
   readonly ref?: number;
+  readonly status?: TaigaId | null;
+  readonly assigned_to?: TaigaId | null;
+  readonly version?: number;
+}
+
+export interface KanbanTaskStatus {
+  readonly id: TaigaId;
+  readonly name: string;
+  readonly color: string;
+  readonly order: number;
+  readonly is_closed: boolean;
+}
+
+export interface KanbanTaskUpdate {
+  readonly subject?: string;
+  readonly status?: TaigaId;
 }
 
 export interface KanbanEpicSummary {

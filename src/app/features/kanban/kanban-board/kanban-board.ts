@@ -26,6 +26,7 @@ import {
   KanbanFilterPresetsService,
   type KanbanAttachmentSummary,
   type KanbanAssignee,
+  type KanbanTaskSummary,
   type KanbanFilterCategory,
   type KanbanFilterClause,
   type KanbanFilterMode,
@@ -105,7 +106,12 @@ const SORT_OPTIONS: readonly SortOption[] = [
   ],
   providers: [KanbanStore],
   selector: 'pf-kanban-board',
-  styleUrls: ['./kanban-board.scss', './kanban-filter-panel.scss', './kanban-story-drawer.scss'],
+  styleUrls: [
+    './kanban-board.scss',
+    './kanban-filter-panel.scss',
+    './kanban-story-drawer.scss',
+    './kanban-task-editor.scss',
+  ],
   templateUrl: './kanban-board.html',
 })
 export class KanbanBoard {
@@ -143,6 +149,10 @@ export class KanbanBoard {
   protected readonly activeStory = signal<KanbanUserStory | null>(null);
   protected readonly storyDraft = signal<StoryEditorDraft | null>(null);
   protected readonly storyDraftDirty = signal(false);
+  protected readonly taskCreateOpen = signal(false);
+  protected readonly taskNewSubject = signal('');
+  protected readonly taskEditingId = signal<TaigaId | null>(null);
+  protected readonly taskEditingSubject = signal('');
   protected readonly attachmentDragActive = signal(false);
   protected readonly attachmentUploadName = signal<string | null>(null);
   protected readonly attachmentUploadError = signal<string | null>(null);
@@ -164,6 +174,19 @@ export class KanbanBoard {
       (this.project().my_permissions ?? []).includes('modify_us') &&
       !this.project().archived_code &&
       !this.project().blocked_code,
+  );
+
+  protected readonly canCreateTasks = computed(
+    () => (this.project().my_permissions ?? []).includes('add_task') &&
+      !this.project().archived_code && !this.project().blocked_code,
+  );
+  protected readonly canModifyTasks = computed(
+    () => (this.project().my_permissions ?? []).includes('modify_task') &&
+      !this.project().archived_code && !this.project().blocked_code,
+  );
+  protected readonly canDeleteTasks = computed(
+    () => (this.project().my_permissions ?? []).includes('delete_task') &&
+      !this.project().archived_code && !this.project().blocked_code,
   );
 
   protected readonly canDelete = computed(
@@ -866,6 +889,8 @@ export class KanbanBoard {
   }
 
   protected openStoryDetails(story: KanbanUserStory): void {
+    this.resetTaskEditor();
+    this.store.loadTaskStatuses(this.project().id);
     // Each new story uses the profile preference. Manual expansion stays local to the open card.
     this.editorLayoutOverride.set(null);
     this.storyDraft.set(storyDraftFrom(story));
@@ -879,6 +904,7 @@ export class KanbanBoard {
   }
 
   protected closeStoryDetails(): void {
+    this.resetTaskEditor();
     this.editorLayoutOverride.set(null);
     const storyId = this.store.selectedStory()?.id;
     this.store.closeStoryDetails();
@@ -894,6 +920,89 @@ export class KanbanBoard {
         trigger?.focus();
       });
     }
+  }
+
+  protected openTaskCreate(): void {
+    if (this.canCreateTasks()) this.taskCreateOpen.set(true);
+  }
+
+  protected cancelTaskCreate(): void {
+    this.taskCreateOpen.set(false);
+    this.taskNewSubject.set('');
+  }
+
+  protected updateNewTaskSubject(event: Event): void {
+    this.taskNewSubject.set((event.target as HTMLInputElement).value);
+  }
+
+  protected async submitNewTask(event: Event): Promise<void> {
+    event.preventDefault();
+    const story = this.store.selectedStory();
+    const subject = this.taskNewSubject().trim();
+    if (!story || !this.canCreateTasks() || !subject) return;
+    const projectId = this.project().id;
+    const result = await this.store.createTask(projectId, story.id, subject);
+    if (this.project().id !== projectId || this.store.selectedStory()?.id !== story.id) return;
+    if (result === 'updated') {
+      this.cancelTaskCreate();
+      this.liveAnnouncement.set(`Task added to story #${story.ref}.`);
+    }
+  }
+
+  protected beginTaskEditing(task: KanbanTaskSummary): void {
+    if (!this.canModifyTasks()) return;
+    this.taskEditingId.set(task.id);
+    this.taskEditingSubject.set(task.subject ?? '');
+  }
+
+  protected cancelTaskEditing(): void {
+    this.taskEditingId.set(null);
+    this.taskEditingSubject.set('');
+  }
+
+  protected updateTaskDraft(event: Event): void {
+    this.taskEditingSubject.set((event.target as HTMLInputElement).value);
+  }
+
+  protected async saveTaskSubject(event: Event, task: KanbanTaskSummary): Promise<void> {
+    event.preventDefault();
+    const story = this.store.selectedStory();
+    const subject = this.taskEditingSubject().trim();
+    if (!story || !subject || !this.canModifyTasks()) return;
+    const projectId = this.project().id;
+    const result = await this.store.updateTask(projectId, story.id, task, { subject });
+    if (projectId !== this.project().id || this.store.selectedStory()?.id !== story.id) return;
+    if (result === 'updated') this.cancelTaskEditing();
+  }
+
+  protected async changeTaskStatus(task: KanbanTaskSummary, event: Event): Promise<void> {
+    const story = this.store.selectedStory();
+    const status = Number((event.target as HTMLSelectElement).value);
+    if (!story || !this.canModifyTasks() ||
+      !this.store.taskStatuses().some(({ id }) => id === status)) return;
+    const projectId = this.project().id;
+    const result = await this.store.updateTask(projectId, story.id, task, { status });
+    if (result !== 'updated') {
+      (event.target as HTMLSelectElement).value = String(task.status ?? '');
+    }
+  }
+
+  protected async deleteStoryTask(task: KanbanTaskSummary): Promise<void> {
+    const story = this.store.selectedStory();
+    if (!story || !this.canDeleteTasks()) return;
+    if (!globalThis.confirm(`Delete task “${task.subject || task.id}” from this story?\nThis cannot be undone.`)) return;
+    const projectId = this.project().id;
+    const result = await this.store.deleteTask(projectId, story.id, task.id);
+    if (projectId !== this.project().id || this.store.selectedStory()?.id !== story.id) return;
+    if (result === 'updated') {
+      if (this.taskEditingId() === task.id) this.cancelTaskEditing();
+      this.liveAnnouncement.set(`Task removed from story #${story.ref}.`);
+    }
+  }
+
+  private resetTaskEditor(): void {
+    this.cancelTaskCreate();
+    this.cancelTaskEditing();
   }
 
   protected async deleteStory(story: KanbanUserStory): Promise<void> {

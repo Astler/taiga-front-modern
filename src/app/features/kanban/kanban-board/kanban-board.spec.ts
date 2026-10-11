@@ -28,6 +28,10 @@ describe('KanbanBoard', () => {
   const uploadAttachment = vi.fn();
   const deleteAttachment = vi.fn();
   const deleteUserStory = vi.fn();
+  const listTaskStatuses = vi.fn();
+  const createTask = vi.fn();
+  const updateTask = vi.fn();
+  const deleteTask = vi.fn();
   const loadPresets = vi.fn();
   const savePresets = vi.fn();
   const fullscreenPreference = signal(false);
@@ -43,6 +47,17 @@ describe('KanbanBoard', () => {
     deleteAttachment.mockReset();
     deleteUserStory.mockReset();
     deleteUserStory.mockReturnValue(of(undefined));
+    listTaskStatuses.mockReset();
+    createTask.mockReset();
+    updateTask.mockReset();
+    deleteTask.mockReset();
+    listTaskStatuses.mockReturnValue(of([
+      { id: 1, name: 'Ready', color: '#777', order: 0, is_closed: false },
+      { id: 2, name: 'Done', color: '#7d7', order: 1, is_closed: true },
+    ]));
+    createTask.mockReturnValue(of({ id: 322, subject: 'New task', status: 1, is_closed: false }));
+    updateTask.mockReturnValue(of({ id: 321, subject: 'Renamed task', status: 2, is_closed: true }));
+    deleteTask.mockReturnValue(of(undefined));
     loadPresets.mockReset();
     savePresets.mockReset();
     load.mockReturnValue(of({ swimlanes: [], userStories: stories() }));
@@ -84,6 +99,10 @@ describe('KanbanBoard', () => {
             uploadAttachment,
             deleteAttachment,
             deleteUserStory,
+            listTaskStatuses,
+            createTask,
+            updateTask,
+            deleteTask,
           },
         },
         {
@@ -343,6 +362,92 @@ describe('KanbanBoard', () => {
     } finally {
       confirm.mockRestore();
     }
+  });
+
+  it('manages task create, rename, completion and delete from the native story editor', async () => {
+    const detail = {
+      ...stories()[0]!,
+      tasks: [{ id: 321, subject: 'First task', status: 1, is_closed: false, version: 1 }],
+    };
+    getUserStory.mockReturnValue(of(detail));
+
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', {
+      ...project(), my_permissions: [
+        'modify_us', 'add_task', 'modify_task', 'delete_task',
+      ],
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    host.querySelector<HTMLButtonElement>('.story-subject')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(host.querySelectorAll('.detail-task-row')).toHaveLength(1);
+    host.querySelector<HTMLButtonElement>('.task-add-button')!.click();
+    fixture.detectChanges();
+    const input = host.querySelector<HTMLInputElement>('.task-new-form input')!;
+    setControlValue(input, 'New task', 'input');
+    fixture.detectChanges();
+    host.querySelector<HTMLFormElement>('.task-new-form')!.dispatchEvent(
+      new Event('submit', { bubbles: true, cancelable: true }),
+    );
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(createTask).toHaveBeenCalledWith(17, 101, 'New task');
+    expect(host.querySelectorAll('.detail-task-row')).toHaveLength(2);
+
+    const rename = host.querySelector<HTMLButtonElement>('[aria-label="Rename task First task"]')!;
+    rename.click();
+    fixture.detectChanges();
+    const renameInput = host.querySelector<HTMLInputElement>('.detail-task-row .task-edit-form input')!;
+    setControlValue(renameInput, 'Renamed task', 'input');
+    fixture.detectChanges();
+    host.querySelector<HTMLFormElement>('.detail-task-row .task-edit-form')!.dispatchEvent(
+      new Event('submit', { bubbles: true, cancelable: true }),
+    );
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(updateTask).toHaveBeenCalledWith(321, { subject: 'Renamed task' }, 1);
+
+    const status = host.querySelector<HTMLSelectElement>('.detail-task-row select')!;
+    setControlValue(status, '2', 'change');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(updateTask).toHaveBeenCalledWith(321, { status: 2 }, undefined);
+
+    const confirm = vi.spyOn(globalThis, 'confirm').mockReturnValue(true);
+    try {
+      host.querySelector<HTMLButtonElement>('[aria-label="Delete task Renamed task"]')!.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(deleteTask).toHaveBeenCalledWith(321);
+      expect(host.querySelectorAll('.detail-task-row')).toHaveLength(1);
+    } finally {
+      confirm.mockRestore();
+    }
+  });
+
+  it('hides task mutations without task permissions', async () => {
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', {
+      ...project(), my_permissions: ['modify_us'],
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    host.querySelector<HTMLButtonElement>('.story-subject')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(host.querySelector('.task-add-button')).toBeNull();
+    expect(host.querySelector('.task-delete-button')).toBeNull();
+    expect(host.querySelector('.detail-task-row select')).toBeNull();
   });
 
   it('saves story edits from the modern drawer without an external editor', async () => {
