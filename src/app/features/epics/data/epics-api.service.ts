@@ -21,10 +21,7 @@ export class EpicsApiService {
   private readonly config = inject(RuntimeConfigService);
 
   list(projectId: TaigaId, query: EpicListQuery): Observable<EpicListPage> {
-    let params = epicFilterParams(projectId, query).set('page', Math.max(1, query.page));
-    if (query.orderBy) {
-      params = params.set('order_by', query.orderBy);
-    }
+    const params = epicFilterParams(projectId, query).set('page', Math.max(1, query.page));
 
     return this.http
       .get<readonly TaigaEpic[]>(this.config.resolveApiPath('epics'), {
