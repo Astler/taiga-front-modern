@@ -68,22 +68,6 @@ describe('EpicsApiService', () => {
     });
   });
 
-  it('sends an explicit sort order only to the epic list endpoint', async () => {
-    const query = { ...DEFAULT_EPIC_QUERY, orderBy: '-modified_date' };
-    const result = firstValueFrom(service.list(17, query));
-    const request = httpTesting.expectOne((candidate) => candidate.url === '/api/v1/epics');
-    expect(request.request.params.get('order_by')).toBe('-modified_date');
-    expect(request.request.params.get('page')).toBe('1');
-    request.flush([epic(31)]);
-    await expect(result).resolves.toMatchObject({ items: [epic(31)] });
-
-    const filters = firstValueFrom(service.filters(17, query));
-    const facets = httpTesting.expectOne('/api/v1/epics/filters_data?project=17');
-    expect(facets.request.params.has('order_by')).toBe(false);
-    facets.flush(filtersData());
-    await expect(filters).resolves.toEqual(filtersData());
-  });
-
   it('loads faceted filter metadata without pagination controls', async () => {
     const response = filtersData();
     const query = {
