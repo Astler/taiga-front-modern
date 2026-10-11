@@ -141,6 +141,19 @@ describe('App', () => {
     expect(document.title).toBe('Project overview · Taiga Modern');
   });
 
+  it('opens a project dashboard from a bare project URL', async () => {
+    const fixture = TestBed.createComponent(App);
+    const router = TestBed.inject(Router);
+
+    fixture.detectChanges();
+    await router.navigateByUrl('/project/puzzles-together');
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(router.url).toBe('/project/puzzles-together/dashboard');
+    expect(fixture.nativeElement.querySelector('pf-dashboard-placeholder')).toBeTruthy();
+  });
+
   it('leaves an active protected shell as soon as the session is invalidated', async () => {
     const fixture = TestBed.createComponent(App);
     const router = TestBed.inject(Router);
