@@ -333,7 +333,7 @@ describe('Topbar', () => {
       query,
       sortLabel: signal('Manual board order'),
       sortMode: signal('manual'),
-      sortOptions: [{ value: 'manual', label: 'Manual board order' }],
+      sortOptions: signal([{ value: 'manual', label: 'Manual board order' }]),
       totalCount: signal(9),
       applyAllWork,
       applyBlocked,

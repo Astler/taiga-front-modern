@@ -1,12 +1,35 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AuthService } from '../../../core/auth';
+import { KanbanPointsVisibilityService } from '../../kanban/data/kanban-points-visibility.service';
 import type { TaigaProjectDetail } from '../../projects/data';
 import { SettingsWorkspace } from './settings-workspace';
 
 describe('SettingsWorkspace', () => {
+  const visibleByProject = signal<ReadonlyMap<number, boolean>>(new Map());
+  const loadPoints = vi.fn();
+  const setPointsVisible = vi.fn((projectId: number, visible: boolean) => {
+    visibleByProject.update((current) => new Map(current).set(projectId, visible));
+  });
+  const user = signal<{ id: number } | null>({ id: 7 });
+
   beforeEach(async () => {
+    user.set({ id: 7 });
+    visibleByProject.set(new Map());
+    loadPoints.mockClear();
+    setPointsVisible.mockClear();
     await TestBed.configureTestingModule({
       imports: [SettingsWorkspace],
+      providers: [
+        { provide: AuthService, useValue: { user: user.asReadonly() } },
+        { provide: KanbanPointsVisibilityService, useValue: {
+          visibleFor: (projectId: number) => visibleByProject().get(projectId) ?? false,
+          syncFor: () => 'synced',
+          load: loadPoints,
+          setVisible: setPointsVisible,
+        } },
+      ],
     }).compileComponents();
   });
 
@@ -32,6 +55,41 @@ describe('SettingsWorkspace', () => {
     expect(host.querySelector('.summary-count')?.textContent).toContain('4/5 on');
   });
 
+  it('defaults to hiding points and lets any member enable them for their own project', () => {
+    const fixture = TestBed.createComponent(SettingsWorkspace);
+    fixture.componentRef.setInput('project', {
+      ...project(), i_am_admin: false, i_am_owner: false,
+    });
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const toggle = host.querySelector<HTMLInputElement>(
+      '[aria-label="Show Story Points in Kanban"]',
+    )!;
+    expect(loadPoints).toHaveBeenCalledWith(17);
+    expect(toggle).toBeTruthy();
+    expect(toggle.checked).toBe(false);
+    expect(toggle.getAttribute('role')).toBe('switch');
+    expect(host.querySelector('.kanban-preferences-card')?.textContent)
+      .toContain('Other members are unaffected');
+
+    toggle.click();
+    fixture.detectChanges();
+    expect(setPointsVisible).toHaveBeenCalledWith(17, true);
+    expect(toggle.checked).toBe(true);
+
+    fixture.componentRef.setInput('project', {
+      ...project(), id: 18, slug: 'other', name: 'Other project',
+    });
+    fixture.detectChanges();
+    expect(loadPoints).toHaveBeenCalledWith(18);
+    expect(toggle.checked).toBe(false);
+
+    fixture.componentRef.setInput('project', project());
+    fixture.detectChanges();
+    expect(toggle.checked).toBe(true);
+  });
+
   it('does not send settings mutations to another interface', () => {
     const fixture = TestBed.createComponent(SettingsWorkspace);
     fixture.componentRef.setInput('project', project());
@@ -53,7 +111,7 @@ describe('SettingsWorkspace', () => {
     const host = fixture.nativeElement as HTMLElement;
     expect(host.querySelector('.access-badge')?.textContent).toContain('Read only');
     expect(host.querySelector('.notice')?.textContent).toContain(
-      'Only project owners and admins can change project settings',
+      'Only project owners and admins can change shared project configuration',
     );
     expect(host.querySelector('.access-level')?.textContent).toContain('Project member');
     expect(host.querySelectorAll('a')).toHaveLength(0);

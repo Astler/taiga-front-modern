@@ -17,7 +17,7 @@ export interface CompactKanbanToolbar {
   readonly query: Signal<string>;
   readonly sortLabel: Signal<string>;
   readonly sortMode: Signal<string>;
-  readonly sortOptions: readonly CompactKanbanSortOption[];
+  readonly sortOptions: Signal<readonly CompactKanbanSortOption[]>;
   readonly totalCount: Signal<number>;
   readonly applyAllWork: () => void;
   readonly applyBlocked: () => void;

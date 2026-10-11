@@ -16,7 +16,10 @@
       <span class="notice-icon" aria-hidden="true">i</span>
       <div>
         <strong>You can view this configuration</strong>
-        <p>Only project owners and admins can change project settings.</p>
+        <p>
+          Only project owners and admins can change shared project configuration.
+          Your personal Kanban appearance settings below are still editable.
+        </p>
       </div>
     </aside>
   }
@@ -100,6 +103,46 @@
           </li>
         }
       </ul>
+    </article>
+
+    <article class="settings-card kanban-preferences-card">
+      <header class="card-heading">
+        <div>
+          <span class="card-kicker">My workspace</span>
+          <h2>Kanban appearance</h2>
+        </div>
+        <span class="summary-count">This project</span>
+      </header>
+
+      <label class="points-visibility-option">
+        <span class="points-visibility-copy">
+          <strong>Show Story Points</strong>
+          <span>Show estimates by role, points on cards, and points sorting.</span>
+        </span>
+        <span class="points-visibility-switch">
+          <input
+            type="checkbox"
+            role="switch"
+            aria-label="Show Story Points in Kanban"
+            [checked]="showStoryPoints()"
+            [attr.aria-checked]="showStoryPoints()"
+            (change)="toggleStoryPoints($event)"
+          />
+          <span class="points-visibility-track" aria-hidden="true"></span>
+        </span>
+      </label>
+      <p class="points-visibility-note">
+        @switch (pointsSync()) {
+          @case ('saving') { Saving to your Taiga account… }
+          @case ('loading') { Loading your preference… }
+          @case ('synced') { Saved to your Taiga account. }
+          @default { Saved on this device. }
+        }
+      </p>
+      <p class="points-visibility-note">
+        This is a personal setting for {{ project().name }}. Other members are unaffected.
+        Existing estimates stay in Taiga and can be shown again any time.
+      </p>
     </article>
 
     <article class="settings-card access-card">

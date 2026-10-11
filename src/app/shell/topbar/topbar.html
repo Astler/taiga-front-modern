@@ -93,7 +93,7 @@
       </button>
 
       <mat-menu #compactSortMenu="matMenu" xPosition="after">
-        @for (option of boardToolbar.sortOptions; track option.value) {
+        @for (option of boardToolbar.sortOptions(); track option.value) {
           <button mat-menu-item type="button" (click)="boardToolbar.selectSort(option.value)">
             <span class="compact-menu-check" aria-hidden="true">
               {{ boardToolbar.sortMode() === option.value ? '✓' : '' }}

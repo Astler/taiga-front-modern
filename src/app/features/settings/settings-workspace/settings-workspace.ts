@@ -1,6 +1,8 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, untracked } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import type { TaigaProjectDetail } from '../../projects/data';
+import { AuthService } from '../../../core/auth';
+import { KanbanPointsVisibilityService } from '../../kanban/data/kanban-points-visibility.service';
 
 interface ProjectModule {
   readonly key: string;
@@ -18,6 +20,33 @@ interface ProjectModule {
 })
 export class SettingsWorkspace {
   readonly project = input.required<TaigaProjectDetail>();
+  private readonly auth = inject(AuthService);
+  private readonly pointsVisibility = inject(KanbanPointsVisibilityService);
+
+  protected readonly showStoryPoints = computed(() =>
+    this.pointsVisibility.visibleFor(this.project().id),
+  );
+  protected readonly pointsSync = computed(() =>
+    this.pointsVisibility.syncFor(this.project().id),
+  );
+
+  constructor() {
+    effect(() => {
+      const projectId = this.project().id;
+      const userId = this.auth.user()?.id;
+      if (userId !== undefined) {
+        untracked(() => this.pointsVisibility.load(projectId));
+      }
+    });
+  }
+
+  protected toggleStoryPoints(event: Event): void {
+    this.pointsVisibility.setVisible(
+      this.project().id,
+      (event.target as HTMLInputElement).checked,
+    );
+  }
+
 
   protected readonly canAdminister = computed(
     () => this.project().i_am_admin || this.project().i_am_owner,

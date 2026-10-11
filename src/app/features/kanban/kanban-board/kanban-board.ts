@@ -22,6 +22,7 @@ import { CompactKanbanToolbarService } from '../../../shared/compact-kanban-tool
 import { StoryEditorLayoutService } from '../../../shared/story-editor-layout.service';
 import { ModalTopLayerDirective } from '../../../shared/modal-top-layer.directive';
 import { KanbanSortPreferenceService } from '../data/kanban-sort-preference.service';
+import { KanbanPointsVisibilityService } from '../data/kanban-points-visibility.service';
 import type { TaigaId } from '../../../shared/models';
 import {
   KanbanStore,
@@ -128,6 +129,7 @@ export class KanbanBoard {
   private readonly auth = inject(AuthService);
   private readonly presetApi = inject(KanbanFilterPresetsService);
   private readonly sortPreferences = inject(KanbanSortPreferenceService);
+  private readonly pointsVisibility = inject(KanbanPointsVisibilityService);
   protected readonly compactToolbar = inject(CompactKanbanToolbarService);
   protected readonly editorLayout = inject(StoryEditorLayoutService);
   private readonly editorLayoutOverride = signal<boolean | null>(null);
@@ -137,7 +139,12 @@ export class KanbanBoard {
   private readonly destroyRef = inject(DestroyRef);
   protected readonly query = signal('');
   protected readonly sortMode = signal<KanbanSortMode>('manual');
-  protected readonly sortOptions = SORT_OPTIONS;
+  protected readonly showStoryPoints = computed(() => this.pointsVisibility.visibleFor(this.project().id));
+  protected readonly sortOptions = computed(() =>
+    this.showStoryPoints()
+      ? SORT_OPTIONS
+      : SORT_OPTIONS.filter(({ value }) => value !== 'points'),
+  );
   protected readonly sortLabel = computed(
     () =>
       SORT_OPTIONS.find(({ value }) => value === this.sortMode())?.label ?? 'Manual board order',
@@ -562,6 +569,7 @@ export class KanbanBoard {
 
         this.loadedProjectId = projectId;
         this.loadedSortUserId = userId;
+        this.pointsVisibility.load(projectId);
         this.consumedStoryLink = null;
         this.clearFilters();
         this.filterPanelOpen.set(false);
@@ -601,6 +609,14 @@ export class KanbanBoard {
           this.loadPresets(projectId);
         }
       });
+    });
+
+    effect(() => {
+      const pointsVisible = this.showStoryPoints();
+      const mode = this.sortMode();
+      if (!pointsVisible && mode === 'points' && this.loadedProjectId === this.project().id) {
+        untracked(() => this.selectSort('manual'));
+      }
     });
 
     effect(() => {
@@ -656,6 +672,7 @@ export class KanbanBoard {
   }
 
   protected selectSort(mode: KanbanSortMode): void {
+    if (mode === 'points' && !this.showStoryPoints()) return;
     if (this.sortMode() === mode) return;
     this.sortMode.set(mode);
     ++this.sortChangeRevision;
@@ -1017,7 +1034,7 @@ export class KanbanBoard {
   ): Promise<void> {
     const input = event.target as HTMLSelectElement;
     const optionId = Number(input.value);
-    if (!this.canModify() ||
+    if (!this.showStoryPoints() || !this.canModify() ||
       !this.estimationRoles().some(({ id }) => id === roleId) ||
       !this.estimationOptions().some(({ id }) => id === optionId)) return;
 

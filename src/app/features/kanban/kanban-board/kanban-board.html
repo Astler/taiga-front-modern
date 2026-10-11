@@ -43,7 +43,7 @@
     </button>
 
     <mat-menu #sortMenu="matMenu" xPosition="after">
-      @for (option of sortOptions; track option.value) {
+      @for (option of sortOptions(); track option.value) {
         <button mat-menu-item type="button" (click)="selectSort(option.value)">
           <span class="menu-selection-mark" aria-hidden="true">
             {{ sortMode() === option.value ? '✓' : '' }}
@@ -566,7 +566,7 @@
                               {{ story.milestone_name }}
                             </span>
                           }
-                          @if (story.total_points !== undefined && story.total_points !== null) {
+                          @if (showStoryPoints() && story.total_points !== undefined && story.total_points !== null) {
                             <span class="points">{{ story.total_points }} pts</span>
                           }
                         </span>
@@ -743,16 +743,18 @@
                 />
               </label>
 
-              <div class="editor-field points-field">
-                <span>Points</span>
-                <div class="points-control">
-                  <span class="points-value">{{ detail.total_points ?? '—' }}</span>
-                  <span>{{ detail.total_points == null ? 'Not estimated' : 'total points' }}</span>
+              @if (showStoryPoints()) {
+                <div class="editor-field points-field">
+                  <span>Points</span>
+                  <div class="points-control">
+                    <span class="points-value">{{ detail.total_points ?? '—' }}</span>
+                    <span>{{ detail.total_points == null ? 'Not estimated' : 'total points' }}</span>
+                  </div>
                 </div>
-              </div>
+              }
             </div>
 
-            @if (estimationRoles().length && estimationOptions().length) {
+            @if (showStoryPoints() && estimationRoles().length && estimationOptions().length) {
               <fieldset class="editor-choice-group story-estimation">
                 <legend>Story Points by role</legend>
                 <div class="story-estimation-grid">

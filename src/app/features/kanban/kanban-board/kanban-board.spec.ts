@@ -9,6 +9,7 @@ import { AuthService } from '../../../core/auth';
 import { RuntimeConfigService } from '../../../core/config';
 import { StoryEditorLayoutService } from '../../../shared/story-editor-layout.service';
 import { KanbanSortPreferenceService } from '../data/kanban-sort-preference.service';
+import { KanbanPointsVisibilityService } from '../data/kanban-points-visibility.service';
 import {
   KanbanApiService,
   KanbanFilterPresetsService,
@@ -47,9 +48,13 @@ describe('KanbanBoard', () => {
   const saveSort = vi.fn();
   const cacheSort = vi.fn();
   const fullscreenPreference = signal(false);
+  const pointsVisible = signal(false);
+  const loadPoints = vi.fn();
 
   beforeEach(async () => {
     fullscreenPreference.set(false);
+    pointsVisible.set(false);
+    loadPoints.mockClear();
     load.mockReset();
     moveUserStories.mockReset();
     createUserStories.mockReset();
@@ -156,6 +161,10 @@ describe('KanbanBoard', () => {
         {
           provide: StoryEditorLayoutService,
           useValue: { fullscreen: fullscreenPreference.asReadonly() },
+        },
+        {
+          provide: KanbanPointsVisibilityService,
+          useValue: { visibleFor: () => pointsVisible(), load: loadPoints },
         },
         {
           provide: KanbanSortPreferenceService,
@@ -521,7 +530,64 @@ describe('KanbanBoard', () => {
     expect(host.querySelector('.detail-task-row select')).toBeNull();
   });
 
+  it('hides points everywhere by default, and restores them when the project preference is enabled', async () => {
+    const storyWithPoints = {
+      ...stories()[0]!,
+      total_points: 5,
+      points: { '8': 5 },
+    };
+    load.mockReturnValue(of({ swimlanes: [], userStories: [storyWithPoints] }));
+    getUserStory.mockReturnValue(of(storyWithPoints));
+
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', {
+      ...project(),
+      roles: [{ id: 8, name: 'Design', computable: true }],
+      points: [
+        { id: 4, name: '?', value: null, order: 0 },
+        { id: 5, name: '5', value: 5, order: 1 },
+      ],
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    expect(loadPoints).toHaveBeenCalledWith(17);
+    expect(host.querySelector('.story-card .points')).toBeNull();
+    const board = fixture.componentInstance as unknown as {
+      sortOptions: () => readonly { value: string }[];
+      selectSort: (mode: string) => void;
+      sortMode: () => string;
+    };
+    expect(board.sortOptions().some(({ value }) => value === 'points')).toBe(false);
+    board.selectSort('points');
+    expect(board.sortMode()).toBe('manual');
+
+    host.querySelector<HTMLButtonElement>('.story-subject')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(host.querySelector('.story-estimation')).toBeNull();
+    expect(host.querySelector('.points-field')).toBeNull();
+
+    pointsVisible.set(true);
+    fixture.detectChanges();
+    expect(host.querySelector('.story-estimation')).toBeTruthy();
+    expect(host.querySelector('.points-field')).toBeTruthy();
+    expect(board.sortOptions().some(({ value }) => value === 'points')).toBe(true);
+    expect(host.querySelector('.story-card .points')?.textContent).toContain('5 pts');
+
+    pointsVisible.set(false);
+    fixture.detectChanges();
+    expect(host.querySelector('.story-estimation')).toBeNull();
+    expect(host.querySelector('.points-field')).toBeNull();
+    expect(host.querySelector('.story-card .points')).toBeNull();
+    expect(board.sortOptions().some(({ value }) => value === 'points')).toBe(false);
+  });
+
   it('edits Taiga story points by computable role and hides non-computable roles', async () => {
+    pointsVisible.set(true);
     const detail = {
       ...stories()[0]!,
       points: { '8': 4 },
@@ -735,7 +801,7 @@ describe('KanbanBoard', () => {
     fixture.detectChanges();
 
     expect(host.querySelector('.files-section')?.textContent).toContain('No files attached yet.');
-    expect(host.querySelector('.points-control')).toBeTruthy();
+    expect(host.querySelector('.points-control')).toBeNull();
     const file = new File(['image data'], 'clipboard.png', { type: 'image/png' });
     const paste = new Event('paste', { bubbles: true, cancelable: true });
     Object.defineProperty(paste, 'clipboardData', { value: { files: [file] } });
@@ -814,6 +880,7 @@ describe('KanbanBoard', () => {
   });
 
   it('does not overwrite a newer choice with a delayed server response', async () => {
+    pointsVisible.set(true);
     const pending = new Subject<KanbanSortMode | null>();
     loadRemoteSort.mockReturnValue(pending);
 

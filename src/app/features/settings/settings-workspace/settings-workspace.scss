@@ -419,3 +419,110 @@
     grid-column: 2;
   }
 }
+
+.kanban-preferences-card .card-heading {
+  margin-block-end: 0.9rem;
+}
+
+.points-visibility-option {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-lg);
+  background: var(--mat-sys-surface-container);
+  padding: 0.9rem;
+  cursor: pointer;
+}
+
+.points-visibility-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.4rem;
+}
+
+.points-visibility-copy strong {
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-title-small);
+  font-weight: 700;
+}
+
+.points-visibility-copy > span {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+  line-height: 1.4;
+}
+
+.points-visibility-switch {
+  display: inline-flex;
+  position: relative;
+  width: 3.25rem;
+  height: 2rem;
+  flex: 0 0 3.25rem;
+  align-items: center;
+}
+
+.points-visibility-switch input {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.points-visibility-track {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border: 2px solid var(--mat-sys-outline);
+  border-radius: var(--app-radius-full);
+  background: var(--mat-sys-surface-container-highest);
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.points-visibility-track::after {
+  position: absolute;
+  top: 50%;
+  left: 0.35rem;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: var(--mat-sys-outline);
+  content: '';
+  transform: translateY(-50%);
+  transition: transform 120ms ease, background-color 120ms ease;
+}
+
+.points-visibility-switch input:checked + .points-visibility-track {
+  border-color: var(--mat-sys-primary);
+  background: var(--mat-sys-primary);
+}
+
+.points-visibility-switch input:checked + .points-visibility-track::after {
+  background: var(--mat-sys-on-primary);
+  transform: translate(1.25rem, -50%);
+}
+
+.points-visibility-switch input:focus-visible + .points-visibility-track {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 3px;
+}
+
+.points-visibility-note {
+  margin: 0.55rem 0 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+  line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .points-visibility-track,
+  .points-visibility-track::after {
+    transition: none;
+  }
+}
