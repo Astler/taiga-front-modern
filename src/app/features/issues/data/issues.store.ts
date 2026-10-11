@@ -31,6 +31,7 @@ export class IssuesStore {
   private readonly pageState = signal<IssueListPage | null>(null);
   private readonly errorState = signal<string | null>(null);
   private readonly selectedIssueState = signal<TaigaIssue | null>(null);
+  private readonly lastCreatedIssueState = signal<TaigaIssue | null>(null);
   private readonly detailStatusState = signal<IssueDetailStatus>('idle');
   private readonly detailErrorState = signal<string | null>(null);
   private readonly mutationState = signal<IssueMutationKind | null>(null);
@@ -48,6 +49,7 @@ export class IssuesStore {
   readonly page = this.pageState.asReadonly();
   readonly error = this.errorState.asReadonly();
   readonly selectedIssue = this.selectedIssueState.asReadonly();
+  readonly lastCreatedIssue = this.lastCreatedIssueState.asReadonly();
   readonly detailStatus = this.detailStatusState.asReadonly();
   readonly detailError = this.detailErrorState.asReadonly();
   readonly mutation = this.mutationState.asReadonly();
@@ -66,6 +68,7 @@ export class IssuesStore {
     }
 
     this.projectIdState.set(projectId);
+    this.lastCreatedIssueState.set(null);
     ++this.mutationRevision;
     this.mutationState.set(null);
     this.mutationErrorState.set(null);
@@ -138,12 +141,14 @@ export class IssuesStore {
 
   async createIssue(request: IssueCreateRequest): Promise<IssueMutationResult> {
     if (!this.canWrite(request.project) || !request.subject.trim()) return 'failed';
+    this.lastCreatedIssueState.set(null);
     const revision = ++this.mutationRevision;
     this.mutationState.set('create');
     this.mutationErrorState.set(null);
     try {
       const created = await firstValueFrom(this.api.create(request));
       if (!this.isCurrentMutation(revision, request.project)) return 'failed';
+      this.lastCreatedIssueState.set(created);
       this.issuesState.update((issues) => [created, ...issues]);
       this.mutationState.set(null);
       this.queryState.update((query) => ({ ...query, page: 1 }));

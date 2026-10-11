@@ -12,9 +12,11 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { firstValueFrom } from 'rxjs';
 import type { TaigaProjectDetail } from '../../projects/data';
 import { IssueEditor, type IssueEditorMode } from '../issue-editor/issue-editor';
 import {
+  IssuesApiService,
   IssuesStore,
   type IssueAssignee,
   type IssueFilterCategory,
@@ -32,6 +34,14 @@ interface FilterDefinition {
 }
 
 type IssueAttributeDataKey = 'types' | 'severities' | 'priorities';
+
+interface NewIssueAttachmentUpload {
+  readonly projectId: number;
+  readonly issue: TaigaIssue;
+  readonly files: readonly File[];
+  readonly processing: boolean;
+  readonly error: string | null;
+}
 
 const FILTERS: readonly FilterDefinition[] = [
   { category: 'status', label: 'Status', dataKey: 'statuses' },
@@ -55,6 +65,9 @@ export class IssuesWorkspace implements OnDestroy {
   readonly initialSearch = input('');
 
   protected readonly store = inject(IssuesStore);
+  private readonly issuesApi = inject(IssuesApiService);
+  protected readonly pendingFiles = signal<readonly File[]>([]);
+  protected readonly newIssueUpload = signal<NewIssueAttachmentUpload | null>(null);
   protected readonly filterDefinitions = FILTERS;
   protected readonly searchValue = signal('');
   protected readonly editorMode = signal<IssueEditorMode | null>(null);
@@ -88,6 +101,8 @@ export class IssuesWorkspace implements OnDestroy {
         this.appliedInitialSearch = initialSearch;
         this.searchValue.set(initialSearch);
         if (projectChanged) {
+          this.pendingFiles.set([]);
+          this.newIssueUpload.set(null);
           this.editorMode.set(null);
           this.store.closeIssue();
           this.store.loadProject(projectId);
@@ -108,19 +123,22 @@ export class IssuesWorkspace implements OnDestroy {
   }
 
   protected openNewIssue(): void {
-    if (!this.canCreateIssues()) return;
+    if (!this.canCreateIssues() || this.newIssueUpload()) return;
+    this.pendingFiles.set([]);
     this.store.dismissMutationError();
     this.store.closeIssue();
     this.editorMode.set('create');
   }
 
   protected openIssue(issue: TaigaIssue): void {
+    this.pendingFiles.set([]);
     this.store.dismissMutationError();
     this.editorMode.set('edit');
     this.store.openIssue(issue);
   }
 
   protected closeEditor(): void {
+    this.pendingFiles.set([]);
     this.editorMode.set(null);
     this.store.closeIssue();
   }
@@ -130,20 +148,73 @@ export class IssuesWorkspace implements OnDestroy {
     const projectId = this.project().id;
     if (!mode) return;
 
-    const issueId = mode === 'edit' ? this.store.selectedIssue()?.id : null;
-    if (mode === 'create' && !this.canCreateIssues()) return;
-    if (mode === 'edit' && (!this.canModifyIssues() || issueId === undefined || issueId === null)) {
+    if (mode === 'create') {
+      if (!this.canCreateIssues() || this.newIssueUpload()) return;
+      const files = [...this.pendingFiles()];
+      const result = await this.store.createIssue({ ...changes, project: projectId });
+
+      if (projectId !== this.project().id || this.editorMode() !== mode) return;
+      if (result === 'created') {
+        const created = this.store.lastCreatedIssue();
+        this.closeEditor();
+        if (created && files.length) {
+          this.newIssueUpload.set({
+            projectId,
+            issue: created,
+            files,
+            processing: false,
+            error: null,
+          });
+          void this.retryNewIssueUpload();
+        }
+      }
       return;
     }
 
-    const result = mode === 'create'
-      ? await this.store.createIssue({ ...changes, project: projectId })
-      : await this.store.updateIssue(issueId!, changes);
-
+    const issueId = this.store.selectedIssue()?.id;
+    if (!this.canModifyIssues() || issueId === undefined || issueId === null) return;
+    const result = await this.store.updateIssue(issueId, changes);
     if (projectId !== this.project().id || this.editorMode() !== mode) return;
-    if (result === 'created' || result === 'updated') {
-      this.closeEditor();
+    if (result === 'updated') this.closeEditor();
+  }
+
+  protected async retryNewIssueUpload(): Promise<void> {
+    const upload = this.newIssueUpload();
+    if (!upload || upload.processing || upload.projectId !== this.project().id) return;
+
+    this.newIssueUpload.set({ ...upload, processing: true, error: null });
+    const failed: File[] = [];
+    for (const file of upload.files) {
+      try {
+        await firstValueFrom(this.issuesApi.uploadAttachment(upload.projectId, upload.issue.id, file));
+      } catch {
+        failed.push(file);
+      }
+      // Navigation must not restore another project's upload banner.
+      if (this.project().id !== upload.projectId) return;
     }
+
+    if (failed.length) {
+      this.newIssueUpload.set({
+        ...upload,
+        files: failed,
+        processing: false,
+        error: 'Issue #' + upload.issue.ref + ' was created, but ' +
+          failed.length + ' attachment(s) could not be uploaded.',
+      });
+    } else {
+      this.newIssueUpload.set(null);
+    }
+  }
+
+  protected discardFailedNewIssueUploads(): void {
+    const upload = this.newIssueUpload();
+    if (!upload || upload.processing) return;
+    if (!globalThis.confirm(
+      'Discard ' + upload.files.length + ' unuploaded file(s)? ' +
+      'Issue #' + upload.issue.ref + ' will remain created.',
+    )) return;
+    this.newIssueUpload.set(null);
   }
 
   protected async deleteIssue(): Promise<void> {

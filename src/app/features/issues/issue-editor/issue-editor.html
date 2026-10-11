@@ -9,6 +9,7 @@
     class="issue-editor-panel"
     (click)="$event.stopPropagation()"
     (keydown)="onKeydown($event)"
+    (paste)="onPaste($event)"
   >
     <header class="issue-editor-header">
       <div class="issue-editor-heading">
@@ -22,6 +23,7 @@
         type="button"
         autofocus
         aria-label="Close issue editor"
+        [disabled]="busy()"
         (click)="requestClose()"
       >×</button>
     </header>
@@ -160,24 +162,23 @@
               }
             }
           </section>
-          @if (mode() === 'edit' && issue(); as currentIssue) {
-            <section class="issue-editor-section issue-attachments-section">
-              <header class="issue-section-header">
-                <span class="issue-section-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24">
-                    <path d="m8 12.5 5.5-5.5a3 3 0 0 1 4.2 4.2l-7.9 7.9a5 5 0 0 1-7.1-7.1l8.3-8.3" />
-                  </svg>
-                </span>
-                <div><h3>Attachments</h3></div>
-              </header>
-              <pf-issue-attachments
-                [projectId]="project().id"
-                [issueId]="currentIssue.id"
-                [canManage]="canEdit()"
-                [busy]="busy()"
-              />
-            </section>
-          }
+          <section class="issue-editor-section issue-attachments-section">
+            <header class="issue-section-header">
+              <span class="issue-section-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="m8 12.5 5.5-5.5a3 3 0 0 1 4.2 4.2l-7.9 7.9a5 5 0 0 1-7.1-7.1l8.3-8.3" />
+                </svg>
+              </span>
+              <div><h3>Attachments</h3></div>
+            </header>
+            <pf-issue-attachments
+              [projectId]="project().id"
+              [issueId]="issue()?.id ?? null"
+              [canManage]="canEdit()"
+              [busy]="busy()"
+              (stagedFilesChanged)="stagedFilesChanged.emit($event)"
+            />
+          </section>
           <section class="issue-editor-section issue-blocked-section"
             [class.issue-blocked-active]="draft().isBlocked">
             <label class="issue-block-toggle">
@@ -488,7 +489,7 @@
         >Delete issue</button>
       }
       <span class="issue-editor-spacer"></span>
-      <button type="button" class="issue-cancel" (click)="requestClose()">
+      <button type="button" class="issue-cancel" [disabled]="busy()" (click)="requestClose()">
         {{ canEdit() ? 'Cancel' : 'Close' }}
       </button>
       @if (canEdit()) {

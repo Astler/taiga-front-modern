@@ -1,7 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { of } from 'rxjs';
 import type { TaigaProjectDetail } from '../../projects/data';
-import type { IssueChanges, IssueFiltersData, TaigaIssue } from '../data';
+import { IssuesApiService, type IssueChanges, type IssueFiltersData, type TaigaIssue } from '../data';
 import { IssueEditor, issueDateAfterDays } from './issue-editor';
 
 const filters: IssueFiltersData = {
@@ -92,7 +93,17 @@ function enterTitle(host: HTMLElement, title: string): void {
 
 describe('IssueEditor', () => {
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ imports: [IssueEditor] }).compileComponents();
+    await TestBed.configureTestingModule({
+      imports: [IssueEditor],
+      providers: [{
+        provide: IssuesApiService,
+        useValue: {
+          listAttachments: () => of([]),
+          uploadAttachment: () => of({ id: 1, name: 'image.png', url: '/media/image.png', size: 5 }),
+          deleteAttachment: () => of(undefined),
+        },
+      }],
+    }).compileComponents();
   });
 
   it('keeps title, description and tags on the left, with workflow and classification on the right', () => {
@@ -105,11 +116,12 @@ describe('IssueEditor', () => {
     expect([...primary.children].map((child) => child.classList[1])).toEqual([
       'issue-basics',
       'issue-tags-section',
+      'issue-attachments-section',
       'issue-blocked-section',
     ]);
     expect(primary.querySelector('input[maxlength="500"]')).toBeTruthy();
     expect(primary.querySelector('.issue-basics textarea')).toBeTruthy();
-    expect(primary.querySelector('.issue-tag-entry')).toBeTruthy();
+    expect(primary.querySelector('.issue-tag-composer')).toBeTruthy();
 
     expect(secondary.querySelectorAll('.issue-editor-section')).toHaveLength(2);
     expect(secondary.querySelector('.issue-workflow')).toBeTruthy();
@@ -122,6 +134,47 @@ describe('IssueEditor', () => {
     expect(host.querySelectorAll('.issue-section-header p')).toHaveLength(0);
     expect(host.querySelector('.issue-save')).toBeTruthy();
     expect(host.querySelector('dialog.issue-editor-backdrop')).toBeTruthy();
+  });
+
+  it('shows attachments before issue creation and stages pasted clipboard screenshots', () => {
+    const { fixture, host } = createEditor(['add_issue']);
+    const queued = vi.fn<(files: readonly File[]) => void>();
+    fixture.componentInstance.stagedFilesChanged.subscribe(queued);
+
+    const section = host.querySelector<HTMLElement>('.issue-attachments-section')!;
+    expect(section).toBeTruthy();
+    expect(section.textContent).toContain('Ctrl+V');
+
+    const image = new File(['fake image'], 'image.png', { type: 'image/png' });
+    const paste = new Event('paste', { bubbles: true, cancelable: true });
+    Object.defineProperty(paste, 'clipboardData', {
+      value: {
+        files: [],
+        items: [{ kind: 'file', type: 'image/png', getAsFile: () => image }],
+      },
+    });
+    host.querySelector('.issue-editor-panel')!.dispatchEvent(paste);
+    fixture.detectChanges();
+
+    expect(paste.defaultPrevented).toBe(true);
+    expect(queued).toHaveBeenCalledOnce();
+    expect(queued.mock.calls[0]?.[0][0]?.type).toBe('image/png');
+    expect(section.querySelectorAll('.issue-attachment')).toHaveLength(1);
+    expect(section.textContent).toContain('Uploads when issue is created');
+
+    section.querySelector<HTMLButtonElement>('.issue-attachment-remove')!.click();
+    fixture.detectChanges();
+    expect(queued.mock.calls.at(-1)?.[0]).toEqual([]);
+  });
+
+  it('does not intercept a normal text paste', () => {
+    const { host } = createEditor(['add_issue']);
+    const paste = new Event('paste', { bubbles: true, cancelable: true });
+    Object.defineProperty(paste, 'clipboardData', {
+      value: { files: [], items: [{ kind: 'string', type: 'text/plain' }] },
+    });
+    host.querySelector('.issue-basics textarea')!.dispatchEvent(paste);
+    expect(paste.defaultPrevented).toBe(false);
   });
 
   it('replaces dropdowns with selected accessible chips while keeping Taiga values', () => {

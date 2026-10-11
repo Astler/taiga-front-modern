@@ -144,6 +144,7 @@ describe('IssuesStore', () => {
       is_blocked: false, blocked_note: '',
     };
     expect(await store.createIssue({ ...changes, project: 17 })).toBe('created');
+    expect(store.lastCreatedIssue()).toMatchObject({ id: 4, ref: 4 });
     expect(api.create).toHaveBeenCalledWith({ ...changes, project: 17 });
     expect(store.mutation()).toBeNull();
 

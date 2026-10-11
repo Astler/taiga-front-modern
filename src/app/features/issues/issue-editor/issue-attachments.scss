@@ -180,3 +180,22 @@
   font-weight: 700;
   text-decoration: underline;
 }
+
+.issue-attachment-preview {
+  width: 1.7rem;
+  height: 1.7rem;
+  flex: 0 0 1.7rem;
+  border: 1px solid var(--app-border-color);
+  border-radius: 0.45rem;
+  object-fit: cover;
+}
+
+.issue-attachment-name {
+  display: block;
+  overflow: hidden;
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-medium);
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

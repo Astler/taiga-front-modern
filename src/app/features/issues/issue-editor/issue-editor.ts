@@ -7,6 +7,7 @@ import {
   output,
   signal,
   untracked,
+  viewChild,
 } from '@angular/core';
 import type { TaigaProjectDetail } from '../../projects/data';
 import { IssueAttachments } from './issue-attachments';
@@ -67,6 +68,7 @@ export class IssueEditor {
   readonly busy = input(false);
   readonly error = input<string | null>(null);
   readonly saved = output<IssueChanges>();
+  readonly stagedFilesChanged = output<readonly File[]>();
   readonly deleteRequested = output<void>();
   readonly closeRequested = output<void>();
 
@@ -75,6 +77,7 @@ export class IssueEditor {
   protected readonly tagInput = signal('');
   protected readonly assigneesExpanded = signal(false);
   protected readonly assigneeSearch = signal('');
+  protected readonly attachmentPanel = viewChild(IssueAttachments);
   private readonly initialized = signal(false);
 
   protected readonly canEdit = computed(() =>
@@ -363,9 +366,44 @@ export class IssueEditor {
   }
 
   protected requestClose(): void {
-    if (this.dirty() && this.canEdit() &&
-      !globalThis.confirm('Discard unsaved issue changes?')) return;
+    if (this.busy()) return;
+    const hasPendingFiles = (this.attachmentPanel()?.stagedFiles().length ?? 0) > 0;
+    if ((this.dirty() || hasPendingFiles) && this.canEdit() &&
+      !globalThis.confirm('Discard unsaved issue changes and queued files?')) return;
     this.closeRequested.emit();
+  }
+
+  protected onPaste(event: ClipboardEvent): void {
+    if (!this.canEdit() || this.busy()) return;
+    const panel = this.attachmentPanel();
+    const clipboard = event.clipboardData;
+    if (!panel || !clipboard) return;
+
+    // Only consume actual image files. Normal text/HTML paste must keep working.
+    const images = Array.from(clipboard.files).filter((file) => file.type.startsWith('image/'));
+    if (!images.length) {
+      for (const item of Array.from(clipboard.items)) {
+        if (item.kind !== 'file' || !item.type.startsWith('image/')) continue;
+        const file = item.getAsFile();
+        if (file) images.push(file);
+      }
+    }
+    if (!images.length) return;
+
+    event.preventDefault();
+    const time = Date.now();
+    panel.addFiles(images.map((file, index) => {
+      const genericName = !file.name || /^(?:image|blob)(?:\.\w+)?$/i.test(file.name);
+      if (!genericName) return file;
+      const extension = file.type === 'image/jpeg' ? 'jpg'
+        : file.type === 'image/gif' ? 'gif'
+        : file.type === 'image/webp' ? 'webp'
+        : 'png';
+      return new File([file], `screenshot-${time}-${index + 1}.${extension}`, {
+        type: file.type || 'image/png',
+        lastModified: time,
+      });
+    }));
   }
 
   protected onDialogCancel(event: Event): void {

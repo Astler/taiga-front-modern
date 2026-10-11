@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnDestroy,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import type { TaigaId } from '../../../shared/models';
 import { IssuesApiService, type IssueAttachment } from '../data';
@@ -9,29 +18,40 @@ import { IssuesApiService, type IssueAttachment } from '../data';
   templateUrl: './issue-attachments.html',
   styleUrl: './issue-attachments.scss',
 })
-export class IssueAttachments {
+export class IssueAttachments implements OnDestroy {
   readonly projectId = input.required<TaigaId>();
-  readonly issueId = input.required<TaigaId>();
+  readonly issueId = input<TaigaId | null>(null);
   readonly canManage = input(false);
   readonly busy = input(false);
+  readonly stagedFilesChanged = output<readonly File[]>();
 
   private readonly api = inject(IssuesApiService);
   private readonly refreshRevision = signal(0);
+  private readonly previewUrls = new Map<File, string>();
 
+  // Staged files are not sent to Taiga until the issue has been created.
+  readonly stagedFiles = signal<readonly File[]>([]);
   protected readonly attachments = signal<readonly IssueAttachment[]>([]);
-  protected readonly loading = signal(true);
+  protected readonly loading = signal(false);
   protected readonly loadError = signal<string | null>(null);
   protected readonly actionError = signal<string | null>(null);
   protected readonly processing = signal(false);
+  protected readonly failedUploads = signal<readonly File[]>([]);
 
   constructor() {
     effect((onCleanup) => {
       this.refreshRevision();
       const projectId = this.projectId();
       const issueId = this.issueId();
-      this.loading.set(true);
       this.loadError.set(null);
 
+      if (issueId === null) {
+        this.attachments.set([]);
+        this.loading.set(false);
+        return;
+      }
+
+      this.loading.set(true);
       const subscription = this.api.listAttachments(projectId, issueId).subscribe({
         next: (attachments) => {
           this.attachments.set(attachments);
@@ -47,32 +67,92 @@ export class IssueAttachments {
     });
   }
 
+  ngOnDestroy(): void {
+    if (typeof URL.revokeObjectURL === 'function') {
+      for (const url of this.previewUrls.values()) {
+        URL.revokeObjectURL(url);
+      }
+    }
+    this.previewUrls.clear();
+  }
+
   protected retry(): void {
     this.refreshRevision.update((revision) => revision + 1);
   }
 
-  protected async upload(event: Event): Promise<void> {
-    const input = event.target as HTMLInputElement;
-    const files = Array.from(input.files ?? []);
-    // Also allow choosing the same file again after an upload failure.
-    input.value = '';
+  protected pickFiles(event: Event): void {
+    const picker = event.target as HTMLInputElement;
+    const files = Array.from(picker.files ?? []);
+    picker.value = '';
+    this.addFiles(files);
+  }
+
+  /** Called by the file picker and by the editor's clipboard paste handler. */
+  addFiles(files: readonly File[]): void {
     if (!files.length || !this.canManage() || this.busy() || this.processing()) return;
 
-    const projectId = this.projectId();
+    if (this.issueId() !== null) {
+      void this.uploadFiles(files);
+      return;
+    }
+
+    for (const file of files) {
+      if (file.type.startsWith('image/') && typeof URL.createObjectURL === 'function') {
+        try {
+          this.previewUrls.set(file, URL.createObjectURL(file));
+        } catch {
+          // A filename is still shown if object URL previews are unavailable.
+        }
+      }
+    }
+    const staged = [...this.stagedFiles(), ...files];
+    this.stagedFiles.set(staged);
+    this.stagedFilesChanged.emit(staged);
+  }
+
+  protected removeStaged(index: number): void {
+    if (!this.canManage() || this.busy() || this.processing()) return;
+    const staged = [...this.stagedFiles()];
+    const [removed] = staged.splice(index, 1);
+    if (!removed) return;
+    const url = this.previewUrls.get(removed);
+    if (url && typeof URL.revokeObjectURL === 'function') URL.revokeObjectURL(url);
+    this.previewUrls.delete(removed);
+    this.stagedFiles.set(staged);
+    this.stagedFilesChanged.emit(staged);
+  }
+
+  protected previewFor(file: File): string | null {
+    return this.previewUrls.get(file) ?? null;
+  }
+
+  protected retryFailedUploads(): void {
+    if (this.failedUploads().length) void this.uploadFiles(this.failedUploads());
+  }
+
+  private async uploadFiles(files: readonly File[]): Promise<void> {
     const issueId = this.issueId();
+    if (issueId === null || this.processing() || !this.canManage() || this.busy()) return;
+
     this.processing.set(true);
     this.actionError.set(null);
-    let completed = 0;
-
+    const failed: File[] = [];
     try {
       for (const file of files) {
-        await firstValueFrom(this.api.uploadAttachment(projectId, issueId, file));
-        completed++;
+        try {
+          await firstValueFrom(this.api.uploadAttachment(this.projectId(), issueId, file));
+        } catch {
+          failed.push(file);
+        }
       }
-    } catch {
-      this.actionError.set(completed
-        ? 'Some files were uploaded, but others failed. Please retry the remaining files.'
-        : 'Upload failed. Please try again.');
+      // Keep older failures when a different file is pasted while a retry is pending.
+      const attempted = new Set(files);
+      const remainingFailures = this.failedUploads().filter((file) => !attempted.has(file));
+      const allFailures = [...remainingFailures, ...failed];
+      this.failedUploads.set(allFailures);
+      if (allFailures.length) {
+        this.actionError.set('Could not upload ' + allFailures.length + ' file(s).');
+      }
     } finally {
       this.processing.set(false);
       this.retry();
