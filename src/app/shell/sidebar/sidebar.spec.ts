@@ -72,7 +72,7 @@ describe('Sidebar workspace context', () => {
     expect(host.querySelector('.active-project')?.textContent).not.toContain('Beta');
     const links = [...host.querySelectorAll<HTMLAnchorElement>('nav .navigation-item')];
     expect(links.map((item) => item.textContent?.trim())).toEqual([
-      'My dashboard', 'Projects', 'Kanban', 'Issues', 'Epics', 'Team', 'Settings',
+      'My dashboard', 'Projects', 'Overview', 'Kanban', 'Issues', 'Epics', 'Team', 'Settings',
     ]);
     const kanban = links.find((item) => item.textContent?.trim() === 'Kanban');
     expect(kanban?.getAttribute('href')).toBe('/project/alpha/kanban');
