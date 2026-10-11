@@ -1,28 +1,5 @@
-<section class="issues-page" aria-labelledby="issues-title">
-  <header class="issues-header">
-    <div>
-      <span class="eyebrow">{{ project().name }} · live data</span>
-      <h1 id="issues-title">Issues</h1>
-      <p>
-        @if (store.page(); as page) {
-          {{ page.total }} issue{{ page.total === 1 ? '' : 's' }} in this view
-        } @else {
-          Search, filter, and triage work without leaving project context.
-        }
-      </p>
-    </div>
-    @if (canCreateIssues()) {
-      <button
-        mat-flat-button
-        type="button"
-        class="issue-create-button"
-        [disabled]="store.isMutating() || store.isLoading() || store.requiresReconciliation() || !!newIssueUpload()"
-        (click)="openNewIssue()"
-      >+ New issue</button>
-    }
-  </header>
-
-  <div class="issue-controls">
+<section class="issues-page" aria-label="Issues">
+  <div class="issues-toolbar" aria-label="Issue search, sorting, and filters">
     <form class="search-field" role="search" (submit)="submitSearch($event)">
       <svg aria-hidden="true" viewBox="0 0 24 24">
         <circle cx="11" cy="11" r="6" />
@@ -32,78 +9,145 @@
         id="issue-search"
         type="search"
         aria-label="Search issues"
-        placeholder="Search subject or #reference"
+        placeholder="Search issues or #"
         [value]="searchValue()"
         (input)="updateSearch($event)"
       />
     </form>
 
-    <label class="sort-field">
-      <span>Sort</span>
-      <select [value]="store.query().orderBy" (change)="updateSort($event)">
-        <option value="-modified_date">Recently updated</option>
-        <option value="modified_date">Least recently updated</option>
-        <option value="-ref">Newest reference</option>
-        <option value="ref">Oldest reference</option>
-        <option value="priority">Priority</option>
-        <option value="severity">Severity</option>
-        <option value="status">Status</option>
-        <option value="type">Type</option>
-        <option value="assigned_to">Assignee</option>
-        <option value="subject">Subject</option>
-      </select>
-    </label>
-  </div>
+    <span class="issues-count" aria-live="polite">
+      @if (store.page(); as page) {
+        <strong>{{ page.total }}</strong> issue{{ page.total === 1 ? '' : 's' }}
+      } @else {
+        Issues
+      }
+    </span>
 
-  <div class="filter-rail" aria-label="Issue filters">
-    @for (filter of filterDefinitions; track filter.category) {
-      <div class="filter-field" [class.filter-field-active]="selectedValue(filter.category)">
-        <label>
-          <span>{{ filter.label }}</span>
-          <select
-            [attr.aria-label]="filter.label"
-            [value]="selectedValue(filter.category)"
-            (change)="updateFilter(filter, $event)"
-          >
-            <option value="">All</option>
-            @for (option of optionsFor(filter); track option) {
-              <option [value]="optionValue(filter.category, option)">
-                {{ optionLabel(option)
-                }}{{ option.count === undefined ? '' : ' · ' + option.count }}
-              </option>
-            }
-          </select>
-        </label>
+    <div class="issue-toolbar-divider" aria-hidden="true"></div>
 
-        @if (selectedValue(filter.category)) {
-          <div class="filter-mode" [attr.aria-label]="filter.label + ' filter mode'">
-            <button
-              type="button"
-              [class.filter-mode-active]="selectedMode(filter.category) === 'include'"
-              [attr.aria-pressed]="selectedMode(filter.category) === 'include'"
-              (click)="updateFilterMode(filter.category, 'include')"
-            >
-              Include
-            </button>
-            <button
-              type="button"
-              [class.filter-mode-active]="selectedMode(filter.category) === 'exclude'"
-              [attr.aria-pressed]="selectedMode(filter.category) === 'exclude'"
-              (click)="updateFilterMode(filter.category, 'exclude')"
-            >
-              Exclude
-            </button>
-          </div>
-        }
-      </div>
-    }
+    <button
+      mat-button
+      class="issue-toolbar-icon"
+      type="button"
+      [class.issue-toolbar-active]="store.query().orderBy !== '-modified_date'"
+      [matMenuTriggerFor]="issueSortMenu"
+      [matTooltip]="'Sort: ' + sortLabel()"
+      [attr.aria-label]="'Sort issues. Current: ' + sortLabel()"
+    >
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M4 7h10M4 12h7M4 17h4M18 5v14m0 0-3-3m3 3 3-3" />
+      </svg>
+      @if (store.query().orderBy !== '-modified_date') {
+        <span class="issue-sort-dot" aria-hidden="true"></span>
+      }
+    </button>
+
+    <mat-menu #issueSortMenu="matMenu" xPosition="after">
+      @for (option of sortOptions; track option.value) {
+        <button mat-menu-item type="button" (click)="selectSort(option.value)">
+          <span class="issue-menu-check" aria-hidden="true">
+            {{ store.query().orderBy === option.value ? '✓' : '' }}
+          </span>
+          <span>{{ option.label }}</span>
+        </button>
+      }
+    </mat-menu>
+
+    <button
+      mat-button
+      type="button"
+      class="issue-toolbar-icon issue-filter-toggle"
+      [class.issue-toolbar-active]="filterPanelOpen() || activeFilterCount() > 0"
+      [attr.aria-label]="activeFilterCount() ? 'Filters, ' + activeFilterCount() + ' active' : 'Filters'"
+      [attr.aria-expanded]="filterPanelOpen()"
+      [attr.aria-controls]="filterPanelOpen() ? 'issue-filters' : null"
+      [matTooltip]="activeFilterCount() ? activeFilterCount() + ' active filters' : 'Filters'"
+      (click)="toggleFilterPanel()"
+    >
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M4 6h16M7 12h10M10 18h4" />
+      </svg>
+      @if (activeFilterCount()) {
+        <span class="issue-filter-badge" aria-hidden="true">{{ activeFilterCount() }}</span>
+      }
+    </button>
 
     @if (store.hasActiveFilters()) {
       <button mat-button class="clear-filters" type="button" (click)="clearFilters()">
-        Clear filters
+        Clear
+      </button>
+    }
+
+    <span class="issue-toolbar-spacer"></span>
+
+    @if (canCreateIssues()) {
+      <button
+        mat-flat-button
+        type="button"
+        class="issue-create-button"
+        aria-label="New issue"
+        [disabled]="store.isMutating() || store.isLoading() || store.requiresReconciliation() || !!newIssueUpload()"
+        (click)="openNewIssue()"
+      >
+        <span class="issue-create-plus" aria-hidden="true">+</span>
+        <span class="issue-create-label">New issue</span>
       </button>
     }
   </div>
+
+  @if (filterPanelOpen()) {
+    <section class="issue-filter-panel" id="issue-filters" aria-label="Issue filters">
+      <div class="filter-rail">
+        @for (filter of filterDefinitions; track filter.category) {
+          <div class="filter-field" [class.filter-field-active]="selectedValue(filter.category)">
+            <label>
+              <span>{{ filter.label }}</span>
+              <select
+                [attr.aria-label]="filter.label"
+                [value]="selectedValue(filter.category)"
+                (change)="updateFilter(filter, $event)"
+              >
+                <option value="">All</option>
+                @for (option of optionsFor(filter); track option) {
+                  <option [value]="optionValue(filter.category, option)">
+                    {{ optionLabel(option) }}{{ option.count === undefined ? '' : ' · ' + option.count }}
+                  </option>
+                }
+              </select>
+            </label>
+
+            @if (selectedValue(filter.category)) {
+              <div class="filter-mode" [attr.aria-label]="filter.label + ' filter mode'">
+                <button
+                  type="button"
+                  [class.filter-mode-active]="selectedMode(filter.category) === 'include'"
+                  [attr.aria-pressed]="selectedMode(filter.category) === 'include'"
+                  (click)="updateFilterMode(filter.category, 'include')"
+                >
+                  Include
+                </button>
+                <button
+                  type="button"
+                  [class.filter-mode-active]="selectedMode(filter.category) === 'exclude'"
+                  [attr.aria-pressed]="selectedMode(filter.category) === 'exclude'"
+                  (click)="updateFilterMode(filter.category, 'exclude')"
+                >
+                  Exclude
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </div>
+      <div class="issue-filter-actions">
+        <span>{{ activeFilterCount() }} active filter{{ activeFilterCount() === 1 ? '' : 's' }}</span>
+        <button type="button" [disabled]="!store.hasActiveFilters()" (click)="clearFilters()">
+          Clear all
+        </button>
+        <button type="button" (click)="toggleFilterPanel()">Done</button>
+      </div>
+    </section>
+  }
 
   @if (store.mutationError(); as mutationError) {
     <div class="issue-mutation-error" role="alert">

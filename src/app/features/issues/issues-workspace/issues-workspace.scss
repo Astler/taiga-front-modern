@@ -6,13 +6,12 @@
 .issues-page {
   display: grid;
   min-height: calc(100dvh - var(--app-topbar-height));
+  box-sizing: border-box;
   align-content: start;
-  padding: clamp(1rem, 2vw, 2rem);
+  padding: 0.75rem clamp(0.75rem, 1.4vw, 1.25rem);
 }
 
-.issues-header,
-.issue-controls,
-.filter-rail,
+.issues-toolbar,
 .pagination,
 .pagination > div,
 .assignee,
@@ -21,141 +20,231 @@
   align-items: center;
 }
 
-.issues-header {
-  justify-content: space-between;
-  gap: 1rem;
-  padding-block-end: 1.25rem;
+.issues-toolbar {
+  min-width: 0;
+  gap: 0.5rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block-end: 0.65rem;
+  scrollbar-width: none;
 }
 
-.issues-header h1 {
-  margin: 0.25rem 0;
-  color: var(--mat-sys-on-surface);
-  font: var(--mat-sys-headline-large);
-  font-weight: 650;
-  letter-spacing: -0.025em;
-}
-
-.issues-header p {
-  margin: 0;
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-body-medium);
-}
-
-.eyebrow {
-  color: var(--mat-sys-primary);
-  font: var(--mat-sys-label-medium);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.issues-header a svg,
-.search-field svg {
-  width: 1.125rem;
-  height: 1.125rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-width: 1.8;
-}
-
-.issue-controls {
-  gap: 0.75rem;
-  padding-block-end: 0.75rem;
-}
-
-.search-field,
-.sort-field,
-.filter-field {
-  border: 1px solid var(--app-border-color);
-  border-radius: var(--app-radius-md);
-  background: var(--mat-sys-surface-container);
+.issues-toolbar::-webkit-scrollbar {
+  display: none;
 }
 
 .search-field {
   display: flex;
-  width: min(31rem, 100%);
-  min-height: 2.875rem;
+  width: clamp(11rem, 24vw, 22rem);
+  min-width: 9rem;
+  min-height: 2.5rem;
+  box-sizing: border-box;
+  flex: 0 1 auto;
   align-items: center;
   gap: 0.625rem;
-  padding-inline: 0.875rem;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-md);
+  background: var(--mat-sys-surface-container);
   color: var(--mat-sys-on-surface-variant);
+  padding-inline: 0.875rem;
 }
 
-.search-field input,
-.sort-field select,
-.filter-field select {
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: var(--mat-sys-on-surface);
-  font: inherit;
+.search-field svg,
+.issue-toolbar-icon svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: 0 0 1.125rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
 }
 
 .search-field input {
   width: 100%;
   min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-medium);
 }
 
 .search-field:focus-within,
-.sort-field:focus-within,
 .filter-field:focus-within {
   border-color: var(--mat-sys-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--mat-sys-primary) 18%, transparent);
 }
 
-.sort-field {
+.issues-count {
+  flex: 0 0 auto;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-medium);
+  white-space: nowrap;
+}
+
+.issues-count strong {
+  color: var(--mat-sys-on-surface);
+  font-weight: 700;
+}
+
+.issue-toolbar-divider {
+  width: 1px;
+  height: 1.6rem;
+  flex: 0 0 1px;
+  background: var(--app-border-color);
+}
+
+.issue-toolbar-icon {
   display: grid;
-  min-height: 2.875rem;
-  grid-template-columns: auto minmax(10rem, auto);
-  align-items: center;
-  gap: 0.5rem;
-  padding-inline: 0.75rem 0.4rem;
+  position: relative;
+  width: 2.5rem;
+  min-width: 2.5rem !important;
+  height: 2.5rem;
+  flex: 0 0 2.5rem;
+  place-items: center;
+  border: 1px solid var(--app-border-color);
+  border-radius: 50%;
+  background: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface-variant);
+  cursor: pointer;
+  padding: 0 !important;
 }
 
-.sort-field > span,
+.issue-toolbar-icon:hover,
+.issue-toolbar-icon:focus-visible {
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface);
+}
+
+.issue-toolbar-icon.issue-toolbar-active {
+  border-color: color-mix(in srgb, var(--mat-sys-primary) 58%, var(--app-border-color));
+  color: var(--mat-sys-primary);
+}
+
+.issue-sort-dot {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  width: 0.42rem;
+  height: 0.42rem;
+  border: 1px solid var(--mat-sys-surface-container);
+  border-radius: 50%;
+  background: var(--mat-sys-primary);
+}
+
+.issue-menu-check {
+  display: inline-grid;
+  width: 1.25rem;
+  place-items: center;
+  color: var(--mat-sys-primary);
+  font-weight: 750;
+}
+
+.issue-filter-badge {
+  display: grid;
+  position: absolute;
+  top: -0.2rem;
+  right: -0.25rem;
+  min-width: 1rem;
+  height: 1rem;
+  box-sizing: border-box;
+  place-items: center;
+  border: 1px solid var(--mat-sys-surface-container);
+  border-radius: 50%;
+  background: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
+  padding-inline: 0.1rem;
+  font: var(--mat-sys-label-small);
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.issue-toolbar-spacer {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.clear-filters {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.issue-create-button {
+  min-height: 2.5rem;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.issue-create-plus {
+  margin-inline-end: 0.3rem;
+  font-size: 1.25rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.issue-filter-panel {
+  min-width: 0;
+  margin-block-end: 0.65rem;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-lg);
+  background: var(--mat-sys-surface-container);
+  padding: 0.65rem;
+}
+
+.filter-rail {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(6, minmax(7.5rem, 1fr));
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.125rem;
+  scrollbar-width: thin;
+}
+
+.filter-field {
+  min-width: 0;
+  position: relative;
+  box-sizing: border-box;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-md);
+  background: var(--mat-sys-surface-container-low);
+  padding: 0.3rem 0.5rem;
+}
+
+.filter-field-active {
+  border-color: color-mix(in srgb, var(--mat-sys-primary) 70%, var(--app-border-color));
+  background: color-mix(in srgb, var(--mat-sys-primary-container) 32%, var(--mat-sys-surface-container));
+}
+
+.filter-field label {
+  display: grid;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
 .filter-field label > span {
   color: var(--mat-sys-on-surface-variant);
   font: var(--mat-sys-label-small);
 }
 
-.sort-field select,
 .filter-field select {
-  min-height: 2.25rem;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 1.75rem;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--mat-sys-on-surface);
   cursor: pointer;
+  font: var(--mat-sys-body-medium);
 }
 
-select option {
+.filter-field select option {
   background: var(--mat-sys-surface-container-high);
   color: var(--mat-sys-on-surface);
-}
-
-.filter-rail {
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  padding-block-end: 1rem;
-}
-
-.filter-field {
-  position: relative;
-  min-width: 9.5rem;
-  padding: 0.25rem 0.5rem 0.3rem;
-}
-
-.filter-field-active {
-  border-color: color-mix(in srgb, var(--mat-sys-primary) 70%, var(--app-border-color));
-  background: color-mix(
-    in srgb,
-    var(--mat-sys-primary-container) 32%,
-    var(--mat-sys-surface-container)
-  );
-}
-
-.filter-field label {
-  display: grid;
-}
-
-.filter-field select {
-  min-width: 8rem;
-  max-width: 12rem;
 }
 
 .filter-mode {
@@ -178,13 +267,49 @@ select option {
 }
 
 .filter-mode button:hover,
-.filter-mode-active {
-  background: var(--mat-sys-primary-container) !important;
-  color: var(--mat-sys-on-primary-container) !important;
+.filter-mode button.filter-mode-active {
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
 }
 
-.clear-filters {
-  margin-inline-start: auto;
+.issue-filter-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  margin-block-start: 0.5rem;
+}
+
+.issue-filter-actions span {
+  margin-inline-end: auto;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-small);
+}
+
+.issue-filter-actions button {
+  min-height: 1.875rem;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-full);
+  background: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface);
+  cursor: pointer;
+  padding: 0.2rem 0.75rem;
+  font: var(--mat-sys-label-medium);
+}
+
+.issue-filter-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.issue-filter-actions button:hover:not(:disabled) {
+  background: var(--mat-sys-surface-container-highest);
+}
+
+.issue-filter-actions button:focus-visible,
+.filter-mode button:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
 }
 
 .page-progress {
@@ -395,43 +520,73 @@ time {
   color: var(--mat-sys-on-primary-container);
 }
 
+@media (min-width: 48.01rem) and (max-width: 72rem) {
+  .issue-table {
+    min-width: 52rem;
+  }
+
+  .issue-main-cell {
+    min-width: 15rem;
+  }
+
+  .issue-table th,
+  .issue-table td {
+    padding-inline: 0.5rem;
+  }
+
+  .assignee-name {
+    max-width: 5rem;
+  }
+}
+
 @media (max-width: 48rem) {
   .issues-page {
     min-height: calc(100dvh - var(--app-topbar-height-mobile));
-    padding: 1rem;
+    padding: 0.65rem;
   }
 
-  .issues-header,
-  .issue-controls,
-  .pagination {
-    align-items: stretch;
-    flex-direction: column;
+  .issues-toolbar {
+    gap: 0.375rem;
   }
 
-  .issues-header a {
-    align-self: flex-start;
+  .search-field {
+    width: auto;
+    min-width: 7.5rem;
+    max-width: none;
+    flex: 1 1 10rem;
+    padding-inline: 0.625rem;
   }
 
-  .search-field,
-  .sort-field {
-    width: 100%;
+  .issues-count,
+  .issue-toolbar-divider {
+    display: none;
+  }
+
+  .issue-create-button {
+    width: 2.5rem;
+    min-width: 2.5rem !important;
+    padding: 0 !important;
+  }
+
+  .issue-create-plus {
+    margin: 0;
+  }
+
+  .issue-create-label {
+    display: none;
+  }
+
+  .issue-filter-panel {
+    padding: 0.5rem;
   }
 
   .filter-rail {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(8rem, 1fr));
   }
 
-  .filter-field,
-  .filter-field select {
-    width: 100%;
-    min-width: 0;
-    max-width: none;
-  }
-
-  .clear-filters {
-    grid-column: 1 / -1;
-    margin: 0;
+  .pagination {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .issue-table-wrap {
@@ -445,8 +600,8 @@ time {
   .issue-table tbody,
   .issue-table tr,
   .issue-table td {
-    width: 100%;
     display: block;
+    width: 100%;
     min-width: 0;
   }
 
@@ -472,8 +627,8 @@ time {
   .issue-table td,
   .issue-table td:nth-child(3),
   .issue-table td:nth-child(6) {
-    height: auto;
     display: block;
+    height: auto;
     border: 0;
     padding: 0.45rem;
   }
@@ -501,7 +656,6 @@ time {
 }
 
 @media (max-width: 30rem) {
-  .filter-rail,
   .issue-table tbody tr {
     grid-template-columns: 1fr;
   }
@@ -625,4 +779,33 @@ time {
 .issue-upload-actions button:focus-visible {
   outline: 2px solid var(--mat-sys-primary);
   outline-offset: 2px;
+}
+
+/* Follow the same density preference as Kanban without hiding issue controls. */
+:host-context(html[data-ui-density='compact']) .issues-page {
+  padding: 0.45rem 0.65rem;
+}
+
+:host-context(html[data-ui-density='compact']) .issues-toolbar {
+  padding-block-end: 0.4rem;
+}
+
+:host-context(html[data-ui-density='compact']) .issue-table-wrap {
+  border-radius: 0.4rem;
+  box-shadow: none;
+}
+
+:host-context(html[data-ui-density='compact']) .pagination {
+  padding-block-start: 0.35rem;
+}
+
+@media (min-width: 48.01rem) {
+  :host-context(html[data-ui-density='compact']) .issue-table th {
+    height: 2.25rem;
+  }
+
+  :host-context(html[data-ui-density='compact']) .issue-table td {
+    height: 3rem;
+    padding-block: 0.35rem;
+  }
 }
