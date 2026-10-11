@@ -137,6 +137,37 @@ describe('IssuesApiService', () => {
     await expect(deletion).resolves.toBeUndefined();
   });
 
+
+  it('lists issue attachments using the stable Taiga API', async () => {
+    const result = firstValueFrom(service.listAttachments(17, 38));
+    const request = httpTesting.expectOne('/api/v1/issues/attachments?project=17&object_id=38');
+    expect(request.request.method).toBe('GET');
+    expect(request.request.headers.get('X-Disable-Pagination')).toBe('1');
+    const attachments = [{ id: 90, name: 'error.png', url: '/media/error.png', size: 2048 }];
+    request.flush(attachments);
+    await expect(result).resolves.toEqual(attachments);
+  });
+
+  it('uploads and deletes an issue attachment via multipart FormData', async () => {
+    const file = new File(['log content'], 'error.log', { type: 'text/plain' });
+    const uploading = firstValueFrom(service.uploadAttachment(17, 38, file));
+    const post = httpTesting.expectOne('/api/v1/issues/attachments');
+    expect(post.request.method).toBe('POST');
+    expect(post.request.body).toBeInstanceOf(FormData);
+    expect(post.request.body.get('project')).toBe('17');
+    expect(post.request.body.get('object_id')).toBe('38');
+    expect((post.request.body.get('attached_file') as File).name).toBe('error.log');
+    expect(post.request.headers.has('Content-Type')).toBe(false);
+    post.flush({ id: 90, name: 'error.log', url: '/media/error.log', size: 11 });
+    await expect(uploading).resolves.toMatchObject({ id: 90 });
+
+    const deleting = firstValueFrom(service.deleteAttachment(90));
+    const del = httpTesting.expectOne('/api/v1/issues/attachments/90');
+    expect(del.request.method).toBe('DELETE');
+    del.flush(null, { status: 204, statusText: 'No content' });
+    await expect(deleting).resolves.toBeUndefined();
+  });
+
   it('omits blank optional query parameters', async () => {
     const result = firstValueFrom(service.list(17, DEFAULT_ISSUE_QUERY));
     const request = httpTesting.expectOne((candidate) => candidate.url === '/api/v1/issues');
