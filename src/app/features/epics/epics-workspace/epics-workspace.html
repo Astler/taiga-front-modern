@@ -11,6 +11,15 @@
         }
       </p>
     </div>
+    @if (canCreateEpics()) {
+      <button
+        mat-flat-button
+        type="button"
+        class="epic-create-button"
+        [disabled]="store.isMutating() || store.isLoading() || store.requiresReconciliation()"
+        (click)="openNewEpic()"
+      >+ New epic</button>
+    }
   </header>
 
   <div class="epic-controls">
@@ -80,6 +89,17 @@
     }
   </div>
 
+  @if (store.mutationError(); as error) {
+    <div class="epic-mutation-error" role="alert">
+      <span>{{ error }}</span>
+      @if (!store.requiresReconciliation()) {
+        <button type="button" aria-label="Dismiss epic error" (click)="store.dismissMutationError()">
+          ×
+        </button>
+      }
+    </div>
+  }
+
   @if (store.isLoading()) {
     <mat-progress-bar class="page-progress" mode="indeterminate" />
   }
@@ -129,7 +149,12 @@
                 <div class="epic-title">
                   <span class="epic-color" [style.background]="epic.color"></span>
                   <span class="epic-reference">#{{ epic.ref }}</span>
-                  <strong>{{ epic.subject }}</strong>
+                  <button
+                    class="epic-open"
+                    type="button"
+                    [attr.aria-label]="'Open epic #' + epic.ref + ': ' + epic.subject"
+                    (click)="openEpic(epic)"
+                  >{{ epic.subject }}</button>
                 </div>
               </td>
               <td data-label="Status">
@@ -252,5 +277,44 @@
         </button>
       </div>
     </footer>
+  }
+
+  @if (editorMode() === 'create') {
+    <pf-epic-editor
+      mode="create"
+      [project]="project()"
+      [filters]="store.filtersData()"
+      [busy]="store.isMutating() || store.isLoading() || store.requiresReconciliation()"
+      [error]="store.mutationError()"
+      (saved)="saveEpic($event)"
+      (closeRequested)="closeEditor()"
+    />
+  } @else if (editorMode() === 'edit') {
+    @if (store.detailStatus() === 'loaded' && store.selectedEpic(); as epic) {
+      <pf-epic-editor
+        mode="edit"
+        [epic]="epic"
+        [project]="project()"
+        [filters]="store.filtersData()"
+        [busy]="store.isMutating() || store.isLoading() || store.requiresReconciliation()"
+        [error]="store.mutationError()"
+        (saved)="saveEpic($event)"
+        (deleteRequested)="deleteEpic()"
+        (closeRequested)="closeEditor()"
+      />
+    } @else {
+      <div class="epic-detail-loading-backdrop">
+        <section class="epic-detail-loading" role="dialog" aria-modal="true" aria-label="Load epic">
+          @if (store.detailStatus() === 'error') {
+            <p role="alert">{{ store.detailError() }}</p>
+            <button mat-flat-button type="button" (click)="closeEditor()">Close</button>
+          } @else {
+            <mat-progress-bar mode="indeterminate" />
+            <p>Loading epic details…</p>
+            <button mat-button type="button" (click)="closeEditor()">Cancel</button>
+          }
+        </section>
+      </div>
+    }
   }
 </section>

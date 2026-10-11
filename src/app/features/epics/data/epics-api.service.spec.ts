@@ -90,6 +90,43 @@ describe('EpicsApiService', () => {
     await expect(result).resolves.toEqual(response);
   });
 
+  it('uses stable Taiga Epic detail, create, versioned edit and delete endpoints', async () => {
+    const detail = firstValueFrom(service.get(31));
+    httpTesting.expectOne('/api/v1/epics/31').flush({
+      ...epic(31), description: 'Full epic description',
+    });
+    expect((await detail).description).toBe('Full epic description');
+
+    const fields = {
+      subject: 'Rollout',
+      description: 'Launch plan',
+      color: '#6750a4',
+      assigned_to: 7,
+      tags: ['release'],
+      is_blocked: false,
+      blocked_note: '',
+    };
+    const created = firstValueFrom(service.create({ ...fields, project: 17 }));
+    const post = httpTesting.expectOne('/api/v1/epics');
+    expect(post.request.method).toBe('POST');
+    expect(post.request.body).toEqual({ ...fields, project: 17 });
+    post.flush({ ...epic(33), subject: fields.subject });
+    expect((await created).id).toBe(33);
+
+    const updated = firstValueFrom(service.update(31, { ...fields, status: 2 }, 3));
+    const patch = httpTesting.expectOne('/api/v1/epics/31');
+    expect(patch.request.method).toBe('PATCH');
+    expect(patch.request.body).toEqual({ ...fields, status: 2, version: 3 });
+    patch.flush({ ...epic(31), subject: fields.subject, version: 4 });
+    expect((await updated).version).toBe(4);
+
+    const deleted = firstValueFrom(service.delete(31));
+    const request = httpTesting.expectOne('/api/v1/epics/31');
+    expect(request.request.method).toBe('DELETE');
+    request.flush(null, { status: 204, statusText: 'No content' });
+    await expect(deleted).resolves.toBeUndefined();
+  });
+
   it('uses a zero total header for an empty filtered page', async () => {
     const result = firstValueFrom(service.list(17, DEFAULT_EPIC_QUERY));
     const request = httpTesting.expectOne((candidate) => candidate.url === '/api/v1/epics');

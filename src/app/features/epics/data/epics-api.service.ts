@@ -5,6 +5,8 @@ import { RuntimeConfigService } from '../../../core/config';
 import type { TaigaId } from '../../../shared/models';
 import {
   EPIC_FILTER_CATEGORIES,
+  type EpicChanges,
+  type EpicCreateRequest,
   type EpicFiltersData,
   type EpicListPage,
   type EpicListQuery,
@@ -34,6 +36,25 @@ export class EpicsApiService {
       headers: UNPAGINATED_HEADERS,
       params: epicFilterParams(projectId, query),
     });
+  }
+
+  get(epicId: TaigaId): Observable<TaigaEpic> {
+    return this.http.get<TaigaEpic>(`${this.config.resolveApiPath('epics')}/${epicId}`);
+  }
+
+  create(request: EpicCreateRequest): Observable<TaigaEpic> {
+    return this.http.post<TaigaEpic>(this.config.resolveApiPath('epics'), request);
+  }
+
+  update(epicId: TaigaId, changes: EpicChanges, version?: number): Observable<TaigaEpic> {
+    return this.http.patch<TaigaEpic>(`${this.config.resolveApiPath('epics')}/${epicId}`, {
+      ...changes,
+      ...(version === undefined ? {} : { version }),
+    });
+  }
+
+  delete(epicId: TaigaId): Observable<void> {
+    return this.http.delete<void>(`${this.config.resolveApiPath('epics')}/${epicId}`);
   }
 
   private toPage(

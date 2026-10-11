@@ -13,8 +13,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import type { TaigaProjectDetail } from '../../projects/data';
+import { EpicEditor, type EpicEditorMode } from '../epic-editor/epic-editor';
 import {
   EpicsStore,
+  type EpicChanges,
   type EpicFilterCategory,
   type EpicFilterMode,
   type EpicFilterOption,
@@ -39,7 +41,7 @@ const FILTERS: readonly FilterDefinition[] = [
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatButtonModule, MatProgressBarModule, MatTooltipModule],
+  imports: [EpicEditor, MatButtonModule, MatProgressBarModule, MatTooltipModule],
   providers: [EpicsStore],
   selector: 'pf-epics-workspace',
   styleUrl: './epics-workspace.scss',
@@ -52,6 +54,10 @@ export class EpicsWorkspace implements OnDestroy {
   protected readonly store = inject(EpicsStore);
   protected readonly filterDefinitions = FILTERS;
   protected readonly searchValue = signal('');
+  protected readonly editorMode = signal<EpicEditorMode | null>(null);
+  protected readonly canCreateEpics = computed(() => this.canDo('add_epic'));
+  protected readonly canModifyEpics = computed(() => this.canDo('modify_epic'));
+  protected readonly canDeleteEpics = computed(() => this.canDo('delete_epic'));
   protected readonly visiblePageNumbers = computed(() => {
     const page = this.store.page();
     if (!page) {
@@ -79,6 +85,8 @@ export class EpicsWorkspace implements OnDestroy {
         this.appliedInitialSearch = initialSearch;
         this.searchValue.set(initialSearch);
         if (projectChanged) {
+          this.editorMode.set(null);
+          this.store.closeEpic();
           this.store.loadProject(projectId);
         }
         if (initialSearch) {
@@ -94,6 +102,71 @@ export class EpicsWorkspace implements OnDestroy {
     if (this.searchTimer !== null) {
       clearTimeout(this.searchTimer);
     }
+  }
+
+  protected openNewEpic(): void {
+    if (!this.canCreateEpics()) return;
+    this.store.dismissMutationError();
+    this.store.closeEpic();
+    this.editorMode.set('create');
+  }
+
+  protected openEpic(epic: TaigaEpic): void {
+    this.store.dismissMutationError();
+    this.editorMode.set('edit');
+    this.store.openEpic(epic);
+  }
+
+  protected closeEditor(): void {
+    this.editorMode.set(null);
+    this.store.closeEpic();
+  }
+
+  protected async saveEpic(changes: EpicChanges): Promise<void> {
+    const mode = this.editorMode();
+    const projectId = this.project().id;
+    if (!mode) return;
+    if (mode === 'create' && !this.canCreateEpics()) return;
+    if (mode === 'edit' && !this.canModifyEpics()) return;
+    const epicId = mode === 'edit' ? this.store.selectedEpic()?.id : null;
+
+    const result = mode === 'create'
+      ? await this.store.createEpic({
+          project: projectId,
+          subject: changes.subject,
+          description: changes.description,
+          color: changes.color,
+          assigned_to: changes.assigned_to,
+          tags: changes.tags,
+          is_blocked: changes.is_blocked,
+          blocked_note: changes.blocked_note,
+        })
+      : epicId === null || epicId === undefined
+        ? 'failed'
+        : await this.store.updateEpic(epicId, changes);
+
+    if (projectId !== this.project().id || this.editorMode() !== mode) return;
+    if (result === 'created' || result === 'updated') this.closeEditor();
+  }
+
+  protected async deleteEpic(): Promise<void> {
+    const epic = this.store.selectedEpic();
+    if (!epic || !this.canDeleteEpics()) return;
+    if (!globalThis.confirm(
+      'Permanently delete epic #' + epic.ref + ' "' + epic.subject + '"?\n\n' +
+      'Relationships with user stories may also be removed. This cannot be undone.',
+    )) return;
+
+    const projectId = this.project().id;
+    const result = await this.store.deleteEpic(epic.id);
+    if (projectId !== this.project().id) return;
+    if (result === 'deleted') this.closeEditor();
+  }
+
+  private canDo(permission: string): boolean {
+    const project = this.project();
+    return !project.archived_code && !project.blocked_code &&
+      (project.my_permissions ?? []).includes(permission);
   }
 
   protected updateSearch(event: Event): void {

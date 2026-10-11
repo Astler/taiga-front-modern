@@ -10,14 +10,25 @@ import { EpicsWorkspace } from './epics-workspace';
 describe('EpicsWorkspace', () => {
   const list = vi.fn();
   const filters = vi.fn();
+  const get = vi.fn();
+  const create = vi.fn();
+  const update = vi.fn();
+  const deleteEpic = vi.fn();
 
   beforeEach(async () => {
     list.mockReset().mockReturnValue(of(epicPage()));
     filters.mockReset().mockReturnValue(of(filtersData()));
+    get.mockReset().mockReturnValue(of({ ...epicPage().items[0]!, description: 'Details' }));
+    create.mockReset().mockReturnValue(of(epicPage().items[0]!));
+    update.mockReset().mockReturnValue(of(epicPage().items[0]!));
+    deleteEpic.mockReset().mockReturnValue(of(undefined));
 
     await TestBed.configureTestingModule({
       imports: [EpicsWorkspace],
-      providers: [{ provide: EpicsApiService, useValue: { list, filters } }],
+      providers: [{
+        provide: EpicsApiService,
+        useValue: { list, filters, get, create, update, delete: deleteEpic },
+      }],
     }).compileComponents();
   });
 
@@ -37,6 +48,90 @@ describe('EpicsWorkspace', () => {
     expect(host.querySelector('[data-label="Progress"]')?.textContent).toContain('4/10 stories');
     expect(host.querySelector('[data-label="Owner"]')?.textContent).toContain('Ada Lovelace');
     expect(host.querySelector('.epic-main-cell a')).toBeNull();
+  });
+
+  it('creates a new epic from the native editor with permission-gated controls', async () => {
+    const fixture = TestBed.createComponent(EpicsWorkspace);
+    fixture.componentRef.setInput('project', { ...project(), my_permissions: ['add_epic'] });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    host.querySelector<HTMLButtonElement>('.epic-create-button')!.click();
+    fixture.detectChanges();
+
+    const editor = host.querySelector<HTMLElement>('pf-epic-editor')!;
+    expect(editor).toBeTruthy();
+    const title = editor.querySelector<HTMLInputElement>('input[maxlength="500"]')!;
+    title.value = 'Big launch';
+    title.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    editor.querySelector<HTMLButtonElement>('.epic-save')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({
+      project: 17, subject: 'Big launch', color: '#6750a4',
+    }));
+    expect(host.querySelector('pf-epic-editor')).toBeNull();
+  });
+
+  it('loads an epic detail and submits edits using the version', async () => {
+    const fixture = TestBed.createComponent(EpicsWorkspace);
+    fixture.componentRef.setInput('project', { ...project(), my_permissions: ['modify_epic'] });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    host.querySelector<HTMLButtonElement>('.epic-open')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(get).toHaveBeenCalledWith(38);
+
+    const editor = host.querySelector<HTMLElement>('pf-epic-editor')!;
+    expect(editor.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe('Details');
+    const title = editor.querySelector<HTMLInputElement>('input[maxlength="500"]')!;
+    title.value = 'Updated roadmap';
+    title.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    editor.querySelector<HTMLButtonElement>('.epic-save')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(update).toHaveBeenCalledWith(
+      38, expect.objectContaining({ subject: 'Updated roadmap' }), 1,
+    );
+    expect(host.querySelector('pf-epic-editor')).toBeNull();
+  });
+
+  it('requires confirmation before deleting and keeps delete permissions independent', async () => {
+    const fixture = TestBed.createComponent(EpicsWorkspace);
+    fixture.componentRef.setInput('project', { ...project(), my_permissions: ['delete_epic'] });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelector('.epic-create-button')).toBeNull();
+    host.querySelector<HTMLButtonElement>('.epic-open')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const editor = host.querySelector<HTMLElement>('pf-epic-editor')!;
+    expect(editor.querySelector('.epic-save')).toBeNull();
+    const confirm = vi.spyOn(globalThis, 'confirm').mockReturnValueOnce(false)
+      .mockReturnValueOnce(true);
+    try {
+      const del = editor.querySelector<HTMLButtonElement>('.epic-delete')!;
+      del.click();
+      fixture.detectChanges();
+      expect(deleteEpic).not.toHaveBeenCalled();
+      del.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(deleteEpic).toHaveBeenCalledWith(38);
+      expect(host.querySelector('pf-epic-editor')).toBeNull();
+    } finally {
+      confirm.mockRestore();
+    }
   });
 
   it('shows remaining tag names in an accessible overflow tooltip', async () => {

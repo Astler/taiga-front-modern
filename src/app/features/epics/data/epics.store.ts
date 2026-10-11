@@ -1,9 +1,13 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { forkJoin } from 'rxjs';
+import { firstValueFrom, forkJoin } from 'rxjs';
 import type { TaigaId } from '../../../shared/models';
 import { EpicsApiService } from './epics-api.service';
 import {
   DEFAULT_EPIC_QUERY,
+  type EpicChanges,
+  type EpicCreateRequest,
+  type EpicMutationResult,
   type EpicFilterCategory,
   type EpicFilterMode,
   type EpicFiltersData,
@@ -13,6 +17,8 @@ import {
 } from './epics.models';
 
 export type EpicsLoadStatus = 'idle' | 'loading' | 'loaded' | 'error';
+export type EpicDetailStatus = 'idle' | 'loading' | 'loaded' | 'error';
+export type EpicMutationKind = 'create' | 'update' | 'delete';
 
 @Injectable()
 export class EpicsStore {
@@ -24,7 +30,15 @@ export class EpicsStore {
   private readonly queryState = signal<EpicListQuery>(DEFAULT_EPIC_QUERY);
   private readonly pageState = signal<EpicListPage | null>(null);
   private readonly errorState = signal<string | null>(null);
+  private readonly selectedEpicState = signal<TaigaEpic | null>(null);
+  private readonly detailStatusState = signal<EpicDetailStatus>('idle');
+  private readonly detailErrorState = signal<string | null>(null);
+  private readonly mutationState = signal<EpicMutationKind | null>(null);
+  private readonly mutationErrorState = signal<string | null>(null);
+  private readonly reconciliationState = signal(false);
   private requestRevision = 0;
+  private detailRevision = 0;
+  private mutationRevision = 0;
 
   readonly projectId = this.projectIdState.asReadonly();
   readonly status = this.statusState.asReadonly();
@@ -33,6 +47,13 @@ export class EpicsStore {
   readonly query = this.queryState.asReadonly();
   readonly page = this.pageState.asReadonly();
   readonly error = this.errorState.asReadonly();
+  readonly selectedEpic = this.selectedEpicState.asReadonly();
+  readonly detailStatus = this.detailStatusState.asReadonly();
+  readonly detailError = this.detailErrorState.asReadonly();
+  readonly mutation = this.mutationState.asReadonly();
+  readonly mutationError = this.mutationErrorState.asReadonly();
+  readonly requiresReconciliation = this.reconciliationState.asReadonly();
+  readonly isMutating = computed(() => this.mutationState() !== null);
   readonly isLoading = computed(() => this.statusState() === 'loading');
   readonly hasActiveFilters = computed(
     () =>
@@ -45,11 +66,162 @@ export class EpicsStore {
     }
 
     this.projectIdState.set(projectId);
+    ++this.mutationRevision;
+    this.mutationState.set(null);
+    this.mutationErrorState.set(null);
+    this.reconciliationState.set(false);
+    this.closeEpic();
     this.queryState.set(DEFAULT_EPIC_QUERY);
     this.epicsState.set([]);
     this.pageState.set(null);
     this.filtersDataState.set(null);
     this.fetch(DEFAULT_EPIC_QUERY, true);
+  }
+
+
+  openEpic(epic: TaigaEpic): void {
+    if (epic.project !== this.projectIdState()) return;
+    const projectId = this.projectIdState();
+    const revision = ++this.detailRevision;
+    this.selectedEpicState.set(epic);
+    this.detailStatusState.set('loading');
+    this.detailErrorState.set(null);
+    this.api.get(epic.id).subscribe({
+      next: (detail) => {
+        if (revision !== this.detailRevision ||
+          projectId !== this.projectIdState() ||
+          this.selectedEpicState()?.id !== epic.id) return;
+        this.selectedEpicState.set(detail);
+        this.detailStatusState.set('loaded');
+      },
+      error: () => {
+        if (revision !== this.detailRevision ||
+          projectId !== this.projectIdState() ||
+          this.selectedEpicState()?.id !== epic.id) return;
+        this.detailStatusState.set('error');
+        this.detailErrorState.set('Epic details could not be loaded. Reopen the epic to retry.');
+      },
+    });
+  }
+
+  closeEpic(): void {
+    ++this.detailRevision;
+    this.selectedEpicState.set(null);
+    this.detailStatusState.set('idle');
+    this.detailErrorState.set(null);
+  }
+
+  dismissMutationError(): void {
+    if (!this.reconciliationState()) this.mutationErrorState.set(null);
+  }
+
+  private refreshAfterMutation(): void {
+    if (this.projectIdState() !== null) this.fetch(this.queryState(), true);
+  }
+
+  async createEpic(request: EpicCreateRequest): Promise<EpicMutationResult> {
+    if (!this.canWrite(request.project) || !request.subject.trim()) return 'failed';
+    const revision = ++this.mutationRevision;
+    this.mutationState.set('create');
+    this.mutationErrorState.set(null);
+    try {
+      const created = await firstValueFrom(this.api.create(request));
+      if (!this.isCurrentMutation(revision, request.project)) return 'failed';
+      this.epicsState.update((epics) => [created, ...epics]);
+      this.mutationState.set(null);
+      this.queryState.update((query) => ({ ...query, page: 1 }));
+      this.refreshAfterMutation();
+      return 'created';
+    } catch (error: unknown) {
+      return this.onMutationError(error, revision, request.project, 'create');
+    }
+  }
+
+  async updateEpic(epicId: TaigaId, changes: EpicChanges): Promise<EpicMutationResult> {
+    const projectId = this.projectIdState();
+    const detail = this.selectedEpicState();
+    if (projectId === null || !this.canWrite(projectId) ||
+      !detail || detail.id !== epicId || !changes.subject.trim()) return 'failed';
+    const revision = ++this.mutationRevision;
+    this.mutationState.set('update');
+    this.mutationErrorState.set(null);
+    try {
+      const updated = await firstValueFrom(this.api.update(epicId, changes, detail.version));
+      if (!this.isCurrentMutation(revision, projectId)) return 'failed';
+      this.selectedEpicState.set(updated);
+      this.epicsState.update((epics) =>
+        epics.map((epic) => epic.id === epicId ? updated : epic),
+      );
+      this.mutationState.set(null);
+      this.refreshAfterMutation();
+      return 'updated';
+    } catch (error: unknown) {
+      return this.onMutationError(error, revision, projectId, 'update');
+    }
+  }
+
+  async deleteEpic(epicId: TaigaId): Promise<EpicMutationResult> {
+    const projectId = this.projectIdState();
+    const detail = this.selectedEpicState();
+    if (projectId === null || !this.canWrite(projectId) ||
+      !detail || detail.id !== epicId) return 'failed';
+    const revision = ++this.mutationRevision;
+    this.mutationState.set('delete');
+    this.mutationErrorState.set(null);
+    try {
+      await firstValueFrom(this.api.delete(epicId));
+      if (!this.isCurrentMutation(revision, projectId)) return 'failed';
+      this.epicsState.update((epics) => epics.filter(({ id }) => id !== epicId));
+      this.closeEpic();
+      this.mutationState.set(null);
+      const page = this.pageState();
+      if (page && page.page > 1 && this.epicsState().length === 0) {
+        this.queryState.update((query) => ({ ...query, page: page.page - 1 }));
+      }
+      this.refreshAfterMutation();
+      return 'deleted';
+    } catch (error: unknown) {
+      return this.onMutationError(error, revision, projectId, 'delete');
+    }
+  }
+
+  private canWrite(projectId: TaigaId): boolean {
+    return projectId === this.projectIdState() &&
+      this.statusState() === 'loaded' &&
+      !this.isMutating() &&
+      !this.reconciliationState();
+  }
+
+  private isCurrentMutation(revision: number, projectId: TaigaId): boolean {
+    return revision === this.mutationRevision && projectId === this.projectIdState();
+  }
+
+  private onMutationError(
+    error: unknown,
+    revision: number,
+    projectId: TaigaId,
+    kind: EpicMutationKind,
+  ): EpicMutationResult {
+    if (!this.isCurrentMutation(revision, projectId)) return 'failed';
+    this.mutationState.set(null);
+    if (isAmbiguousFailure(error)) {
+      this.reconciliationState.set(true);
+      this.mutationErrorState.set(
+        'Taiga did not confirm the epic ' + kind +
+        '. Refreshing before another change; check the result before retrying.',
+      );
+      this.refreshAfterMutation();
+      return 'uncertain';
+    }
+    this.mutationErrorState.set(
+      error instanceof HttpErrorResponse && error.status === 403
+        ? 'Your project role does not permit that epic action.'
+        : error instanceof HttpErrorResponse && error.status === 409
+          ? 'This epic changed elsewhere. Reopen it before saving again.'
+          : 'The epic could not be ' +
+            (kind === 'create' ? 'created' : kind === 'update' ? 'updated' : 'deleted') + '.',
+    );
+    return 'failed';
   }
 
   setSearch(q: string): void {
@@ -97,6 +269,7 @@ export class EpicsStore {
   }
 
   private updateQuery(query: EpicListQuery, refreshFilters = false): void {
+    if (this.isMutating() || this.reconciliationState()) return;
     this.queryState.set(query);
     this.fetch(query, refreshFilters);
   }
@@ -142,6 +315,7 @@ export class EpicsStore {
   }
 
   private applyPage(page: EpicListPage): void {
+    this.reconciliationState.set(false);
     this.epicsState.set(page.items);
     this.pageState.set(page);
     this.errorState.set(null);
@@ -154,4 +328,9 @@ export class EpicsStore {
     this.statusState.set('error');
     this.errorState.set('Epics could not be loaded. Check the connection and try again.');
   }
+}
+
+function isAmbiguousFailure(error: unknown): boolean {
+  return !(error instanceof HttpErrorResponse) ||
+    error.status < 400 || error.status === 408 || error.status >= 500;
 }

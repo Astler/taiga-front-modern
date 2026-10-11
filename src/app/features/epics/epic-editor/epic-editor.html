@@ -1,0 +1,171 @@
+<div
+  class="epic-editor-backdrop"
+  role="presentation"
+  tabindex="-1"
+  (click)="requestClose()"
+  (keydown.escape)="handleKeydown($event)"
+>
+  <section
+    class="epic-editor-panel"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="epic-editor-title"
+    (click)="$event.stopPropagation()"
+    (keydown)="handleKeydown($event)"
+  >
+    <header class="epic-editor-header">
+      <div>
+        <span class="epic-editor-eyebrow">
+          {{ project().name }} · {{ mode() === 'create' ? 'New epic' : 'Epic #' + epic()?.ref }}
+        </span>
+        <h2 id="epic-editor-title">{{ mode() === 'create' ? 'Create epic' : 'Edit epic' }}</h2>
+      </div>
+      <button
+        class="epic-editor-close"
+        type="button"
+        autofocus
+        aria-label="Close epic editor"
+        (click)="requestClose()"
+      >×</button>
+    </header>
+
+    <form class="epic-editor-fields" id="epic-editor-form" (submit)="submit($event)">
+      @if (error(); as message) {
+        <p class="epic-editor-error" role="alert">{{ message }}</p>
+      }
+      @if (project().archived_code || project().blocked_code) {
+        <p class="epic-editor-note">This project is archived or locked.</p>
+      }
+
+      <label class="epic-field">
+        <span>Title</span>
+        <input
+          type="text"
+          maxlength="500"
+          required
+          placeholder="Describe a large outcome"
+          [value]="draft().subject"
+          [disabled]="!canEdit() || busy()"
+          (input)="updateText('subject', $event)"
+        />
+      </label>
+
+      <label class="epic-field">
+        <span>Description</span>
+        <textarea
+          rows="8"
+          placeholder="Goal, context, acceptance criteria and links…"
+          [value]="draft().description"
+          [disabled]="!canEdit() || busy()"
+          (input)="updateText('description', $event)"
+        ></textarea>
+      </label>
+
+      <div class="epic-fields-grid">
+        <label class="epic-field">
+          <span>Color</span>
+          <input
+            class="epic-color-input"
+            aria-label="Epic color"
+            type="color"
+            [value]="draft().color"
+            [disabled]="!canEdit() || busy()"
+            (input)="updateText('color', $event)"
+          />
+        </label>
+
+        @if (mode() === 'edit') {
+          <label class="epic-field">
+            <span>Status</span>
+            <select
+              aria-label="Epic status"
+              [value]="draft().status ?? ''"
+              [disabled]="!canEdit() || busy()"
+              (change)="updateSelect('status', $event)"
+            >
+              <option value="">No status</option>
+              @for (status of statusOptions(); track status.id) {
+                <option [value]="status.id">{{ status.name }}</option>
+              }
+            </select>
+          </label>
+        }
+
+        <label class="epic-field">
+          <span>Assignee</span>
+          <select
+            aria-label="Epic assignee"
+            [value]="draft().assignedTo ?? ''"
+            [disabled]="!canEdit() || busy()"
+            (change)="updateSelect('assignedTo', $event)"
+          >
+            <option value="">Unassigned</option>
+            @for (member of assignees(); track member.id) {
+              <option [value]="member.id">{{ member.name }}</option>
+            }
+          </select>
+        </label>
+      </div>
+
+      <label class="epic-field">
+        <span>Tags <small>(comma separated)</small></span>
+        <input
+          type="text"
+          placeholder="product, release, roadmap"
+          [value]="draft().tags"
+          [disabled]="!canEdit() || busy()"
+          (input)="updateText('tags', $event)"
+        />
+      </label>
+
+      <fieldset class="epic-blocked">
+        <legend>Blocking</legend>
+        <label class="epic-blocked-toggle">
+          <input
+            type="checkbox"
+            [checked]="draft().isBlocked"
+            [disabled]="!canEdit() || busy()"
+            (change)="updateBlocked($event)"
+          />
+          Mark as blocked
+        </label>
+        @if (draft().isBlocked) {
+          <label class="epic-field">
+            <span>Reason</span>
+            <textarea
+              rows="2"
+              [disabled]="!canEdit() || busy()"
+              [value]="draft().blockedNote"
+              (input)="updateText('blockedNote', $event)"
+            ></textarea>
+          </label>
+        }
+      </fieldset>
+    </form>
+
+    <footer class="epic-editor-footer">
+      @if (canDelete()) {
+        <button
+          class="epic-delete"
+          type="button"
+          [disabled]="busy()"
+          (click)="deleteRequested.emit()"
+        >Delete epic</button>
+      }
+      <span class="epic-editor-spacer"></span>
+      <button type="button" class="epic-cancel" (click)="requestClose()">
+        {{ canEdit() ? 'Cancel' : 'Close' }}
+      </button>
+      @if (canEdit()) {
+        <button
+          class="epic-save"
+          type="submit"
+          form="epic-editor-form"
+          [disabled]="!canSubmit()"
+        >
+          {{ busy() ? 'Saving…' : mode() === 'create' ? 'Create epic' : 'Save changes' }}
+        </button>
+      }
+    </footer>
+  </section>
+</div>

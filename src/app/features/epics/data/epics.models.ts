@@ -37,6 +37,7 @@ export interface TaigaEpic {
   readonly created_date: string;
   readonly modified_date: string;
   readonly subject: string;
+  readonly description?: string;
   readonly color: string;
   readonly epics_order: number;
   readonly client_requirement: boolean;
@@ -59,6 +60,23 @@ export interface TaigaEpic {
   readonly is_voter: boolean;
   readonly is_watcher: boolean;
 }
+
+export interface EpicChanges {
+  readonly subject: string;
+  readonly description: string;
+  readonly color: string;
+  readonly status: TaigaId | null;
+  readonly assigned_to: TaigaId | null;
+  readonly tags: readonly string[];
+  readonly is_blocked: boolean;
+  readonly blocked_note: string;
+}
+
+export interface EpicCreateRequest extends Omit<EpicChanges, 'status'> {
+  readonly project: TaigaId;
+}
+
+export type EpicMutationResult = 'created' | 'updated' | 'deleted' | 'failed' | 'uncertain';
 
 export type EpicFilterCategory = 'status' | 'assigned_to' | 'owner' | 'tags';
 export type EpicFilterMode = 'include' | 'exclude';

@@ -46,6 +46,7 @@ export interface TaigaProjectIssueValue {
 }
 
 export interface TaigaProjectDetail extends TaigaProjectListItem {
+  readonly epic_statuses?: readonly TaigaProjectIssueValue[];
   readonly issue_statuses?: readonly TaigaProjectIssueValue[];
   readonly issue_types?: readonly TaigaProjectIssueValue[];
   readonly priorities?: readonly TaigaProjectIssueValue[];

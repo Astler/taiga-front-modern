@@ -1,8 +1,16 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { Observable, Subject, of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EpicsApiService } from './epics-api.service';
-import type { EpicFiltersData, EpicListPage, EpicListQuery, TaigaEpic } from './epics.models';
+import type {
+  EpicChanges,
+  EpicCreateRequest,
+  EpicFiltersData,
+  EpicListPage,
+  EpicListQuery,
+  TaigaEpic,
+} from './epics.models';
 import { EpicsStore } from './epics.store';
 
 describe('EpicsStore', () => {
@@ -13,11 +21,15 @@ describe('EpicsStore', () => {
     filters: ReturnType<
       typeof vi.fn<(projectId: number, query: EpicListQuery) => Observable<EpicFiltersData>>
     >;
+    get: ReturnType<typeof vi.fn<(epicId: number) => Observable<TaigaEpic>>>;
+    create: ReturnType<typeof vi.fn<(request: EpicCreateRequest) => Observable<TaigaEpic>>>;
+    update: ReturnType<typeof vi.fn<(epicId: number, changes: EpicChanges, version?: number) => Observable<TaigaEpic>>>;
+    delete: ReturnType<typeof vi.fn<(epicId: number) => Observable<void>>>;
   };
   let store: EpicsStore;
 
   beforeEach(() => {
-    api = { list: vi.fn(), filters: vi.fn() };
+    api = { list: vi.fn(), filters: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() };
     TestBed.configureTestingModule({
       providers: [EpicsStore, { provide: EpicsApiService, useValue: api }],
     });
@@ -77,6 +89,100 @@ describe('EpicsStore', () => {
 
     expect(store.projectId()).toBe(18);
     expect(store.epics()[0]?.id).toBe(2);
+  });
+
+  it('hydrates a full epic and discards a stale detail response after switching projects', () => {
+    const late = new Subject<TaigaEpic>();
+    api.list.mockReturnValue(of(page(1, 1)));
+    api.filters.mockReturnValue(of(filtersData()));
+    api.get.mockReturnValue(late);
+    store.loadProject(17);
+    store.openEpic(store.epics()[0]!);
+    expect(store.detailStatus()).toBe('loading');
+
+    store.loadProject(18);
+    late.next({ ...epic(1), description: 'Stale' });
+    late.complete();
+    expect(store.selectedEpic()).toBeNull();
+    expect(store.projectId()).toBe(18);
+  });
+
+  it('creates, edits and deletes epics with versioned PATCH and list reconciliation', async () => {
+    const original = epic(1);
+    const changes: EpicChanges = {
+      subject: 'New subject', description: 'Roadmap', color: '#6750a4',
+      status: 2, assigned_to: null, tags: ['release'],
+      is_blocked: false, blocked_note: '',
+    };
+    api.list.mockReturnValue(of(page(1, 1)));
+    api.filters.mockReturnValue(of(filtersData()));
+    api.get.mockReturnValue(of(original));
+    api.create.mockReturnValue(of({ ...epic(4), subject: changes.subject }));
+    api.update.mockReturnValue(of({ ...original, subject: changes.subject, version: 2 }));
+    api.delete.mockReturnValue(of(undefined));
+    store.loadProject(17);
+
+    const create = {
+      project: 17, subject: changes.subject, description: changes.description,
+      color: changes.color, assigned_to: changes.assigned_to, tags: changes.tags,
+      is_blocked: changes.is_blocked, blocked_note: changes.blocked_note,
+    };
+    expect(await store.createEpic(create)).toBe('created');
+    expect(api.create).toHaveBeenCalledWith(create);
+    store.openEpic(original);
+    expect(await store.updateEpic(1, changes)).toBe('updated');
+    expect(api.update).toHaveBeenCalledWith(1, changes, 1);
+    expect(store.selectedEpic()?.version).toBe(2);
+    expect(await store.deleteEpic(1)).toBe('deleted');
+    expect(store.selectedEpic()).toBeNull();
+    expect(store.mutation()).toBeNull();
+  });
+
+  it('preserves an epic after a forbidden deletion or version conflict', async () => {
+    const original = epic(1);
+    const changes: EpicChanges = {
+      subject: 'Attempted', description: '', color: '#6750a4',
+      status: 2, assigned_to: null, tags: [], is_blocked: false,
+      blocked_note: '',
+    };
+    api.list.mockReturnValue(of(page(1, 1)));
+    api.filters.mockReturnValue(of(filtersData()));
+    api.get.mockReturnValue(of(original));
+    api.update.mockReturnValue(throwError(() =>
+      new HttpErrorResponse({ status: 409, statusText: 'Conflict' }),
+    ));
+    api.delete.mockReturnValue(throwError(() =>
+      new HttpErrorResponse({ status: 403, statusText: 'Forbidden' }),
+    ));
+    store.loadProject(17);
+    store.openEpic(original);
+    expect(await store.updateEpic(1, changes)).toBe('failed');
+    expect(store.mutationError()).toContain('changed elsewhere');
+    expect(await store.deleteEpic(1)).toBe('failed');
+    expect(store.mutationError()).toContain('does not permit');
+    expect(store.epics()).toHaveLength(1);
+  });
+
+  it('avoids repeating an unconfirmed creation during reconciliation', async () => {
+    const nextPage = new Subject<EpicListPage>();
+    api.list.mockReturnValueOnce(of(page(1, 1))).mockReturnValueOnce(nextPage);
+    api.filters.mockReturnValue(of(filtersData()));
+    api.create.mockReturnValue(throwError(() =>
+      new HttpErrorResponse({ status: 0, statusText: 'Network error' }),
+    ));
+    store.loadProject(17);
+    const draft: EpicCreateRequest = {
+      project: 17, subject: 'Maybe created', description: '', color: '#6750a4',
+      assigned_to: null, tags: [], is_blocked: false, blocked_note: '',
+    };
+    expect(await store.createEpic(draft)).toBe('uncertain');
+    expect(store.requiresReconciliation()).toBe(true);
+    expect(await store.createEpic(draft)).toBe('failed');
+    expect(api.create).toHaveBeenCalledOnce();
+    nextPage.next(page(4, 2));
+    nextPage.complete();
+    expect(store.requiresReconciliation()).toBe(false);
+    expect(store.epics()[0]?.id).toBe(4);
   });
 
   it('surfaces failures and retries the current query', () => {
