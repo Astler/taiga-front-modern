@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { MatTooltip } from '@angular/material/tooltip';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TaigaProjectDetail } from '../../projects/data';
 import { IssuesApiService, type IssueFiltersData, type IssueListPage } from '../data';
@@ -14,6 +14,9 @@ describe('IssuesWorkspace', () => {
   const create = vi.fn();
   const update = vi.fn();
   const deleteIssue = vi.fn();
+  const listAttachments = vi.fn();
+  const uploadAttachment = vi.fn();
+  const deleteAttachment = vi.fn();
 
   beforeEach(async () => {
     list.mockReset().mockReturnValue(of(issuePage()));
@@ -24,12 +27,20 @@ describe('IssuesWorkspace', () => {
     create.mockReset().mockReturnValue(of(issuePage().items[0]!));
     update.mockReset().mockReturnValue(of(issuePage().items[0]!));
     deleteIssue.mockReset().mockReturnValue(of(undefined));
+    listAttachments.mockReset().mockReturnValue(of([]));
+    uploadAttachment.mockReset().mockReturnValue(of({
+      id: 99, name: 'screenshot.png', url: '/media/screenshot.png', size: 4,
+    }));
+    deleteAttachment.mockReset().mockReturnValue(of(undefined));
 
     await TestBed.configureTestingModule({
       imports: [IssuesWorkspace],
       providers: [{
         provide: IssuesApiService,
-        useValue: { list, filters, get, create, update, delete: deleteIssue },
+        useValue: {
+          list, filters, get, create, update, delete: deleteIssue,
+          listAttachments, uploadAttachment, deleteAttachment,
+        },
       }],
     }).compileComponents();
   });
@@ -101,6 +112,111 @@ describe('IssuesWorkspace', () => {
       assigned_to: 7, tags: ['frontend'], due_date: expect.any(String),
     }));
     expect(host.querySelector('pf-issue-editor')).toBeNull();
+  });
+
+  it('creates the issue before uploading clipboard screenshots staged in the create form', async () => {
+    const created = { ...issuePage().items[0]!, id: 55, ref: 55, subject: 'Screenshot report' };
+    create.mockReturnValue(of(created));
+    const fixture = TestBed.createComponent(IssuesWorkspace);
+    fixture.componentRef.setInput('project', { ...project(), my_permissions: ['add_issue'] });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    host.querySelector<HTMLButtonElement>('.issue-create-button')!.click();
+    fixture.detectChanges();
+    const editor = host.querySelector<HTMLElement>('pf-issue-editor')!;
+
+    const file = new File(['screenshot'], 'image.png', { type: 'image/png' });
+    const paste = new Event('paste', { bubbles: true, cancelable: true });
+    Object.defineProperty(paste, 'clipboardData', {
+      value: { files: [file], items: [] },
+    });
+    editor.querySelector('.issue-editor-panel')!.dispatchEvent(paste);
+    fixture.detectChanges();
+    expect(uploadAttachment).not.toHaveBeenCalled();
+
+    const title = editor.querySelector<HTMLInputElement>('input[maxlength="500"]')!;
+    title.value = 'Screenshot report';
+    title.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    editor.querySelector<HTMLButtonElement>('.issue-save')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(uploadAttachment).toHaveBeenCalledWith(17, 55, expect.any(File));
+    expect(host.querySelector('pf-issue-editor')).toBeNull();
+    expect(host.querySelector('.issue-upload-notice')).toBeNull();
+  });
+
+  it('keeps failed new-issue file uploads retryable without creating the issue twice', async () => {
+    create.mockReturnValue(of({ ...issuePage().items[0]!, id: 56, ref: 56 }));
+    uploadAttachment
+      .mockReturnValueOnce(throwError(() => new Error('Upload failed')))
+      .mockReturnValueOnce(of({
+        id: 99, name: 'report.png', url: '/media/report.png', size: 4,
+      }));
+
+    const fixture = TestBed.createComponent(IssuesWorkspace);
+    fixture.componentRef.setInput('project', { ...project(), my_permissions: ['add_issue'] });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    host.querySelector<HTMLButtonElement>('.issue-create-button')!.click();
+    fixture.detectChanges();
+    const editor = host.querySelector<HTMLElement>('pf-issue-editor')!;
+    const picker = editor.querySelector<HTMLInputElement>('input[type="file"]')!;
+    const file = new File(['image'], 'report.png', { type: 'image/png' });
+    Object.defineProperty(picker, 'files', { configurable: true, value: [file] });
+    picker.dispatchEvent(new Event('change', { bubbles: true }));
+    const title = editor.querySelector<HTMLInputElement>('input[maxlength="500"]')!;
+    title.value = 'Something failed';
+    title.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    editor.querySelector<HTMLButtonElement>('.issue-save')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(host.querySelector('.issue-upload-notice')?.textContent).toContain('could not be uploaded');
+    expect(host.querySelector<HTMLButtonElement>('.issue-create-button')?.disabled).toBe(true);
+
+    host.querySelector<HTMLButtonElement>('.issue-upload-actions button')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(uploadAttachment).toHaveBeenCalledTimes(2);
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(host.querySelector('.issue-upload-notice')).toBeNull();
+  });
+
+  it('uploads screenshots pasted directly into existing issue details', async () => {
+    const fixture = TestBed.createComponent(IssuesWorkspace);
+    fixture.componentRef.setInput('project', { ...project(), my_permissions: ['modify_issue'] });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+
+    host.querySelector<HTMLButtonElement>('.issue-open')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const panel = host.querySelector<HTMLElement>('.issue-editor-panel')!;
+    const file = new File(['clipboard image'], 'image.png', { type: 'image/png' });
+    const paste = new Event('paste', { bubbles: true, cancelable: true });
+    Object.defineProperty(paste, 'clipboardData', {
+      value: { files: [file], items: [] },
+    });
+    panel.dispatchEvent(paste);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(paste.defaultPrevented).toBe(true);
+    expect(uploadAttachment).toHaveBeenCalledWith(17, 38, expect.any(File));
+    expect(create).not.toHaveBeenCalled();
   });
 
   it('opens details and saves versioned changes without leaving the issue list', async () => {
