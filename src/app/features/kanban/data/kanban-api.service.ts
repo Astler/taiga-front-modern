@@ -95,6 +95,10 @@ export class KanbanApiService {
     );
   }
 
+  deleteUserStory(storyId: TaigaId): Observable<void> {
+    return this.http.delete<void>(`${this.config.resolveApiPath('userstories')}/${storyId}`);
+  }
+
   uploadAttachment(request: KanbanAttachmentUploadRequest): Observable<KanbanAttachmentSummary> {
     const body = new FormData();
     body.append('project', String(request.projectId));

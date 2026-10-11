@@ -20,10 +20,11 @@ export type KanbanCreateResult = 'created' | 'failed' | 'uncertain';
 export type KanbanMoveResult = 'moved' | 'failed' | 'uncertain';
 export type KanbanUpdateResult = 'updated' | 'failed' | 'uncertain';
 export type KanbanAttachmentResult = 'deleted' | 'uploaded' | 'failed';
+export type KanbanDeleteResult = 'deleted' | 'failed' | 'uncertain';
 export type KanbanStoryDetailStatus = 'idle' | 'loading' | 'loaded' | 'error';
 
 export interface KanbanMutation {
-  readonly kind: 'attachment' | 'create' | 'move' | 'update';
+  readonly kind: 'attachment' | 'create' | 'delete' | 'move' | 'update';
   readonly storyIds: readonly TaigaId[];
 }
 
@@ -162,6 +163,11 @@ export class KanbanStore {
           this.filtersDataState.set(filtersData ?? this.filtersDataState());
           this.milestonesState.set(milestones ?? this.milestonesState());
           this.userStoriesState.set(sortStories(userStories));
+          const selectedId = this.selectedStoryState()?.id;
+          if (selectedId !== undefined && !userStories.some(({ id }) => id === selectedId)) {
+            // The item may have been deleted elsewhere (or deletion was unconfirmed).
+            this.closeStoryDetails();
+          }
           this.lastSyncedAtState.set(new Date());
           this.requiresReconciliationState.set(false);
           if (reconcilingWrite) {
@@ -334,6 +340,53 @@ export class KanbanStore {
         this.mutationErrorState.set(
           'The story could not be saved. Review the fields and try again.',
         );
+      }
+      return ambiguous ? 'uncertain' : 'failed';
+    }
+  }
+
+  async deleteStory(projectId: TaigaId, storyId: TaigaId): Promise<KanbanDeleteResult> {
+    if (
+      this.projectIdState() !== projectId ||
+      !this.userStoriesState().some(({ id }) => id === storyId) ||
+      this.isMutating() ||
+      this.refreshingState() ||
+      this.requiresReconciliationState()
+    ) {
+      return 'failed';
+    }
+
+    const revision = ++this.mutationRevision;
+    this.mutationState.set({ kind: 'delete', storyIds: [storyId] });
+    this.mutationErrorState.set(null);
+    try {
+      await firstValueFrom(this.api.deleteUserStory(storyId));
+      if (!this.isCurrentMutation(revision, projectId)) return 'failed';
+
+      this.userStoriesState.update((stories) => stories.filter(({ id }) => id !== storyId));
+      if (this.selectedStoryState()?.id === storyId) this.closeStoryDetails();
+      this.lastSyncedAtState.set(new Date());
+      this.mutationState.set(null);
+      return 'deleted';
+    } catch (error: unknown) {
+      if (!this.isCurrentMutation(revision, projectId)) return 'failed';
+
+      this.mutationState.set(null);
+      const ambiguous = isAmbiguousMutationFailure(error);
+      if (ambiguous) {
+        // Taiga may have committed the deletion despite losing the HTTP response.
+        // Do not offer an immediate second DELETE until the board is reconciled.
+        this.requiresReconciliationState.set(true);
+        this.mutationErrorState.set(
+          'Taiga did not confirm the deletion. Checking the board before another change.',
+        );
+        this.refresh();
+      } else if (error instanceof HttpErrorResponse && error.status === 403) {
+        this.mutationErrorState.set('You do not have permission to delete this story.');
+      } else if (error instanceof HttpErrorResponse && error.status === 409) {
+        this.mutationErrorState.set('This story changed elsewhere. Refresh before deleting.');
+      } else {
+        this.mutationErrorState.set('The story could not be deleted. Please try again.');
       }
       return ambiguous ? 'uncertain' : 'failed';
     }

@@ -107,6 +107,14 @@ describe('KanbanApiService', () => {
     await expect(result).resolves.toEqual(response);
   });
 
+  it('deletes a user story by numeric Taiga ID, not its display reference', async () => {
+    const promise = firstValueFrom(service.deleteUserStory(101));
+    const request = httpTesting.expectOne('/api/v1/userstories/101');
+    expect(request.request.method).toBe('DELETE');
+    request.flush(null, { status: 204, statusText: 'No content' });
+    await expect(promise).resolves.toBeUndefined();
+  });
+
   it('updates a story with optimistic-concurrency versioning', async () => {
     const response = { ...userStory(101), subject: 'Updated story', version: 8 };
     const result = firstValueFrom(

@@ -32,6 +32,7 @@ describe('KanbanStore', () => {
       typeof vi.fn<(request: KanbanAttachmentUploadRequest) => Observable<KanbanAttachmentSummary>>
     >;
     deleteAttachment: ReturnType<typeof vi.fn<(attachmentId: number) => Observable<void>>>;
+    deleteUserStory: ReturnType<typeof vi.fn<(storyId: number) => Observable<void>>>;
   };
   let store: KanbanStore;
 
@@ -44,6 +45,7 @@ describe('KanbanStore', () => {
       updateUserStory: vi.fn(),
       uploadAttachment: vi.fn(),
       deleteAttachment: vi.fn(),
+      deleteUserStory: vi.fn(),
     };
     TestBed.configureTestingModule({
       providers: [KanbanStore, { provide: KanbanApiService, useValue: api }],
@@ -169,6 +171,64 @@ describe('KanbanStore', () => {
     expect(store.userStories()[0]?.subject).toBe('Updated title');
     expect(store.selectedStory()?.description).toBe('Updated body');
     expect(store.mutationError()).toBeNull();
+  });
+
+  it('removes a confirmed deletion from the board and closes an open editor', async () => {
+    const first = userStory(1, 1);
+    const second = userStory(2, 2);
+    api.load.mockReturnValue(of({ swimlanes: [], userStories: [first, second] }));
+    api.getUserStory.mockReturnValue(of(first));
+    api.deleteUserStory.mockReturnValue(of(undefined));
+    store.load(17);
+    store.openStoryDetails(1);
+
+    await expect(store.deleteStory(17, 1)).resolves.toBe('deleted');
+    expect(api.deleteUserStory).toHaveBeenCalledWith(1);
+    expect(store.userStories().map(({ id }) => id)).toEqual([2]);
+    expect(store.selectedStory()).toBeNull();
+    expect(store.isMutating()).toBe(false);
+  });
+
+  it('keeps the story when deletion is forbidden, and surfaces the API failure', async () => {
+    const story = userStory(1, 1);
+    api.load.mockReturnValue(of({ swimlanes: [], userStories: [story] }));
+    api.deleteUserStory.mockReturnValue(throwError(
+      () => new HttpErrorResponse({ status: 403, statusText: 'Forbidden' }),
+    ));
+    store.load(17);
+    await expect(store.deleteStory(17, 1)).resolves.toBe('failed');
+    expect(store.userStories().map(({ id }) => id)).toEqual([1]);
+    expect(store.mutationError()).toContain('permission');
+  });
+
+  it('reconciles an ambiguous deletion instead of retrying it', async () => {
+    const story = userStory(1, 1);
+    api.load.mockReturnValueOnce(of({ swimlanes: [], userStories: [story] }))
+      .mockReturnValueOnce(of({ swimlanes: [], userStories: [] }));
+    api.deleteUserStory.mockReturnValue(throwError(
+      () => new HttpErrorResponse({ status: 0, statusText: 'Network unavailable' }),
+    ));
+    store.load(17);
+
+    await expect(store.deleteStory(17, 1)).resolves.toBe('uncertain');
+    expect(api.deleteUserStory).toHaveBeenCalledTimes(1);
+    expect(store.userStories()).toEqual([]);
+    expect(store.requiresReconciliation()).toBe(false);
+  });
+
+  it('ignores a deletion response that arrives after changing projects', async () => {
+    const pending = new Subject<void>();
+    api.load.mockImplementation((projectId) => of({
+      swimlanes: [], userStories: [userStory(projectId, 1, projectId)],
+    }));
+    api.deleteUserStory.mockReturnValue(pending);
+    store.load(17);
+    const deleting = store.deleteStory(17, 17);
+    store.load(18);
+    pending.next();
+    pending.complete();
+    await expect(deleting).resolves.toBe('failed');
+    expect(store.userStories()[0]?.project).toBe(18);
   });
 
   it('adds and removes attachments in both the board and open editor', async () => {

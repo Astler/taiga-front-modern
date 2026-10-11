@@ -952,6 +952,16 @@
           @if (store.mutationError(); as saveError) {
             <span class="editor-save-error" role="alert">{{ saveError }}</span>
           }
+          @if (canDelete()) {
+            <button
+              class="story-delete-button"
+              type="button"
+              [disabled]="store.isMutating() || store.isRefreshing() || store.requiresReconciliation()"
+              (click)="deleteStory(detail)"
+            >
+              {{ store.mutation()?.kind === 'delete' ? 'Deleting…' : 'Delete story' }}
+            </button>
+          }
           <span class="footer-spacer"></span>
           @if (canModify()) {
             <button
@@ -1024,5 +1034,16 @@
     <button mat-menu-item type="button" (click)="openStoryDetails(selectedStory)">
       View story details
     </button>
+    @if (canDelete()) {
+      <button
+        mat-menu-item
+        class="story-delete-menu-item"
+        type="button"
+        [disabled]="store.isMutating() || store.isRefreshing() || store.requiresReconciliation()"
+        (click)="deleteStory(selectedStory)"
+      >
+        Delete story…
+      </button>
+    }
   }
 </mat-menu>

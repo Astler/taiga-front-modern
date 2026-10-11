@@ -27,6 +27,7 @@ describe('KanbanBoard', () => {
   const updateUserStory = vi.fn();
   const uploadAttachment = vi.fn();
   const deleteAttachment = vi.fn();
+  const deleteUserStory = vi.fn();
   const loadPresets = vi.fn();
   const savePresets = vi.fn();
   const fullscreenPreference = signal(false);
@@ -40,6 +41,8 @@ describe('KanbanBoard', () => {
     updateUserStory.mockReset();
     uploadAttachment.mockReset();
     deleteAttachment.mockReset();
+    deleteUserStory.mockReset();
+    deleteUserStory.mockReturnValue(of(undefined));
     loadPresets.mockReset();
     savePresets.mockReset();
     load.mockReturnValue(of({ swimlanes: [], userStories: stories() }));
@@ -80,6 +83,7 @@ describe('KanbanBoard', () => {
             updateUserStory,
             uploadAttachment,
             deleteAttachment,
+            deleteUserStory,
           },
         },
         {
@@ -288,6 +292,57 @@ describe('KanbanBoard', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     expect(host.querySelector('.story-drawer-fullscreen')).toBeTruthy();
+  });
+
+  it('requires delete_us permission and explicit confirmation before deleting a story', async () => {
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', {
+      ...project(), my_permissions: ['modify_us'],
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    host.querySelector<HTMLButtonElement>('.story-subject')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(host.querySelector('.story-delete-button')).toBeNull();
+    fixture.destroy();
+
+    const writable = TestBed.createComponent(KanbanBoard);
+    writable.componentRef.setInput('project', {
+      ...project(), my_permissions: ['delete_us', 'modify_us'],
+    });
+    writable.detectChanges();
+    await writable.whenStable();
+    writable.detectChanges();
+    const root = writable.nativeElement as HTMLElement;
+    root.querySelector<HTMLButtonElement>('.story-subject')!.click();
+    writable.detectChanges();
+    await writable.whenStable();
+    writable.detectChanges();
+
+    const confirm = vi.spyOn(globalThis, 'confirm').mockReturnValueOnce(false)
+      .mockReturnValueOnce(true);
+    try {
+      const deleteButton = root.querySelector<HTMLButtonElement>('.story-delete-button')!;
+      expect(deleteButton).toBeTruthy();
+      deleteButton.click();
+      writable.detectChanges();
+      expect(deleteUserStory).not.toHaveBeenCalled();
+      expect(root.querySelector('.story-drawer')).toBeTruthy();
+
+      deleteButton.click();
+      await writable.whenStable();
+      writable.detectChanges();
+      expect(deleteUserStory).toHaveBeenCalledWith(101);
+      expect(root.querySelector('.story-drawer')).toBeNull();
+      expect(cardSubjects(root)).not.toContain('#101 Build login');
+    } finally {
+      confirm.mockRestore();
+    }
   });
 
   it('saves story edits from the modern drawer without an external editor', async () => {

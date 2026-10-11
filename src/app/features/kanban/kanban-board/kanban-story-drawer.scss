@@ -657,6 +657,27 @@
   }
 }
 
+.story-delete-button {
+  border: 1px solid color-mix(in srgb, var(--mat-sys-error) 55%, var(--app-border-color));
+  border-radius: var(--app-radius-md);
+  background: transparent;
+  color: var(--mat-sys-error);
+  cursor: pointer;
+  padding: 0.55rem 0.75rem;
+  font: var(--mat-sys-label-medium);
+  font-weight: 700;
+}
+
+.story-delete-button:hover:not(:disabled),
+.story-delete-button:focus-visible {
+  background: color-mix(in srgb, var(--mat-sys-error) 14%, transparent);
+}
+
+.story-delete-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 @keyframes drawer-in {
   from {
     transform: translateX(2rem);

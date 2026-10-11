@@ -166,6 +166,13 @@ export class KanbanBoard {
       !this.project().blocked_code,
   );
 
+  protected readonly canDelete = computed(
+    () =>
+      (this.project().my_permissions ?? []).includes('delete_us') &&
+      !this.project().archived_code &&
+      !this.project().blocked_code,
+  );
+
   protected readonly canCreate = computed(() => {
     const permissions = this.project().my_permissions ?? [];
     return (
@@ -886,6 +893,35 @@ export class KanbanBoard {
         ].find((candidate) => candidate.dataset['storyDetailsTrigger'] === String(storyId));
         trigger?.focus();
       });
+    }
+  }
+
+  protected async deleteStory(story: KanbanUserStory): Promise<void> {
+    if (
+      !this.canDelete() ||
+      this.store.isMutating() ||
+      this.store.isRefreshing() ||
+      this.store.requiresReconciliation()
+    ) {
+      return;
+    }
+    if (
+      !globalThis.confirm(
+        `Permanently delete user story #${story.ref} “${story.subject}”?\n\n` +
+          'Associated tasks, comments and attachments may also be deleted. This cannot be undone.',
+      )
+    ) {
+      return;
+    }
+    const projectId = this.project().id;
+    const result = await this.store.deleteStory(projectId, story.id);
+    if (projectId !== this.project().id) return;
+
+    if (result === 'deleted') {
+      this.activeStory.set(null);
+      this.storyDraft.set(null);
+      this.storyDraftDirty.set(false);
+      this.liveAnnouncement.set(`Story #${story.ref} deleted.`);
     }
   }
 
