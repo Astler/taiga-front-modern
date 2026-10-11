@@ -44,11 +44,8 @@ export const routes: Routes = [
       },
       {
         path: 'project/:projectSlug',
-        loadComponent: () =>
-          import('./features/project-dashboard/project-dashboard-page').then(
-            ({ ProjectDashboardPage }) => ProjectDashboardPage,
-          ),
-        data: { title: 'Project overview' },
+        pathMatch: 'full',
+        redirectTo: 'project/:projectSlug/dashboard',
       },
       {
         path: 'kanban',
