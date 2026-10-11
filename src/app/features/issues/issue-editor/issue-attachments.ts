@@ -68,8 +68,10 @@ export class IssueAttachments implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    for (const url of this.previewUrls.values()) {
-      URL.revokeObjectURL(url);
+    if (typeof URL.revokeObjectURL === 'function') {
+      for (const url of this.previewUrls.values()) {
+        URL.revokeObjectURL(url);
+      }
     }
     this.previewUrls.clear();
   }
@@ -96,7 +98,11 @@ export class IssueAttachments implements OnDestroy {
 
     for (const file of files) {
       if (file.type.startsWith('image/') && typeof URL.createObjectURL === 'function') {
-        this.previewUrls.set(file, URL.createObjectURL(file));
+        try {
+          this.previewUrls.set(file, URL.createObjectURL(file));
+        } catch {
+          // A filename is still shown if object URL previews are unavailable.
+        }
       }
     }
     const staged = [...this.stagedFiles(), ...files];
@@ -110,7 +116,7 @@ export class IssueAttachments implements OnDestroy {
     const [removed] = staged.splice(index, 1);
     if (!removed) return;
     const url = this.previewUrls.get(removed);
-    if (url) URL.revokeObjectURL(url);
+    if (url && typeof URL.revokeObjectURL === 'function') URL.revokeObjectURL(url);
     this.previewUrls.delete(removed);
     this.stagedFiles.set(staged);
     this.stagedFilesChanged.emit(staged);
@@ -139,9 +145,13 @@ export class IssueAttachments implements OnDestroy {
           failed.push(file);
         }
       }
-      this.failedUploads.set(failed);
-      if (failed.length) {
-        this.actionError.set('Could not upload ' + failed.length + ' file(s).');
+      // Keep older failures when a different file is pasted while a retry is pending.
+      const attempted = new Set(files);
+      const remainingFailures = this.failedUploads().filter((file) => !attempted.has(file));
+      const allFailures = [...remainingFailures, ...failed];
+      this.failedUploads.set(allFailures);
+      if (allFailures.length) {
+        this.actionError.set('Could not upload ' + allFailures.length + ' file(s).');
       }
     } finally {
       this.processing.set(false);
