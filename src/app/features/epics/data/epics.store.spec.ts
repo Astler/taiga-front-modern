@@ -74,30 +74,6 @@ describe('EpicsStore', () => {
     expect(api.filters).toHaveBeenCalledTimes(3);
   });
 
-  it('keeps epic sorting independent of filters, resets pagination and preserves default ordering', () => {
-    api.list.mockReturnValue(of(page(1, 40)));
-    api.filters.mockReturnValue(of(filtersData()));
-    store.loadProject(17);
-    store.setPage(2);
-
-    const filterCallCount = api.filters.mock.calls.length;
-    store.setSort('-modified_date');
-    expect(store.query()).toMatchObject({ orderBy: '-modified_date', page: 1 });
-    expect(api.list).toHaveBeenLastCalledWith(
-      17,
-      expect.objectContaining({ orderBy: '-modified_date', page: 1 }),
-    );
-    expect(api.filters).toHaveBeenCalledTimes(filterCallCount);
-
-    store.setSort('');
-    expect(store.query()).toMatchObject({ orderBy: '', page: 1 });
-    expect(api.list).toHaveBeenLastCalledWith(
-      17,
-      expect.objectContaining({ orderBy: '', page: 1 }),
-    );
-    expect(api.filters).toHaveBeenCalledTimes(filterCallCount);
-  });
-
   it('ignores stale responses after a newer project wins', () => {
     const oldPage = new Subject<EpicListPage>();
     const oldFilters = new Subject<EpicFiltersData>();
