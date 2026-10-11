@@ -64,7 +64,7 @@ describe('EpicsWorkspace', () => {
     expect(host.querySelector('#epics-title')).toBeNull();
     expect(toolbar.querySelector('form.search-field')).toBeTruthy();
     expect(toolbar.querySelector('.epics-count')?.textContent).toContain('38 epics');
-    expect(toolbar.querySelector('[aria-label^="Sort epics"]')).toBeTruthy();
+    expect(toolbar.querySelector('[aria-label^="Sort epics"]')).toBeNull();
     expect(toolbar.querySelector('.epic-filter-toggle')).toBeTruthy();
     expect(toolbar.querySelector('.epic-create-button')).toBeTruthy();
     expect(host.querySelector('.filter-rail')).toBeNull();
@@ -80,42 +80,6 @@ describe('EpicsWorkspace', () => {
     fixture.detectChanges();
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
     expect(host.querySelector('.filter-rail')).toBeNull();
-  });
-
-  it('sorts epics with the icon menu and restores native ordering', async () => {
-    const fixture = TestBed.createComponent(EpicsWorkspace);
-    fixture.componentRef.setInput('project', project());
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    const host = fixture.nativeElement as HTMLElement;
-    const sort = host.querySelector<HTMLButtonElement>('[aria-label^="Sort epics"]')!;
-    expect(sort.getAttribute('aria-label')).toContain('Default epic order');
-    sort.click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-
-    const recent = [...document.querySelectorAll<HTMLButtonElement>('.mat-mdc-menu-item')]
-      .find((button) => button.textContent?.trim() === 'Recently updated')!;
-    expect(recent).toBeTruthy();
-    recent.click();
-    fixture.detectChanges();
-    expect(list).toHaveBeenLastCalledWith(
-      17,
-      expect.objectContaining({ orderBy: '-modified_date' }),
-    );
-    expect(sort.getAttribute('aria-label')).toContain('Recently updated');
-
-    sort.click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-    const nativeOrder = [...document.querySelectorAll<HTMLButtonElement>('.mat-mdc-menu-item')]
-      .find((button) => button.textContent?.trim() === 'Default epic order')!;
-    expect(nativeOrder).toBeTruthy();
-    nativeOrder.click();
-    fixture.detectChanges();
-    expect(list).toHaveBeenLastCalledWith(17, expect.objectContaining({ orderBy: '' }));
   });
 
   it('creates a new epic from the native editor with permission-gated controls', async () => {
