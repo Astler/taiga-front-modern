@@ -588,3 +588,41 @@ time {
 .issue-detail-loading button {
   justify-self: end;
 }
+
+.issue-upload-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  margin-block: 0.6rem;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-md);
+  background: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
+  padding: 0.7rem 0.9rem;
+  font: var(--mat-sys-body-medium);
+}
+
+.issue-upload-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.issue-upload-actions button {
+  min-height: 2rem;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-full);
+  background: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-primary);
+  cursor: pointer;
+  padding: 0.3rem 0.75rem;
+  font: var(--mat-sys-label-medium);
+  font-weight: 650;
+}
+
+.issue-upload-actions button:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
+}
