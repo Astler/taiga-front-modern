@@ -58,6 +58,11 @@ export class Sidebar {
     const projectSlug = this.location().projectSlug ?? this.projectContext.selectedProject().slug;
     return [
       {
+        iconPath: 'M4 13h6V4H4v9Zm0 7h6v-4H4v4Zm10 0h6v-9h-6v9Zm0-16v4h6V4h-6Z',
+        label: 'Overview',
+        route: projectSlug ? `/project/${projectSlug}/dashboard` : '/projects',
+      },
+      {
         iconPath: 'M4 5.5h4.5v13H4v-13Zm5.75 0h4.5v13h-4.5v-13Zm5.75 0H20v13h-4.5v-13Z',
         label: 'Kanban',
         route: projectSlug ? `/project/${projectSlug}/kanban` : '/kanban',
