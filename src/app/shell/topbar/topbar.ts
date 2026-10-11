@@ -327,7 +327,7 @@ export class Topbar {
   protected openSearchProject(project: ShellProject): void {
     this.projectContext.selectProject(project);
     this.resetGlobalSearch();
-    void this.router.navigate(['/project', project.slug, 'kanban']);
+    void this.router.navigate(['/project', project.slug, 'dashboard']);
   }
 
   protected openSearchItem(kind: 'epic' | 'issue' | 'userstory', item: TopbarSearchItem): void {
@@ -498,7 +498,7 @@ export class Topbar {
       });
       return;
     }
-    void this.router.navigate(['/project', projectSlug, 'kanban']);
+    void this.router.navigate(['/project', projectSlug, 'dashboard']);
   }
 
   protected openNotificationProject(notification: TopbarNotification): void {
@@ -512,7 +512,7 @@ export class Topbar {
     if (project) {
       this.projectContext.selectProject(project);
     }
-    void this.router.navigate(['/project', projectSlug, 'kanban']);
+    void this.router.navigate(['/project', projectSlug, 'dashboard']);
   }
 
   protected markAllNotificationsRead(event: Event): void {
@@ -616,10 +616,12 @@ interface NotificationProjectView {
   readonly slug: string;
 }
 
-type ProjectSection = 'epics' | 'issues' | 'kanban' | 'settings' | 'team';
+type ProjectSection = 'dashboard' | 'epics' | 'issues' | 'kanban' | 'settings' | 'team';
 
 function currentProjectSection(path: string): ProjectSection | null {
-  const match = /^\/(?:project\/[^/]+\/)?(epics|issues|kanban|settings|team)$/.exec(path);
+  if (/^\/project\/[^/]+$/.test(path)) return 'dashboard';
+  const match = /^\/project\/[^/]+\/(dashboard|epics|issues|kanban|settings|team)$/.exec(path)
+    ?? /^\/(epics|issues|kanban|settings|team)$/.exec(path);
   return match ? (match[1] as ProjectSection) : null;
 }
 

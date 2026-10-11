@@ -17,6 +17,8 @@ describe('resolveShellRoute', () => {
 
   it.each([
     ['/project/puzzles-together/kanban', 'puzzles-together'],
+    ['/project/puzzles-together/dashboard', 'puzzles-together'],
+    ['/project/puzzles-together', 'puzzles-together'],
     ['/project/a%20b/issues?q=hello', 'a b'],
     ['/project/aurora/epics#list', 'aurora'],
     ['/project/aurora/team', 'aurora'],

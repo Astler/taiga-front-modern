@@ -90,5 +90,8 @@ describe('DashboardPage', () => {
 
     expect(story?.getAttribute('href')).toContain('/project/aurora/kanban?story=101');
     expect(taskLink?.getAttribute('href')).toContain('/project/orbit/kanban?story=201');
+    const projectOverview = [...host.querySelectorAll<HTMLAnchorElement>('.project-work-list a')]
+      .find((link) => link.textContent?.includes('Aurora'));
+    expect(projectOverview?.getAttribute('href')).toBe('/project/aurora/dashboard');
   });
 });

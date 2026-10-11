@@ -82,16 +82,16 @@ describe('ProjectsPage', () => {
     }).compileComponents();
   });
 
-  it('lists real projects and opens their supported workspaces', () => {
+  it('opens project overviews independently of enabled modules', () => {
     const fixture = TestBed.createComponent(ProjectsPage);
     fixture.detectChanges();
     const host = fixture.nativeElement as HTMLElement;
     expect(host.querySelectorAll('.project-card')).toHaveLength(2);
     expect(host.querySelector('[data-testid="open-project-aurora"]')?.getAttribute('href')).toBe(
-      '/project/aurora/kanban',
+      '/project/aurora/dashboard',
     );
     expect(host.querySelector('[data-testid="open-project-orbit"]')?.getAttribute('href')).toBe(
-      '/project/orbit/issues',
+      '/project/orbit/dashboard',
     );
   });
 

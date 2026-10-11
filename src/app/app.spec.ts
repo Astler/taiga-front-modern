@@ -8,6 +8,7 @@ import { RuntimeConfigService } from './core';
 import { AuthService } from './core/auth';
 import { ProjectStore, type TaigaProjectDetail } from './features/projects/data';
 import { DashboardOverviewApiService } from './shell/dashboard-placeholder/dashboard-overview-api.service';
+import { ProfileDashboardApiService } from './features/dashboard/data/profile-dashboard-api.service';
 import { TopbarNotificationsService } from './shell/topbar/topbar-notifications.service';
 
 const project: TaigaProjectDetail = {
@@ -72,12 +73,17 @@ describe('App', () => {
             isPinned: () => true,
             loadMemberProjects: () => Promise.resolve([project]),
             selectById: () => Promise.resolve(project),
+            selectBySlug: () => Promise.resolve(project),
             togglePin: () => undefined,
           },
         },
         {
           provide: DashboardOverviewApiService,
           useValue: { load: () => of({ stories: [], milestones: [] }) },
+        },
+        {
+          provide: ProfileDashboardApiService,
+          useValue: { load: () => of({ assigned: [], watching: [], warnings: [] }) },
         },
         {
           provide: TopbarNotificationsService,
@@ -97,7 +103,7 @@ describe('App', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it('renders the shell and dashboard route', async () => {
+  it('preserves the personal account dashboard at /dashboard', async () => {
     const fixture = TestBed.createComponent(App);
     const router = TestBed.inject(Router);
 
@@ -108,13 +114,44 @@ describe('App', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('pf-app-shell')).toBeTruthy();
-    expect(compiled.querySelector('h1')?.textContent).toContain('Vlady');
-    expect(compiled.textContent).toContain('Puzzles Together');
-    expect(compiled.textContent).toContain('Live data');
-    expect(compiled.textContent).not.toContain('Preview data');
+    expect(compiled.querySelector('pf-dashboard-page')).toBeTruthy();
+    expect(compiled.querySelector('pf-dashboard-placeholder')).toBeNull();
     expect(compiled.querySelector('.skip-link')?.getAttribute('href')).toBe('#main-content');
+    expect(compiled.textContent).toContain('Personal workspace');
+    expect(document.title).toBe('My dashboard · Taiga Modern');
+  });
+
+  it('restores the full live project overview at /project/:slug/dashboard', async () => {
+    const fixture = TestBed.createComponent(App);
+    const router = TestBed.inject(Router);
+
+    fixture.detectChanges();
+    await router.navigateByUrl('/project/puzzles-together/dashboard');
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(router.url).toBe('/project/puzzles-together/dashboard');
+    expect(compiled.querySelector('pf-dashboard-placeholder')).toBeTruthy();
+    expect(compiled.querySelector('.metrics')).toBeTruthy();
+    expect(compiled.querySelector('.focus-card')).toBeTruthy();
+    expect(compiled.querySelector('.activity-card')).toBeTruthy();
+    expect(compiled.textContent).toContain('Live data');
     expect(compiled.querySelector('a[aria-current="page"]')?.textContent).toContain('Overview');
-    expect(document.title).toBe('Overview · Taiga Modern');
+    expect(document.title).toBe('Project overview · Taiga Modern');
+  });
+
+  it('opens a project dashboard from a bare project URL', async () => {
+    const fixture = TestBed.createComponent(App);
+    const router = TestBed.inject(Router);
+
+    fixture.detectChanges();
+    await router.navigateByUrl('/project/puzzles-together');
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(router.url).toBe('/project/puzzles-together/dashboard');
+    expect(fixture.nativeElement.querySelector('pf-dashboard-placeholder')).toBeTruthy();
   });
 
   it('leaves an active protected shell as soon as the session is invalidated', async () => {

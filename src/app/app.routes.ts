@@ -35,6 +35,19 @@ export const routes: Routes = [
         },
       },
       {
+        path: 'project/:projectSlug/dashboard',
+        loadComponent: () =>
+          import('./features/project-dashboard/project-dashboard-page').then(
+            ({ ProjectDashboardPage }) => ProjectDashboardPage,
+          ),
+        data: { title: 'Project overview' },
+      },
+      {
+        path: 'project/:projectSlug',
+        pathMatch: 'full',
+        redirectTo: 'project/:projectSlug/dashboard',
+      },
+      {
         path: 'kanban',
         loadComponent: () =>
           import('./features/kanban/kanban-page/kanban-page').then(({ KanbanPage }) => KanbanPage),

@@ -104,15 +104,7 @@ export class ProjectsPage {
   }
 
   protected projectRoute(project: ProjectCard): readonly string[] {
-    const details = project.details;
-    const section = details?.is_kanban_activated
-      ? 'kanban'
-      : details?.is_issues_activated
-        ? 'issues'
-        : details?.is_epics_activated
-          ? 'epics'
-          : 'team';
-    return ['/project', project.slug, section];
+    return ['/project', project.slug, 'dashboard'];
   }
 
   protected moduleLabels(project: ProjectCard): readonly string[] {

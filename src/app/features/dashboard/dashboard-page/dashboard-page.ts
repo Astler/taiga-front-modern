@@ -210,15 +210,7 @@ export class DashboardPage {
   }
 
   protected projectRoute(slug: string): readonly string[] {
-    const details = this.context.store.projects().find((project) => project.slug === slug);
-    const section = details?.is_kanban_activated
-      ? 'kanban'
-      : details?.is_issues_activated
-        ? 'issues'
-        : details?.is_epics_activated
-          ? 'epics'
-          : 'team';
-    return ['/project', slug, section];
+    return ['/project', slug, 'dashboard'];
   }
 
   protected dateLabel(value: string | null): string {
