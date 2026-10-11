@@ -8,7 +8,7 @@ export interface ShellRouteContext {
 }
 
 const PROJECT_SECTIONS = /^(kanban|issues|epics|team|settings)$/;
-const DEEP_PROJECT_ROUTE = /^\/project\/([^/]+)\/(kanban|issues|epics|team|settings)$/;
+const DEEP_PROJECT_ROUTE = /^\/project\/([^/]+)(?:\/(dashboard|kanban|issues|epics|team|settings))?$/;
 
 export function resolveShellRoute(url: string): ShellRouteContext {
   const path = url.split(/[?#]/, 1)[0] ?? '';
