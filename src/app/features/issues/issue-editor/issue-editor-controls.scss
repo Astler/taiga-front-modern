@@ -522,3 +522,57 @@
     transition: none;
   }
 }
+
+/* The metadata rail uses smaller chips, but preserves native 34px hit areas. */
+.issue-editor-secondary .issue-choice-fieldset {
+  gap: 0.35rem;
+}
+
+.issue-editor-secondary .issue-choice-fieldset legend {
+  margin-block-end: 0.4rem;
+}
+
+.issue-editor-secondary .issue-choice-list,
+.issue-editor-secondary .issue-assignee-list {
+  gap: 0.35rem;
+}
+
+.issue-editor-secondary .issue-choice-pill {
+  min-height: 2.1rem;
+  gap: 0.35rem;
+  padding: 0.32rem 0.65rem;
+}
+
+.issue-editor-secondary .issue-assignee-chip,
+.issue-editor-secondary .issue-more-assignees {
+  min-height: 2.1rem;
+}
+
+.issue-editor-secondary .issue-assignee-avatar {
+  width: 1.65rem;
+  height: 1.65rem;
+  flex-basis: 1.65rem;
+}
+
+.issue-editor-secondary .issue-due-date {
+  gap: 0.4rem;
+}
+
+.issue-editor-secondary .issue-date-quick button {
+  min-height: 1.95rem;
+}
+
+.issue-editor-primary .issue-tag-suggestions {
+  gap: 0.35rem;
+}
+
+.issue-editor-primary .issue-selected-tag {
+  min-height: 1.8rem;
+}
+
+@media (max-width: 540px) {
+  .issue-editor-secondary .issue-choice-pill {
+    min-height: 2.15rem;
+    padding-inline: 0.55rem;
+  }
+}

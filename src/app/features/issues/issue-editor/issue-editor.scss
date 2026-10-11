@@ -32,7 +32,7 @@
 
 .issue-editor-panel {
   display: flex;
-  width: min(68rem, 96vw);
+  width: min(76rem, 96vw);
   min-width: 0;
   height: 100%;
   flex-direction: column;
@@ -52,7 +52,7 @@
   gap: 1rem;
   border-color: var(--app-border-color);
   background: var(--mat-sys-surface-container);
-  padding: 1rem clamp(1.1rem, 2.5vw, 2rem);
+  padding: 0.7rem clamp(1rem, 2vw, 1.5rem);
 }
 
 .issue-editor-header {
@@ -77,13 +77,6 @@
   font: var(--mat-sys-headline-small);
   font-weight: 730;
   letter-spacing: -0.02em;
-}
-
-.issue-editor-heading p {
-  margin: 0.15rem 0 0;
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-body-small);
-  line-height: 1.4;
 }
 
 .issue-editor-eyebrow {
@@ -118,44 +111,68 @@
   min-height: 0;
   flex: 1 1 auto;
   align-content: start;
-  gap: 0.9rem;
+  gap: 0.65rem;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   box-sizing: border-box;
-  padding: clamp(0.875rem, 2vw, 1.5rem);
+  padding: clamp(0.65rem, 1.5vw, 1.125rem);
+}
+
+.issue-editor-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.06fr) minmax(0, 0.94fr);
+  align-items: start;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.issue-editor-primary,
+.issue-editor-secondary {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 0.7rem;
 }
 
 .issue-editor-section {
   display: grid;
   min-width: 0;
   align-content: start;
-  gap: 0.95rem;
+  gap: 0.7rem;
   border: 1px solid var(--app-border-color);
   border-radius: var(--app-radius-xl);
   background: var(--mat-sys-surface-container);
-  padding: clamp(0.85rem, 1.55vw, 1.25rem);
+  padding: clamp(0.75rem, 1.2vw, 1rem);
 }
 
 .issue-editor-columns {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
-  gap: 0.9rem;
+  gap: 0.7rem;
+}
+
+.issue-basics .issue-field textarea {
+  min-height: clamp(9rem, 19vh, 13rem);
+}
+
+.issue-blocked-section {
+  padding-block: 0.7rem;
 }
 
 .issue-section-header {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 0.7rem;
+  gap: 0.55rem;
 }
 
 .issue-section-icon {
   display: grid;
-  width: 2.25rem;
-  height: 2.25rem;
-  flex: 0 0 2.25rem;
+  width: 1.9rem;
+  height: 1.9rem;
+  flex: 0 0 1.9rem;
   place-items: center;
   border-radius: 0.7rem;
   background: color-mix(in srgb, var(--mat-sys-primary) 15%, transparent);
@@ -163,8 +180,8 @@
 }
 
 .issue-section-icon svg {
-  width: 1.2rem;
-  height: 1.2rem;
+  width: 1.05rem;
+  height: 1.05rem;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.65;
@@ -183,13 +200,6 @@
   color: var(--mat-sys-on-surface);
   font: var(--mat-sys-title-medium);
   font-weight: 720;
-}
-
-.issue-section-header p {
-  margin: 0;
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-body-small);
-  line-height: 1.35;
 }
 
 .issue-field {
@@ -216,7 +226,7 @@
   background: var(--mat-sys-surface-container-low);
   color: var(--mat-sys-on-surface);
   font: var(--mat-sys-body-medium);
-  padding: 0.7rem 0.85rem;
+  padding: 0.6rem 0.75rem;
 }
 
 .issue-field textarea {
@@ -324,10 +334,26 @@
   }
 }
 
-@media (max-width: 850px) {
-  .issue-editor-columns {
-    grid-template-columns: minmax(0, 1fr);
+@media (max-width: 860px) {
+  .issue-editor-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
   }
+
+  /* Visually restore the natural editing order on narrow screens:
+     details, workflow, classification, tags, then blocking. */
+  .issue-editor-primary,
+  .issue-editor-secondary,
+  .issue-editor-columns {
+    display: contents;
+  }
+
+  .issue-basics { order: 1; }
+  .issue-workflow { order: 2; }
+  .issue-classification { order: 3; }
+  .issue-tags-section { order: 4; }
+  .issue-blocked-section { order: 5; }
 }
 
 @media (max-width: 540px) {
@@ -351,7 +377,7 @@
   }
 
   .issue-editor-section {
-    padding: 0.875rem;
+    padding: 0.75rem;
   }
 
   .issue-editor-footer button {

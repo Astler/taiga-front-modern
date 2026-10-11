@@ -16,7 +16,6 @@
           {{ project().name }} · {{ mode() === 'create' ? 'New issue' : 'Issue #' + issue()?.ref }}
         </span>
         <h2 id="issue-editor-title">{{ mode() === 'create' ? 'Create issue' : 'Edit issue' }}</h2>
-        <p>Describe the problem, choose its context, and assign the right person.</p>
       </div>
       <button
         class="issue-editor-close"
@@ -44,414 +43,413 @@
         </p>
       }
 
-      <section class="issue-editor-section issue-basics">
-        <header class="issue-section-header">
-          <span class="issue-section-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24">
-              <path d="M4 6h16M4 12h16M4 18h10" />
-            </svg>
-          </span>
-          <div>
-            <h3>About this issue</h3>
-            <p>The essentials — keep it clear and actionable.</p>
-          </div>
-        </header>
-
-        <label class="issue-field">
-          <span>Title <span class="issue-required" aria-hidden="true">*</span></span>
-          <input
-            type="text"
-            required
-            maxlength="500"
-            placeholder="What needs attention?"
-            [disabled]="!canEdit() || busy()"
-            [value]="draft().subject"
-            (input)="updateText('subject', $event)"
-          />
-        </label>
-
-        <label class="issue-field">
-          <span>Description</span>
-          <textarea
-            rows="4"
-            placeholder="What happened? What did you expect instead?"
-            [disabled]="!canEdit() || busy()"
-            [value]="draft().description"
-            (input)="updateText('description', $event)"
-          ></textarea>
-        </label>
-      </section>
-
-      <div class="issue-editor-columns">
-        <section class="issue-editor-section issue-workflow">
-          <header class="issue-section-header">
-            <span class="issue-section-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <circle cx="6" cy="6" r="2" />
-                <path d="M8 6h10v6M18 12h-5m5 0v6H6M6 18h5" />
-              </svg>
-            </span>
-            <div>
-              <h3>Workflow</h3>
-              <p>Where it stands and who owns it.</p>
-            </div>
-          </header>
-
-          <fieldset class="issue-choice-fieldset">
-            <legend>Status</legend>
-            <div class="issue-choice-list" role="group" aria-label="Issue status">
-              @for (option of statusOptions(); track option.id ?? option.name) {
-                <button
-                  class="issue-choice-pill"
-                  [class.issue-choice-selected]="draft().status === option.id"
-                  [style.--issue-accent]="optionAccent(option.name, option.color)"
-                  type="button"
-                  [attr.aria-label]="'Status: ' + option.name"
-                  [attr.aria-pressed]="draft().status === option.id"
-                  [disabled]="!canEdit() || busy()"
-                  (click)="chooseValue('status', option.id)"
-                >
-                  <span class="issue-choice-dot" aria-hidden="true"></span>
-                  {{ option.name }}
-                </button>
-              } @empty {
-                <span class="issue-empty-choice">No statuses available</span>
-              }
-            </div>
-          </fieldset>
-
-          <fieldset class="issue-choice-fieldset issue-assignee-fieldset">
-            <legend>Assignee</legend>
-            <div class="issue-assignee-list" role="group" aria-label="Issue assignee">
-              <button
-                type="button"
-                class="issue-assignee-chip"
-                [class.issue-assignee-selected]="draft().assignedTo === null"
-                [attr.aria-pressed]="draft().assignedTo === null"
-                [disabled]="!canEdit() || busy()"
-                (click)="chooseAssignee(null)"
-              >
-                <span class="issue-assignee-avatar issue-assignee-avatar-empty" aria-hidden="true">
-                  <svg viewBox="0 0 24 24">
-                    <circle cx="12" cy="8" r="3" />
-                    <path d="M6 19c0-3 2.2-5 6-5 1.4 0 2.6.3 3.5 1M17 18h5" />
-                  </svg>
-                </span>
-                <span>Unassigned</span>
-              </button>
-              @for (member of visibleAssignees(); track member.id) {
-                <button
-                  type="button"
-                  class="issue-assignee-chip"
-                  [class.issue-assignee-selected]="draft().assignedTo === member.id"
-                  [attr.aria-label]="'Assign to ' + member.name"
-                  [attr.aria-pressed]="draft().assignedTo === member.id"
-                  [disabled]="!canEdit() || busy()"
-                  (click)="chooseAssignee(member.id)"
-                >
-                  <span class="issue-assignee-avatar" aria-hidden="true">
-                    @if (member.photo) {
-                      <img [src]="member.photo" alt="" loading="lazy" />
-                    } @else {
-                      {{ memberInitials(member.name) }}
-                    }
-                  </span>
-                  <span class="issue-assignee-name">{{ member.name }}</span>
-                </button>
-              } @empty {
-                @if (assigneeSearch().trim()) {
-                  <span class="issue-empty-choice">No matching project members</span>
-                }
-              }
-              @if (assigneeOptions().length > 6) {
-                <button
-                  class="issue-more-assignees"
-                  type="button"
-                  [attr.aria-expanded]="assigneesExpanded()"
-                  (click)="toggleAssignees()"
-                >
-                  {{ assigneesExpanded() ? 'Show fewer' : '+' + hiddenAssigneeCount() + ' more' }}
-                </button>
-              }
-            </div>
-            @if (assigneesExpanded()) {
-              <label class="issue-assignee-search">
-                <span class="visually-hidden">Find a project member</span>
-                <svg aria-hidden="true" viewBox="0 0 24 24">
-                  <circle cx="10.5" cy="10.5" r="6" />
-                  <path d="m15 15 5 5" />
+      <div class="issue-editor-layout">
+        <div class="issue-editor-primary">
+          <section class="issue-editor-section issue-basics">
+            <header class="issue-section-header">
+              <span class="issue-section-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M4 6h16M4 12h16M4 18h10" />
                 </svg>
-                <input
-                  type="search"
-                  placeholder="Search project members"
-                  [value]="assigneeSearch()"
-                  (input)="updateAssigneeSearch($event)"
-                />
-              </label>
-            }
-          </fieldset>
-
-          <div class="issue-due-date">
-            <label class="issue-field">
-              <span>Due date</span>
-              <input
-                type="date"
-                aria-label="Issue due date"
-                [disabled]="!canEdit() || busy()"
-                [value]="draft().dueDate"
-                (input)="updateText('dueDate', $event)"
-              />
-            </label>
-            <div class="issue-date-quick" role="group" aria-label="Quick due dates">
-              <button
-                type="button"
-                [class.issue-date-selected]="dateMatchesOffset(0)"
-                [attr.aria-pressed]="dateMatchesOffset(0)"
-                [disabled]="!canEdit() || busy()"
-                (click)="setQuickDueDate(0)"
-              >Today</button>
-              <button
-                type="button"
-                [class.issue-date-selected]="dateMatchesOffset(1)"
-                [attr.aria-pressed]="dateMatchesOffset(1)"
-                [disabled]="!canEdit() || busy()"
-                (click)="setQuickDueDate(1)"
-              >Tomorrow</button>
-              <button
-                type="button"
-                [class.issue-date-selected]="dateMatchesOffset(7)"
-                [attr.aria-pressed]="dateMatchesOffset(7)"
-                [disabled]="!canEdit() || busy()"
-                (click)="setQuickDueDate(7)"
-              >In 7 days</button>
-              @if (draft().dueDate) {
-                <button
-                  type="button"
-                  class="issue-date-clear"
-                  [disabled]="!canEdit() || busy()"
-                  (click)="setQuickDueDate(null)"
-                >Clear</button>
-              }
-            </div>
-          </div>
-        </section>
-
-        <section class="issue-editor-section issue-classification">
-          <header class="issue-section-header">
-            <span class="issue-section-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path d="m12 3 9 5v8l-9 5-9-5V8l9-5Z" />
-                <path d="m3 8 9 5 9-5M12 13v8" />
-              </svg>
-            </span>
-            <div>
-              <h3>Classification</h3>
-              <p>Make the impact easy to recognize.</p>
-            </div>
-          </header>
-
-          <fieldset class="issue-choice-fieldset">
-            <legend>Type</legend>
-            <div class="issue-choice-list" role="group" aria-label="Issue type">
-              @for (option of typeOptions(); track option.id ?? option.name) {
-                <button
-                  class="issue-choice-pill issue-type-pill"
-                  [class.issue-choice-selected]="draft().type === option.id"
-                  [style.--issue-accent]="optionAccent(option.name, option.color)"
-                  type="button"
-                  [attr.aria-label]="'Type: ' + option.name"
-                  [attr.aria-pressed]="draft().type === option.id"
-                  [disabled]="!canEdit() || busy()"
-                  (click)="chooseValue('type', option.id)"
-                >
-                  <svg class="issue-type-icon" aria-hidden="true" viewBox="0 0 24 24">
-                    @switch (issueTypeIcon(option.name)) {
-                      @case ('bug') {
-                        <path d="M9 6 7 3m8 3 2-3M5 10l-3-1m3 6-3 2m17-7 3-1m-3 6 3 2M8 8h8m-10 4h12m-12 0v3a6 6 0 0 0 12 0v-3a6 6 0 0 0-12 0Z" />
-                      }
-                      @case ('feature') {
-                        <path d="m12 2 2.5 6.5L21 11l-6.5 2.5L12 20l-2.5-6.5L3 11l6.5-2.5L12 2Z" />
-                      }
-                      @case ('question') {
-                        <circle cx="12" cy="12" r="9" />
-                        <path d="M9.4 9a2.8 2.8 0 0 1 5.2 1.2c0 2-2.6 2-2.6 4M12 17.5h.01" />
-                      }
-                      @default {
-                        <rect x="4" y="4" width="16" height="16" rx="3" />
-                        <path d="M8 10h8M8 14h5" />
-                      }
-                    }
-                  </svg>
-                  {{ option.name }}
-                </button>
-              } @empty {
-                <span class="issue-empty-choice">No types available</span>
-              }
-            </div>
-          </fieldset>
-
-          <fieldset class="issue-choice-fieldset">
-            <legend>Priority</legend>
-            <div class="issue-choice-list" role="group" aria-label="Issue priority">
-              @for (option of priorityOptions(); track option.id ?? option.name) {
-                <button
-                  type="button"
-                  class="issue-choice-pill issue-level-pill"
-                  [class.issue-choice-selected]="draft().priority === option.id"
-                  [style.--issue-accent]="optionAccent(option.name, option.color)"
-                  [attr.aria-label]="'Priority: ' + option.name"
-                  [attr.aria-pressed]="draft().priority === option.id"
-                  [disabled]="!canEdit() || busy()"
-                  (click)="chooseValue('priority', option.id)"
-                >
-                  <span class="issue-level-indicator" aria-hidden="true">
-                    <svg viewBox="0 0 24 24">
-                      <path d="M12 19V5m0 0-5 5m5-5 5 5" />
-                    </svg>
-                  </span>
-                  {{ option.name }}
-                </button>
-              } @empty {
-                <span class="issue-empty-choice">No priorities available</span>
-              }
-            </div>
-          </fieldset>
-
-          <fieldset class="issue-choice-fieldset">
-            <legend>Severity</legend>
-            <div class="issue-choice-list" role="group" aria-label="Issue severity">
-              @for (option of severityOptions(); track option.id ?? option.name) {
-                <button
-                  type="button"
-                  class="issue-choice-pill issue-level-pill"
-                  [class.issue-choice-selected]="draft().severity === option.id"
-                  [style.--issue-accent]="optionAccent(option.name, option.color)"
-                  [attr.aria-label]="'Severity: ' + option.name"
-                  [attr.aria-pressed]="draft().severity === option.id"
-                  [disabled]="!canEdit() || busy()"
-                  (click)="chooseValue('severity', option.id)"
-                >
-                  <span class="issue-choice-dot" aria-hidden="true"></span>
-                  {{ option.name }}
-                </button>
-              } @empty {
-                <span class="issue-empty-choice">No severities available</span>
-              }
-            </div>
-          </fieldset>
-        </section>
-      </div>
-
-      <section class="issue-editor-section issue-tags-section">
-        <header class="issue-section-header">
-          <span class="issue-section-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24">
-              <path d="M12 3H4v8l10 10 8-8L12 3Z" />
-              <circle cx="8" cy="8" r="1.4" />
-            </svg>
-          </span>
-          <div>
-            <h3>Tags</h3>
-            <p>Select existing tags or create a new one.</p>
-          </div>
-        </header>
-
-        @if (selectedTags().length) {
-          <div class="issue-selected-tags" role="group" aria-label="Selected issue tags">
-            @for (tag of selectedTags(); track tag) {
-              <span class="issue-selected-tag" [style.--tag-color]="tagColor(tag)">
-                <span class="issue-tag-dot" aria-hidden="true"></span>
-                {{ tag }}
-                @if (canEdit()) {
-                  <button
-                    type="button"
-                    [disabled]="busy()"
-                    [attr.aria-label]="'Remove tag ' + tag"
-                    (click)="removeTag(tag)"
-                  >×</button>
-                }
               </span>
-            }
-          </div>
-        } @else {
-          <span class="issue-tag-empty">No tags selected</span>
-        }
+              <div>
+                <h3>About this issue</h3>
+              </div>
+            </header>
 
-        @if (canEdit()) {
-          <div class="issue-tag-entry">
-            <label>
-              <span class="visually-hidden">Add a tag</span>
+            <label class="issue-field">
+              <span>Title <span class="issue-required" aria-hidden="true">*</span></span>
               <input
                 type="text"
-                aria-label="Add a tag"
-                placeholder="Type a tag and press Enter"
-                maxlength="120"
-                [value]="tagInput()"
-                [disabled]="busy()"
-                (input)="updateTagInput($event)"
-                (keydown)="tagInputKeydown($event)"
+                required
+                maxlength="500"
+                placeholder="What needs attention?"
+                [disabled]="!canEdit() || busy()"
+                [value]="draft().subject"
+                (input)="updateText('subject', $event)"
               />
             </label>
-            <button
-              type="button"
-              class="issue-tag-add"
-              [disabled]="!tagInput().trim() || busy()"
-              (click)="commitTagInput()"
-            >+ Add</button>
-          </div>
-          @if (suggestedTags().length) {
-            <div class="issue-tag-suggestions" role="group" aria-label="Suggested tags">
-              <span>Suggested</span>
-              @for (tag of suggestedTags(); track tag) {
+
+            <label class="issue-field">
+              <span>Description</span>
+              <textarea
+                rows="4"
+                placeholder="What happened? What did you expect instead?"
+                [disabled]="!canEdit() || busy()"
+                [value]="draft().description"
+                (input)="updateText('description', $event)"
+              ></textarea>
+            </label>
+          </section>
+          <section class="issue-editor-section issue-tags-section">
+            <header class="issue-section-header">
+              <span class="issue-section-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M12 3H4v8l10 10 8-8L12 3Z" />
+                  <circle cx="8" cy="8" r="1.4" />
+                </svg>
+              </span>
+              <div>
+                <h3>Tags</h3>
+              </div>
+            </header>
+
+            @if (selectedTags().length) {
+              <div class="issue-selected-tags" role="group" aria-label="Selected issue tags">
+                @for (tag of selectedTags(); track tag) {
+                  <span class="issue-selected-tag" [style.--tag-color]="tagColor(tag)">
+                    <span class="issue-tag-dot" aria-hidden="true"></span>
+                    {{ tag }}
+                    @if (canEdit()) {
+                      <button
+                        type="button"
+                        [disabled]="busy()"
+                        [attr.aria-label]="'Remove tag ' + tag"
+                        (click)="removeTag(tag)"
+                      >×</button>
+                    }
+                  </span>
+                }
+              </div>
+            } @else {
+              <span class="issue-tag-empty">No tags selected</span>
+            }
+
+            @if (canEdit()) {
+              <div class="issue-tag-entry">
+                <label>
+                  <span class="visually-hidden">Add a tag</span>
+                  <input
+                    type="text"
+                    aria-label="Add a tag"
+                    placeholder="Type a tag and press Enter"
+                    maxlength="120"
+                    [value]="tagInput()"
+                    [disabled]="busy()"
+                    (input)="updateTagInput($event)"
+                    (keydown)="tagInputKeydown($event)"
+                  />
+                </label>
                 <button
                   type="button"
-                  [style.--tag-color]="tagColor(tag)"
-                  [disabled]="busy()"
-                  (click)="addKnownTag(tag)"
-                >+ {{ tag }}</button>
+                  class="issue-tag-add"
+                  [disabled]="!tagInput().trim() || busy()"
+                  (click)="commitTagInput()"
+                >+ Add</button>
+              </div>
+              @if (suggestedTags().length) {
+                <div class="issue-tag-suggestions" role="group" aria-label="Suggested tags">
+                  <span>Suggested</span>
+                  @for (tag of suggestedTags(); track tag) {
+                    <button
+                      type="button"
+                      [style.--tag-color]="tagColor(tag)"
+                      [disabled]="busy()"
+                      (click)="addKnownTag(tag)"
+                    >+ {{ tag }}</button>
+                  }
+                </div>
               }
-            </div>
-          }
-        }
-      </section>
+            }
+          </section>
+          <section class="issue-editor-section issue-blocked-section"
+            [class.issue-blocked-active]="draft().isBlocked">
+            <label class="issue-block-toggle">
+              <span class="issue-block-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="m12 3 10 18H2L12 3Zm0 7v4m0 3h.01" />
+                </svg>
+              </span>
+              <span class="issue-block-copy">
+                <strong>Mark as blocked</strong>
+                <small>Highlight something that is preventing progress.</small>
+              </span>
+              <span class="issue-block-switch">
+                <input
+                  type="checkbox"
+                  role="switch"
+                  aria-label="Mark issue as blocked"
+                  [checked]="draft().isBlocked"
+                  [disabled]="!canEdit() || busy()"
+                  (change)="updateBlocked($event)"
+                />
+                <span class="issue-block-track" aria-hidden="true"></span>
+              </span>
+            </label>
+            @if (draft().isBlocked) {
+              <label class="issue-field">
+                <span>Blocking reason</span>
+                <textarea
+                  rows="2"
+                  placeholder="What's stopping this issue?"
+                  [disabled]="!canEdit() || busy()"
+                  [value]="draft().blockedNote"
+                  (input)="updateText('blockedNote', $event)"
+                ></textarea>
+              </label>
+            }
+          </section>
+        </div>
+        <div class="issue-editor-secondary">
+          <div class="issue-editor-columns">
+            <section class="issue-editor-section issue-workflow">
+              <header class="issue-section-header">
+                <span class="issue-section-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <circle cx="6" cy="6" r="2" />
+                    <path d="M8 6h10v6M18 12h-5m5 0v6H6M6 18h5" />
+                  </svg>
+                </span>
+                <div>
+                  <h3>Workflow</h3>
+                </div>
+              </header>
 
-      <section class="issue-editor-section issue-blocked-section"
-        [class.issue-blocked-active]="draft().isBlocked">
-        <label class="issue-block-toggle">
-          <span class="issue-block-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24">
-              <path d="m12 3 10 18H2L12 3Zm0 7v4m0 3h.01" />
-            </svg>
-          </span>
-          <span class="issue-block-copy">
-            <strong>Mark as blocked</strong>
-            <small>Highlight something that is preventing progress.</small>
-          </span>
-          <span class="issue-block-switch">
-            <input
-              type="checkbox"
-              role="switch"
-              aria-label="Mark issue as blocked"
-              [checked]="draft().isBlocked"
-              [disabled]="!canEdit() || busy()"
-              (change)="updateBlocked($event)"
-            />
-            <span class="issue-block-track" aria-hidden="true"></span>
-          </span>
-        </label>
-        @if (draft().isBlocked) {
-          <label class="issue-field">
-            <span>Blocking reason</span>
-            <textarea
-              rows="2"
-              placeholder="What's stopping this issue?"
-              [disabled]="!canEdit() || busy()"
-              [value]="draft().blockedNote"
-              (input)="updateText('blockedNote', $event)"
-            ></textarea>
-          </label>
-        }
-      </section>
+              <fieldset class="issue-choice-fieldset">
+                <legend>Status</legend>
+                <div class="issue-choice-list" role="group" aria-label="Issue status">
+                  @for (option of statusOptions(); track option.id ?? option.name) {
+                    <button
+                      class="issue-choice-pill"
+                      [class.issue-choice-selected]="draft().status === option.id"
+                      [style.--issue-accent]="optionAccent(option.name, option.color)"
+                      type="button"
+                      [attr.aria-label]="'Status: ' + option.name"
+                      [attr.aria-pressed]="draft().status === option.id"
+                      [disabled]="!canEdit() || busy()"
+                      (click)="chooseValue('status', option.id)"
+                    >
+                      <span class="issue-choice-dot" aria-hidden="true"></span>
+                      {{ option.name }}
+                    </button>
+                  } @empty {
+                    <span class="issue-empty-choice">No statuses available</span>
+                  }
+                </div>
+              </fieldset>
+
+              <fieldset class="issue-choice-fieldset issue-assignee-fieldset">
+                <legend>Assignee</legend>
+                <div class="issue-assignee-list" role="group" aria-label="Issue assignee">
+                  <button
+                    type="button"
+                    class="issue-assignee-chip"
+                    [class.issue-assignee-selected]="draft().assignedTo === null"
+                    [attr.aria-pressed]="draft().assignedTo === null"
+                    [disabled]="!canEdit() || busy()"
+                    (click)="chooseAssignee(null)"
+                  >
+                    <span class="issue-assignee-avatar issue-assignee-avatar-empty" aria-hidden="true">
+                      <svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="8" r="3" />
+                        <path d="M6 19c0-3 2.2-5 6-5 1.4 0 2.6.3 3.5 1M17 18h5" />
+                      </svg>
+                    </span>
+                    <span>Unassigned</span>
+                  </button>
+                  @for (member of visibleAssignees(); track member.id) {
+                    <button
+                      type="button"
+                      class="issue-assignee-chip"
+                      [class.issue-assignee-selected]="draft().assignedTo === member.id"
+                      [attr.aria-label]="'Assign to ' + member.name"
+                      [attr.aria-pressed]="draft().assignedTo === member.id"
+                      [disabled]="!canEdit() || busy()"
+                      (click)="chooseAssignee(member.id)"
+                    >
+                      <span class="issue-assignee-avatar" aria-hidden="true">
+                        @if (member.photo) {
+                          <img [src]="member.photo" alt="" loading="lazy" />
+                        } @else {
+                          {{ memberInitials(member.name) }}
+                        }
+                      </span>
+                      <span class="issue-assignee-name">{{ member.name }}</span>
+                    </button>
+                  } @empty {
+                    @if (assigneeSearch().trim()) {
+                      <span class="issue-empty-choice">No matching project members</span>
+                    }
+                  }
+                  @if (assigneeOptions().length > 6) {
+                    <button
+                      class="issue-more-assignees"
+                      type="button"
+                      [attr.aria-expanded]="assigneesExpanded()"
+                      (click)="toggleAssignees()"
+                    >
+                      {{ assigneesExpanded() ? 'Show fewer' : '+' + hiddenAssigneeCount() + ' more' }}
+                    </button>
+                  }
+                </div>
+                @if (assigneesExpanded()) {
+                  <label class="issue-assignee-search">
+                    <span class="visually-hidden">Find a project member</span>
+                    <svg aria-hidden="true" viewBox="0 0 24 24">
+                      <circle cx="10.5" cy="10.5" r="6" />
+                      <path d="m15 15 5 5" />
+                    </svg>
+                    <input
+                      type="search"
+                      placeholder="Search project members"
+                      [value]="assigneeSearch()"
+                      (input)="updateAssigneeSearch($event)"
+                    />
+                  </label>
+                }
+              </fieldset>
+
+              <div class="issue-due-date">
+                <label class="issue-field">
+                  <span>Due date</span>
+                  <input
+                    type="date"
+                    aria-label="Issue due date"
+                    [disabled]="!canEdit() || busy()"
+                    [value]="draft().dueDate"
+                    (input)="updateText('dueDate', $event)"
+                  />
+                </label>
+                <div class="issue-date-quick" role="group" aria-label="Quick due dates">
+                  <button
+                    type="button"
+                    [class.issue-date-selected]="dateMatchesOffset(0)"
+                    [attr.aria-pressed]="dateMatchesOffset(0)"
+                    [disabled]="!canEdit() || busy()"
+                    (click)="setQuickDueDate(0)"
+                  >Today</button>
+                  <button
+                    type="button"
+                    [class.issue-date-selected]="dateMatchesOffset(1)"
+                    [attr.aria-pressed]="dateMatchesOffset(1)"
+                    [disabled]="!canEdit() || busy()"
+                    (click)="setQuickDueDate(1)"
+                  >Tomorrow</button>
+                  <button
+                    type="button"
+                    [class.issue-date-selected]="dateMatchesOffset(7)"
+                    [attr.aria-pressed]="dateMatchesOffset(7)"
+                    [disabled]="!canEdit() || busy()"
+                    (click)="setQuickDueDate(7)"
+                  >In 7 days</button>
+                  @if (draft().dueDate) {
+                    <button
+                      type="button"
+                      class="issue-date-clear"
+                      [disabled]="!canEdit() || busy()"
+                      (click)="setQuickDueDate(null)"
+                    >Clear</button>
+                  }
+                </div>
+              </div>
+            </section>
+
+            <section class="issue-editor-section issue-classification">
+              <header class="issue-section-header">
+                <span class="issue-section-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="m12 3 9 5v8l-9 5-9-5V8l9-5Z" />
+                    <path d="m3 8 9 5 9-5M12 13v8" />
+                  </svg>
+                </span>
+                <div>
+                  <h3>Classification</h3>
+                </div>
+              </header>
+
+              <fieldset class="issue-choice-fieldset">
+                <legend>Type</legend>
+                <div class="issue-choice-list" role="group" aria-label="Issue type">
+                  @for (option of typeOptions(); track option.id ?? option.name) {
+                    <button
+                      class="issue-choice-pill issue-type-pill"
+                      [class.issue-choice-selected]="draft().type === option.id"
+                      [style.--issue-accent]="optionAccent(option.name, option.color)"
+                      type="button"
+                      [attr.aria-label]="'Type: ' + option.name"
+                      [attr.aria-pressed]="draft().type === option.id"
+                      [disabled]="!canEdit() || busy()"
+                      (click)="chooseValue('type', option.id)"
+                    >
+                      <svg class="issue-type-icon" aria-hidden="true" viewBox="0 0 24 24">
+                        @switch (issueTypeIcon(option.name)) {
+                          @case ('bug') {
+                            <path d="M9 6 7 3m8 3 2-3M5 10l-3-1m3 6-3 2m17-7 3-1m-3 6 3 2M8 8h8m-10 4h12m-12 0v3a6 6 0 0 0 12 0v-3a6 6 0 0 0-12 0Z" />
+                          }
+                          @case ('feature') {
+                            <path d="m12 2 2.5 6.5L21 11l-6.5 2.5L12 20l-2.5-6.5L3 11l6.5-2.5L12 2Z" />
+                          }
+                          @case ('question') {
+                            <circle cx="12" cy="12" r="9" />
+                            <path d="M9.4 9a2.8 2.8 0 0 1 5.2 1.2c0 2-2.6 2-2.6 4M12 17.5h.01" />
+                          }
+                          @default {
+                            <rect x="4" y="4" width="16" height="16" rx="3" />
+                            <path d="M8 10h8M8 14h5" />
+                          }
+                        }
+                      </svg>
+                      {{ option.name }}
+                    </button>
+                  } @empty {
+                    <span class="issue-empty-choice">No types available</span>
+                  }
+                </div>
+              </fieldset>
+
+              <fieldset class="issue-choice-fieldset">
+                <legend>Priority</legend>
+                <div class="issue-choice-list" role="group" aria-label="Issue priority">
+                  @for (option of priorityOptions(); track option.id ?? option.name) {
+                    <button
+                      type="button"
+                      class="issue-choice-pill issue-level-pill"
+                      [class.issue-choice-selected]="draft().priority === option.id"
+                      [style.--issue-accent]="optionAccent(option.name, option.color)"
+                      [attr.aria-label]="'Priority: ' + option.name"
+                      [attr.aria-pressed]="draft().priority === option.id"
+                      [disabled]="!canEdit() || busy()"
+                      (click)="chooseValue('priority', option.id)"
+                    >
+                      <span class="issue-level-indicator" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                          <path d="M12 19V5m0 0-5 5m5-5 5 5" />
+                        </svg>
+                      </span>
+                      {{ option.name }}
+                    </button>
+                  } @empty {
+                    <span class="issue-empty-choice">No priorities available</span>
+                  }
+                </div>
+              </fieldset>
+
+              <fieldset class="issue-choice-fieldset">
+                <legend>Severity</legend>
+                <div class="issue-choice-list" role="group" aria-label="Issue severity">
+                  @for (option of severityOptions(); track option.id ?? option.name) {
+                    <button
+                      type="button"
+                      class="issue-choice-pill issue-level-pill"
+                      [class.issue-choice-selected]="draft().severity === option.id"
+                      [style.--issue-accent]="optionAccent(option.name, option.color)"
+                      [attr.aria-label]="'Severity: ' + option.name"
+                      [attr.aria-pressed]="draft().severity === option.id"
+                      [disabled]="!canEdit() || busy()"
+                      (click)="chooseValue('severity', option.id)"
+                    >
+                      <span class="issue-choice-dot" aria-hidden="true"></span>
+                      {{ option.name }}
+                    </button>
+                  } @empty {
+                    <span class="issue-empty-choice">No severities available</span>
+                  }
+                </div>
+              </fieldset>
+            </section>
+          </div>
+        </div>
+      </div>
     </form>
 
     <footer class="issue-editor-footer">

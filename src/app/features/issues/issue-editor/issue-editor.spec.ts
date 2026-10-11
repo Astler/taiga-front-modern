@@ -95,6 +95,35 @@ describe('IssueEditor', () => {
     await TestBed.configureTestingModule({ imports: [IssueEditor] }).compileComponents();
   });
 
+  it('keeps title, description and tags on the left, with workflow and classification on the right', () => {
+    const { host } = createEditor(['add_issue']);
+    const layout = host.querySelector<HTMLElement>('.issue-editor-layout')!;
+    const primary = layout.querySelector<HTMLElement>('.issue-editor-primary')!;
+    const secondary = layout.querySelector<HTMLElement>('.issue-editor-secondary')!;
+
+    expect(layout).toBeTruthy();
+    expect([...primary.children].map((child) => child.classList[1])).toEqual([
+      'issue-basics',
+      'issue-tags-section',
+      'issue-blocked-section',
+    ]);
+    expect(primary.querySelector('input[maxlength="500"]')).toBeTruthy();
+    expect(primary.querySelector('.issue-basics textarea')).toBeTruthy();
+    expect(primary.querySelector('.issue-tag-entry')).toBeTruthy();
+
+    expect(secondary.querySelectorAll('.issue-editor-section')).toHaveLength(2);
+    expect(secondary.querySelector('.issue-workflow')).toBeTruthy();
+    expect(secondary.querySelector('.issue-classification')).toBeTruthy();
+    expect(secondary.querySelector('.issue-assignee-list')).toBeTruthy();
+    expect(secondary.querySelector('.issue-date-quick')).toBeTruthy();
+    expect(secondary.querySelector('[aria-label="Issue priority"]')).toBeTruthy();
+    expect(secondary.querySelector('[aria-label="Issue severity"]')).toBeTruthy();
+
+    expect(host.querySelectorAll('.issue-section-header p')).toHaveLength(0);
+    expect(host.querySelector('.issue-save')).toBeTruthy();
+    expect(host.querySelector('dialog.issue-editor-backdrop')).toBeTruthy();
+  });
+
   it('replaces dropdowns with selected accessible chips while keeping Taiga values', () => {
     const { fixture, host } = createEditor(['add_issue']);
     const saved = vi.fn<(changes: IssueChanges) => void>();
