@@ -16,7 +16,7 @@
         mat-flat-button
         type="button"
         class="issue-create-button"
-        [disabled]="store.isMutating() || store.isLoading() || store.requiresReconciliation()"
+        [disabled]="store.isMutating() || store.isLoading() || store.requiresReconciliation() || !!newIssueUpload()"
         (click)="openNewIssue()"
       >+ New issue</button>
     }
@@ -112,6 +112,24 @@
         <button type="button" (click)="store.dismissMutationError()" aria-label="Dismiss issue error">
           ×
         </button>
+      }
+    </div>
+  }
+
+  @if (newIssueUpload(); as upload) {
+    <div class="issue-upload-notice" [attr.role]="upload.processing ? 'status' : 'alert'">
+      <span>
+        @if (upload.processing) {
+          Uploading {{ upload.files.length }} attachment(s) to issue #{{ upload.issue.ref }}…
+        } @else {
+          {{ upload.error }}
+        }
+      </span>
+      @if (!upload.processing) {
+        <div class="issue-upload-actions">
+          <button type="button" (click)="retryNewIssueUpload()">Retry uploads</button>
+          <button type="button" (click)="openIssue(upload.issue)">Open issue #{{ upload.issue.ref }}</button>
+        </div>
       }
     </div>
   }
@@ -290,6 +308,7 @@
       [filters]="store.filtersData()"
       [busy]="store.isMutating() || store.isLoading() || store.requiresReconciliation()"
       [error]="store.mutationError()"
+      (stagedFilesChanged)="pendingFiles.set($event)"
       (saved)="saveIssue($event)"
       (closeRequested)="closeEditor()"
     />
