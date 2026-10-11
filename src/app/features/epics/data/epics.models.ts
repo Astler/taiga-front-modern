@@ -105,6 +105,8 @@ export interface EpicFiltersData {
 export interface EpicListQuery {
   readonly q: string;
   readonly page: number;
+  /** Blank preserves Taiga's native epic ordering. */
+  readonly orderBy?: string;
   readonly filters: Readonly<Partial<Record<EpicFilterCategory, EpicFilterSelection>>>;
 }
 
