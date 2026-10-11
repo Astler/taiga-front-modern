@@ -23,36 +23,6 @@
       }
     </span>
 
-    <div class="epic-toolbar-divider" aria-hidden="true"></div>
-
-    <button
-      mat-button
-      class="epic-toolbar-icon"
-      type="button"
-      [class.epic-toolbar-active]="!!store.query().orderBy"
-      [matMenuTriggerFor]="epicSortMenu"
-      [matTooltip]="'Sort: ' + sortLabel()"
-      [attr.aria-label]="'Sort epics. Current: ' + sortLabel()"
-    >
-      <svg aria-hidden="true" viewBox="0 0 24 24">
-        <path d="M4 7h10M4 12h7M4 17h4M18 5v14m0 0-3-3m3 3 3-3" />
-      </svg>
-      @if (store.query().orderBy) {
-        <span class="epic-sort-dot" aria-hidden="true"></span>
-      }
-    </button>
-
-    <mat-menu #epicSortMenu="matMenu" xPosition="after">
-      @for (option of sortOptions; track option.value) {
-        <button mat-menu-item type="button" (click)="selectSort(option.value)">
-          <span class="epic-menu-check" aria-hidden="true">
-            {{ (store.query().orderBy ?? '') === option.value ? '✓' : '' }}
-          </span>
-          <span>{{ option.label }}</span>
-        </button>
-      }
-    </mat-menu>
-
     <button
       mat-button
       type="button"
