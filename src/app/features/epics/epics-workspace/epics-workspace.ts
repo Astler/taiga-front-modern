@@ -10,7 +10,6 @@ import {
   untracked,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import type { TaigaProjectDetail } from '../../projects/data';
@@ -33,17 +32,6 @@ interface FilterDefinition {
   readonly dataKey: keyof EpicFiltersData;
 }
 
-const EPIC_SORT_OPTIONS: readonly { readonly value: string; readonly label: string }[] = [
-  { value: '', label: 'Default epic order' },
-  { value: '-modified_date', label: 'Recently updated' },
-  { value: 'modified_date', label: 'Least recently updated' },
-  { value: '-created_date', label: 'Newest created' },
-  { value: 'created_date', label: 'Oldest created' },
-  { value: 'subject', label: 'Title A–Z' },
-  { value: '-subject', label: 'Title Z–A' },
-  { value: 'status', label: 'Status' },
-];
-
 const FILTERS: readonly FilterDefinition[] = [
   { category: 'status', label: 'Status', dataKey: 'statuses' },
   { category: 'assigned_to', label: 'Assignee', dataKey: 'assigned_to' },
@@ -53,7 +41,7 @@ const FILTERS: readonly FilterDefinition[] = [
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [EpicEditor, MatButtonModule, MatMenuModule, MatProgressBarModule, MatTooltipModule],
+  imports: [EpicEditor, MatButtonModule, MatProgressBarModule, MatTooltipModule],
   providers: [EpicsStore],
   selector: 'pf-epics-workspace',
   styleUrl: './epics-workspace.scss',
@@ -65,14 +53,9 @@ export class EpicsWorkspace implements OnDestroy {
 
   protected readonly store = inject(EpicsStore);
   protected readonly filterDefinitions = FILTERS;
-  protected readonly sortOptions = EPIC_SORT_OPTIONS;
   protected readonly filterPanelOpen = signal(false);
   protected readonly activeFilterCount = computed(() =>
     Object.keys(this.store.query().filters).length,
-  );
-  protected readonly sortLabel = computed(() =>
-    EPIC_SORT_OPTIONS.find(({ value }) => value === (this.store.query().orderBy ?? ''))?.label ??
-    'Sort epics',
   );
   protected readonly searchValue = signal('');
   protected readonly editorMode = signal<EpicEditorMode | null>(null);
@@ -210,10 +193,6 @@ export class EpicsWorkspace implements OnDestroy {
       this.searchTimer = null;
     }
     this.store.setSearch(this.searchValue());
-  }
-
-  protected selectSort(orderBy: string): void {
-    this.store.setSort(orderBy);
   }
 
   protected toggleFilterPanel(): void {
