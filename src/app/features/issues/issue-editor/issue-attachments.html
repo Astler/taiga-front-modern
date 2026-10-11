@@ -1,6 +1,10 @@
 <div class="issue-attachments">
   <div class="issue-attachments-toolbar">
-    @if (!loading() && !loadError()) {
+    @if (issueId() === null) {
+      <span class="issue-attachments-count">
+        {{ stagedFiles().length }} queued
+      </span>
+    } @else if (!loading() && !loadError()) {
       <span class="issue-attachments-count">
         {{ attachments().length }} file{{ attachments().length === 1 ? '' : 's' }}
       </span>
@@ -12,15 +16,46 @@
           multiple
           aria-label="Upload issue attachments"
           [disabled]="busy() || processing()"
-          (change)="upload($event)"
+          (change)="pickFiles($event)"
         />
         <span aria-hidden="true">+</span>
-        {{ processing() ? 'Working…' : 'Add files' }}
+        {{ processing() ? 'Uploading…' : 'Add files' }}
       </label>
     }
   </div>
 
-  @if (loading()) {
+  @if (issueId() === null) {
+    @if (stagedFiles().length) {
+      <ul class="issue-attachments-list" aria-label="Files queued for new issue">
+        @for (file of stagedFiles(); track $index) {
+          <li class="issue-attachment">
+            @if (previewFor(file); as preview) {
+              <img class="issue-attachment-preview" [src]="preview" alt="" />
+            } @else {
+              <span class="issue-attachment-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="m8 12.5 5.5-5.5a3 3 0 0 1 4.2 4.2l-7.9 7.9a5 5 0 0 1-7.1-7.1l8.3-8.3" />
+                </svg>
+              </span>
+            }
+            <span class="issue-attachment-info">
+              <span class="issue-attachment-name" [title]="file.name">{{ file.name }}</span>
+              <small>{{ fileSize(file.size) }} · Uploads when issue is created</small>
+            </span>
+            <button
+              class="issue-attachment-remove"
+              type="button"
+              [disabled]="busy()"
+              [attr.aria-label]="'Remove queued attachment ' + file.name"
+              (click)="removeStaged($index)"
+            >×</button>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="issue-attachments-hint">Add files or paste a screenshot with Ctrl+V.</p>
+    }
+  } @else if (loading()) {
     <p class="issue-attachments-hint" role="status">Loading files…</p>
   } @else if (loadError(); as message) {
     <p class="issue-attachments-error" role="alert">
@@ -28,7 +63,7 @@
       <button type="button" (click)="retry()">Try again</button>
     </p>
   } @else if (attachments().length === 0) {
-    <p class="issue-attachments-hint">No attachments yet.</p>
+    <p class="issue-attachments-hint">No attachments yet. You can paste screenshots with Ctrl+V.</p>
   } @else {
     <ul class="issue-attachments-list" aria-label="Issue files">
       @for (attachment of attachments(); track attachment.id) {
@@ -64,6 +99,11 @@
   }
 
   @if (actionError(); as message) {
-    <p class="issue-attachments-error" role="alert">{{ message }}</p>
+    <p class="issue-attachments-error" role="alert">
+      {{ message }}
+      @if (failedUploads().length && !processing()) {
+        <button type="button" [disabled]="busy()" (click)="retryFailedUploads()">Retry failed files</button>
+      }
+    </p>
   }
 </div>
