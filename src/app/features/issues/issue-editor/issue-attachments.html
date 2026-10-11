@@ -1,0 +1,69 @@
+<div class="issue-attachments">
+  <div class="issue-attachments-toolbar">
+    @if (!loading() && !loadError()) {
+      <span class="issue-attachments-count">
+        {{ attachments().length }} file{{ attachments().length === 1 ? '' : 's' }}
+      </span>
+    }
+    @if (canManage()) {
+      <label class="issue-attachment-picker" [class.issue-attachment-picker-disabled]="busy() || processing()">
+        <input
+          type="file"
+          multiple
+          aria-label="Upload issue attachments"
+          [disabled]="busy() || processing()"
+          (change)="upload($event)"
+        />
+        <span aria-hidden="true">+</span>
+        {{ processing() ? 'Working…' : 'Add files' }}
+      </label>
+    }
+  </div>
+
+  @if (loading()) {
+    <p class="issue-attachments-hint" role="status">Loading files…</p>
+  } @else if (loadError(); as message) {
+    <p class="issue-attachments-error" role="alert">
+      {{ message }}
+      <button type="button" (click)="retry()">Try again</button>
+    </p>
+  } @else if (attachments().length === 0) {
+    <p class="issue-attachments-hint">No attachments yet.</p>
+  } @else {
+    <ul class="issue-attachments-list" aria-label="Issue files">
+      @for (attachment of attachments(); track attachment.id) {
+        <li class="issue-attachment">
+          <span class="issue-attachment-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="m8 12.5 5.5-5.5a3 3 0 0 1 4.2 4.2l-7.9 7.9a5 5 0 0 1-7.1-7.1l8.3-8.3" />
+            </svg>
+          </span>
+          <span class="issue-attachment-info">
+            <a [href]="attachment.url" [title]="attachment.name" target="_blank" rel="noopener noreferrer">
+              {{ attachment.name }}
+            </a>
+            <small>
+              {{ fileSize(attachment.size) }}
+              @if (attachment.description) {
+                · {{ attachment.description }}
+              }
+            </small>
+          </span>
+          @if (canManage()) {
+            <button
+              class="issue-attachment-remove"
+              type="button"
+              [disabled]="busy() || processing()"
+              [attr.aria-label]="'Remove attachment ' + attachment.name"
+              (click)="remove(attachment)"
+            >×</button>
+          }
+        </li>
+      }
+    </ul>
+  }
+
+  @if (actionError(); as message) {
+    <p class="issue-attachments-error" role="alert">{{ message }}</p>
+  }
+</div>

@@ -5,6 +5,7 @@ import { RuntimeConfigService } from '../../../core/config';
 import type { TaigaId } from '../../../shared/models';
 import {
   ISSUE_FILTER_CATEGORIES,
+  type IssueAttachment,
   type IssueChanges,
   type IssueCreateRequest,
   type IssueFiltersData,
@@ -57,6 +58,25 @@ export class IssuesApiService {
 
   delete(issueId: TaigaId): Observable<void> {
     return this.http.delete<void>(`${this.config.resolveApiPath('issues')}/${issueId}`);
+  }
+
+  listAttachments(projectId: TaigaId, issueId: TaigaId): Observable<readonly IssueAttachment[]> {
+    return this.http.get<readonly IssueAttachment[]>(this.config.resolveApiPath('issues/attachments'), {
+      headers: UNPAGINATED_HEADERS,
+      params: new HttpParams().set('project', projectId).set('object_id', issueId),
+    });
+  }
+
+  uploadAttachment(projectId: TaigaId, issueId: TaigaId, file: File): Observable<IssueAttachment> {
+    const body = new FormData();
+    body.append('project', String(projectId));
+    body.append('object_id', String(issueId));
+    body.append('attached_file', file, file.name);
+    return this.http.post<IssueAttachment>(this.config.resolveApiPath('issues/attachments'), body);
+  }
+
+  deleteAttachment(attachmentId: TaigaId): Observable<void> {
+    return this.http.delete<void>(`${this.config.resolveApiPath('issues/attachments')}/${attachmentId}`);
   }
 
   private toPage(
