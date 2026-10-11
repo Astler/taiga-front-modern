@@ -66,6 +66,64 @@ describe('IssuesWorkspace', () => {
     expect(host.querySelector('.issue-main-cell a')).toBeNull();
   });
 
+  it('keeps search, sorting and filters on one compact toolbar without a repeated page title', async () => {
+    const fixture = TestBed.createComponent(IssuesWorkspace);
+    fixture.componentRef.setInput('project', { ...project(), my_permissions: ['add_issue'] });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const toolbar = host.querySelector<HTMLElement>('.issues-toolbar')!;
+    expect(toolbar).toBeTruthy();
+    expect(host.querySelector('.issues-header')).toBeNull();
+    expect(host.querySelector('#issues-title')).toBeNull();
+    expect(toolbar.querySelector('form.search-field')).toBeTruthy();
+    expect(toolbar.querySelector('.issues-count')?.textContent).toContain('38 issues');
+    expect(toolbar.querySelector('[aria-label^="Sort issues"]')).toBeTruthy();
+    expect(toolbar.querySelector('.issue-filter-toggle')).toBeTruthy();
+    expect(toolbar.querySelector('.issue-create-button')).toBeTruthy();
+    expect(host.querySelector('.filter-rail')).toBeNull();
+
+    const toggle = toolbar.querySelector<HTMLButtonElement>('.issue-filter-toggle')!;
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    toggle.click();
+    fixture.detectChanges();
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(host.querySelectorAll('.filter-rail select')).toHaveLength(6);
+
+    toggle.click();
+    fixture.detectChanges();
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(host.querySelector('.filter-rail')).toBeNull();
+  });
+
+  it('sorts issues through the Kanban-style menu, not a permanent wide dropdown', async () => {
+    const fixture = TestBed.createComponent(IssuesWorkspace);
+    fixture.componentRef.setInput('project', project());
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+
+    expect(host.querySelector('.sort-field')).toBeNull();
+    const sort = host.querySelector<HTMLButtonElement>('[aria-label^="Sort issues"]')!;
+    expect(sort.getAttribute('aria-label')).toContain('Recently updated');
+    sort.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const priority = [...document.querySelectorAll<HTMLButtonElement>('.mat-mdc-menu-item')]
+      .find((item) => item.textContent?.trim() === 'Priority')!;
+    expect(priority).toBeTruthy();
+    priority.click();
+    fixture.detectChanges();
+    expect(list).toHaveBeenLastCalledWith(
+      17,
+      expect.objectContaining({ orderBy: 'priority' }),
+    );
+    expect(sort.getAttribute('aria-label')).toContain('Priority');
+  });
+
   it('creates an issue in the native editor with project metadata and permission checks', async () => {
     const fixture = TestBed.createComponent(IssuesWorkspace);
     fixture.componentRef.setInput('project', {
@@ -313,6 +371,8 @@ describe('IssuesWorkspace', () => {
     fixture.detectChanges();
 
     const host = fixture.nativeElement as HTMLElement;
+    host.querySelector<HTMLButtonElement>('.issue-filter-toggle')!.click();
+    fixture.detectChanges();
     const status = host.querySelector<HTMLSelectElement>('select[aria-label="Status"]')!;
     status.value = '1';
     status.dispatchEvent(new Event('change', { bubbles: true }));
@@ -331,6 +391,17 @@ describe('IssuesWorkspace', () => {
       }),
     );
     expect(exclude.getAttribute('aria-pressed')).toBe('true');
+    expect(host.querySelector('.issue-filter-badge')?.textContent).toBe('1');
+
+    const clear = [...host.querySelectorAll<HTMLButtonElement>('.issue-filter-actions button')]
+      .find((button) => button.textContent?.trim() === 'Clear all')!;
+    clear.click();
+    fixture.detectChanges();
+    expect(host.querySelector('.issue-filter-badge')).toBeNull();
+    expect(list).toHaveBeenLastCalledWith(
+      17,
+      expect.objectContaining({ filters: {} }),
+    );
   });
 });
 
