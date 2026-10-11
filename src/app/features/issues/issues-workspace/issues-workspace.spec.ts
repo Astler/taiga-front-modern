@@ -58,9 +58,14 @@ describe('IssuesWorkspace', () => {
   it('creates an issue in the native editor with project metadata and permission checks', async () => {
     const fixture = TestBed.createComponent(IssuesWorkspace);
     fixture.componentRef.setInput('project', {
-      ...project(), my_permissions: ['add_issue'], issue_statuses: [
-        { id: 1, name: 'Open' },
-      ],
+      ...project(),
+      my_permissions: ['add_issue'],
+      issue_statuses: [{ id: 1, name: 'Open' }],
+      members: [{
+        id: 7, username: 'ada', full_name_display: 'Ada Lovelace', photo: null,
+      }],
+      tags: ['frontend'],
+      tags_colors: { frontend: '#6750a4' },
     });
     fixture.detectChanges();
     await fixture.whenStable();
@@ -75,12 +80,25 @@ describe('IssuesWorkspace', () => {
     title.value = 'Create login alert';
     title.dispatchEvent(new Event('input', { bubbles: true }));
     fixture.detectChanges();
+
+    editor.querySelector<HTMLButtonElement>('[aria-label="Assign to Ada Lovelace"]')!.click();
+    const tagSuggestion = [...editor.querySelectorAll<HTMLButtonElement>(
+      '.issue-tag-suggestions button',
+    )].find((button) => button.textContent?.includes('frontend'))!;
+    tagSuggestion.click();
+    editor.querySelectorAll<HTMLButtonElement>('.issue-date-quick button')[1]!.click();
+    fixture.detectChanges();
+
+    expect(editor.querySelectorAll('select')).toHaveLength(0);
+    expect(editor.querySelector('[aria-label="Assign to Ada Lovelace"]')?.getAttribute('aria-pressed'))
+      .toBe('true');
     editor.querySelector<HTMLButtonElement>('.issue-save')!.click();
     await fixture.whenStable();
     fixture.detectChanges();
     expect(create).toHaveBeenCalledWith(expect.objectContaining({
       project: 17, subject: 'Create login alert', status: 1,
       type: 2, severity: 3, priority: 4,
+      assigned_to: 7, tags: ['frontend'], due_date: expect.any(String),
     }));
     expect(host.querySelector('pf-issue-editor')).toBeNull();
   });

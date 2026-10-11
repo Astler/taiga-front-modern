@@ -13,16 +13,15 @@
   max-width: none;
   height: 100dvh;
   max-height: none;
+  justify-content: flex-end;
+  overflow: hidden;
   margin: 0;
   border: 0;
   padding: 0;
-  overflow: hidden;
-  justify-content: flex-end;
-  background: rgb(0 0 0 / 58%);
+  background: rgb(0 0 0 / 56%);
   backdrop-filter: blur(2px);
 }
 
-/* showModal() promotes the editor over the sidenav, regardless of stacking context. */
 .issue-editor-backdrop:not([open]) {
   display: none;
 }
@@ -33,7 +32,7 @@
 
 .issue-editor-panel {
   display: flex;
-  width: min(45rem, 95vw);
+  width: min(68rem, 96vw);
   min-width: 0;
   height: 100%;
   flex-direction: column;
@@ -50,32 +49,55 @@
   display: flex;
   flex: 0 0 auto;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1rem;
   border-color: var(--app-border-color);
   background: var(--mat-sys-surface-container);
-  padding: 1rem 1.25rem;
+  padding: 1rem clamp(1.1rem, 2.5vw, 2rem);
 }
 
 .issue-editor-header {
   justify-content: space-between;
   border-block-end: 1px solid var(--app-border-color);
+  background: linear-gradient(
+    110deg,
+    color-mix(in srgb, var(--mat-sys-primary-container) 25%, var(--mat-sys-surface-container)),
+    var(--mat-sys-surface-container) 65%
+  );
 }
 
-.issue-editor-header h2 {
-  margin: 0.2rem 0 0;
+.issue-editor-heading {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.issue-editor-heading h2 {
+  margin: 0;
+  color: var(--mat-sys-on-surface);
   font: var(--mat-sys-headline-small);
-  font-weight: 700;
+  font-weight: 730;
+  letter-spacing: -0.02em;
+}
+
+.issue-editor-heading p {
+  margin: 0.15rem 0 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+  line-height: 1.4;
 }
 
 .issue-editor-eyebrow {
   color: var(--mat-sys-primary);
   font: var(--mat-sys-label-medium);
+  font-weight: 680;
 }
 
 .issue-editor-close {
+  display: grid;
   width: 2.5rem;
   height: 2.5rem;
   flex: 0 0 2.5rem;
+  place-items: center;
   border: 0;
   border-radius: 50%;
   background: transparent;
@@ -92,13 +114,82 @@
 
 .issue-editor-fields {
   display: grid;
+  width: 100%;
   min-height: 0;
   flex: 1 1 auto;
   align-content: start;
-  gap: 1rem;
-  overflow: auto;
+  gap: 0.9rem;
+  overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 1.25rem;
+  box-sizing: border-box;
+  padding: clamp(0.875rem, 2vw, 1.5rem);
+}
+
+.issue-editor-section {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 0.95rem;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-xl);
+  background: var(--mat-sys-surface-container);
+  padding: clamp(0.85rem, 1.55vw, 1.25rem);
+}
+
+.issue-editor-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 0.9rem;
+}
+
+.issue-section-header {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.issue-section-icon {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 2.25rem;
+  place-items: center;
+  border-radius: 0.7rem;
+  background: color-mix(in srgb, var(--mat-sys-primary) 15%, transparent);
+  color: var(--mat-sys-primary);
+}
+
+.issue-section-icon svg {
+  width: 1.2rem;
+  height: 1.2rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.issue-section-header div {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.issue-section-header h3 {
+  margin: 0;
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-title-medium);
+  font-weight: 720;
+}
+
+.issue-section-header p {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+  line-height: 1.35;
 }
 
 .issue-field {
@@ -107,90 +198,58 @@
   gap: 0.4rem;
   color: var(--mat-sys-on-surface-variant);
   font: var(--mat-sys-label-medium);
+  font-weight: 600;
 }
 
-.issue-field small {
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-label-small);
+.issue-required {
+  color: var(--mat-sys-error);
 }
 
 .issue-field input,
-.issue-field select,
-.issue-field textarea,
-.issue-blocked {
+.issue-field textarea {
   width: 100%;
   box-sizing: border-box;
+  min-height: 2.75rem;
   border: 1px solid var(--app-border-color);
   border-radius: var(--app-radius-md);
-  background: var(--mat-sys-surface-container);
-  color: var(--mat-sys-on-surface);
-}
-
-.issue-field input,
-.issue-field select,
-.issue-field textarea {
   outline: none;
-  padding: 0.75rem 0.85rem;
+  background: var(--mat-sys-surface-container-low);
+  color: var(--mat-sys-on-surface);
   font: var(--mat-sys-body-medium);
+  padding: 0.7rem 0.85rem;
 }
 
 .issue-field textarea {
   resize: vertical;
+  min-height: 6.25rem;
   line-height: 1.5;
 }
 
 .issue-field input:focus-visible,
-.issue-field select:focus-visible,
 .issue-field textarea:focus-visible {
   border-color: var(--mat-sys-primary);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--mat-sys-primary) 18%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--mat-sys-primary) 20%, transparent);
 }
 
-.issue-fields-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.875rem;
-}
-
-.issue-blocked {
-  display: grid;
-  gap: 0.75rem;
-  min-width: 0;
-  margin: 0;
-  padding: 0.875rem;
-}
-
-.issue-blocked legend {
-  padding-inline: 0.3rem;
-  color: var(--mat-sys-on-surface);
-  font: var(--mat-sys-label-large);
-  font-weight: 700;
-}
-
-.issue-blocked-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  color: var(--mat-sys-on-surface);
-  font: var(--mat-sys-body-medium);
-  cursor: pointer;
-}
-
-.issue-blocked-toggle input {
-  accent-color: var(--mat-sys-primary);
+.issue-field :disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
 }
 
 .issue-editor-footer {
   border-block-start: 1px solid var(--app-border-color);
+  padding-block: 0.75rem;
 }
 
-.issue-editor-spacer { flex: 1 1 auto; }
+.issue-editor-spacer {
+  flex: 1 1 auto;
+}
 
 .issue-editor-footer button {
-  min-height: 2.5rem;
+  min-height: 2.6rem;
   border-radius: var(--app-radius-full);
   cursor: pointer;
-  padding: 0.5rem 0.9rem;
+  padding: 0.5rem 1.05rem;
   font: var(--mat-sys-label-large);
   font-weight: 700;
 }
@@ -203,7 +262,7 @@
 }
 
 .issue-delete {
-  border-color: color-mix(in srgb, var(--mat-sys-error) 45%, var(--app-border-color));
+  border-color: color-mix(in srgb, var(--mat-sys-error) 48%, var(--app-border-color));
   color: var(--mat-sys-error);
 }
 
@@ -214,7 +273,12 @@
 }
 
 .issue-editor-footer button:hover:not(:disabled) {
-  filter: brightness(1.14);
+  filter: brightness(1.12);
+}
+
+.issue-editor-footer button:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
 }
 
 .issue-editor-footer button:disabled {
@@ -229,6 +293,7 @@
   border-radius: var(--app-radius-md);
   padding: 0.75rem;
   font: var(--mat-sys-body-small);
+  line-height: 1.5;
 }
 
 .issue-editor-error {
@@ -247,36 +312,55 @@
     border-radius: 0;
   }
 
-  .issue-editor-header,
-  .issue-editor-footer {
-    padding-inline: max(1rem, calc((100vw - 62rem) / 2));
-  }
-
   .issue-editor-fields {
     width: 100%;
-    max-width: 62rem;
-    box-sizing: border-box;
+    max-width: 74rem;
     margin-inline: auto;
+  }
+
+  .issue-editor-header,
+  .issue-editor-footer {
+    padding-inline: max(1rem, calc((100vw - 70rem) / 2));
+  }
+}
+
+@media (max-width: 850px) {
+  .issue-editor-columns {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (max-width: 540px) {
-  .issue-fields-grid { grid-template-columns: 1fr; }
-
-  .issue-editor-header h2 {
-    font: var(--mat-sys-title-large);
-    font-weight: 700;
-  }
-
   .issue-editor-header,
   .issue-editor-footer {
     padding: 0.75rem;
   }
 
-  .issue-editor-fields { padding: 0.9rem; }
-  .issue-editor-footer button { padding-inline: 0.7rem; }
+  .issue-editor-heading h2 {
+    font: var(--mat-sys-title-large);
+    font-weight: 730;
+  }
+
+  .issue-editor-heading p {
+    display: none;
+  }
+
+  .issue-editor-fields {
+    gap: 0.65rem;
+    padding: 0.65rem;
+  }
+
+  .issue-editor-section {
+    padding: 0.875rem;
+  }
+
+  .issue-editor-footer button {
+    padding-inline: 0.7rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .issue-editor-backdrop { backdrop-filter: none; }
+  .issue-editor-backdrop {
+    backdrop-filter: none;
+  }
 }
