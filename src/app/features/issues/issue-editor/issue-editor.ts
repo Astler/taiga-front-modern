@@ -9,6 +9,7 @@ import {
   untracked,
 } from '@angular/core';
 import type { TaigaProjectDetail } from '../../projects/data';
+import { IssueAttachments } from './issue-attachments';
 import { ModalTopLayerDirective } from '../../../shared/modal-top-layer.directive';
 import type { IssueChanges, IssueFilterOption, IssueFiltersData, TaigaIssue } from '../data';
 
@@ -53,7 +54,7 @@ const EMPTY_DRAFT: IssueEditorDraft = {
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ModalTopLayerDirective],
+  imports: [ModalTopLayerDirective, IssueAttachments],
   selector: 'pf-issue-editor',
   templateUrl: './issue-editor.html',
   styleUrls: ['./issue-editor.scss', './issue-editor-controls.scss'],
