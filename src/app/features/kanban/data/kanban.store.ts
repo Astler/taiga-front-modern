@@ -580,9 +580,9 @@ export class KanbanStore {
       if (action === 'delete') {
         const patch = (story: KanbanUserStory): KanbanUserStory => ({
           ...story,
-          total_comments: story.total_comments === undefined
-            ? undefined
-            : Math.max(0, story.total_comments - 1),
+          ...(story.total_comments === undefined
+            ? {}
+            : { total_comments: Math.max(0, story.total_comments - 1) }),
         });
         this.userStoriesState.update((stories) =>
           stories.map((story) => story.id === storyId ? patch(story) : story),
@@ -640,9 +640,11 @@ export class KanbanStore {
       const merge = (story: KanbanUserStory): KanbanUserStory => ({
         ...story,
         points: updated.points ?? points,
-        total_points: updated.total_points === undefined ? story.total_points : updated.total_points,
-        version: updated.version ?? story.version,
-        modified_date: updated.modified_date ?? story.modified_date,
+        ...(updated.total_points !== undefined ? { total_points: updated.total_points } : {}),
+        ...(updated.version !== undefined ? { version: updated.version } : {}),
+        ...(updated.modified_date !== undefined
+          ? { modified_date: updated.modified_date }
+          : {}),
       });
       this.userStoriesState.update((stories) =>
         stories.map((story) => story.id === storyId ? merge(story) : story),
@@ -702,8 +704,10 @@ export class KanbanStore {
 
       const patch = (story: KanbanUserStory): KanbanUserStory => ({
         ...story,
-        version: updated.version ?? story.version,
-        modified_date: updated.modified_date ?? story.modified_date,
+        ...(updated.version !== undefined ? { version: updated.version } : {}),
+        ...(updated.modified_date !== undefined
+          ? { modified_date: updated.modified_date }
+          : {}),
         total_comments: updated.total_comments ?? (story.total_comments ?? 0) + 1,
       });
       this.userStoriesState.update((stories) =>

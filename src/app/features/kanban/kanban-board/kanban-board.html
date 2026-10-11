@@ -1086,7 +1086,7 @@
                   <li class="story-comment">
                     <span class="story-comment-avatar" aria-hidden="true">
                       @if (entry.user?.photo) {
-                        <img [src]="entry.user?.photo" alt="" />
+                        <img [src]="entry.user.photo" alt="" />
                       } @else {
                         {{ commentInitials(entry) }}
                       }
