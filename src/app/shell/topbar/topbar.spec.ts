@@ -254,6 +254,8 @@ describe('Topbar', () => {
   });
 
   it.each([
+    ['/project/alpha/dashboard', 'dashboard'],
+    ['/project/alpha', 'dashboard'],
     ['/project/alpha/issues', 'issues'],
     ['/issues?status=1', 'issues'],
     ['/project/alpha/kanban#ready', 'kanban'],
@@ -421,7 +423,7 @@ describe('Topbar', () => {
 
     navigate.mockClear();
     component.openNotificationProject(notification);
-    expect(navigate).toHaveBeenCalledWith(['/project', 'beta', 'kanban']);
+    expect(navigate).toHaveBeenCalledWith(['/project', 'beta', 'dashboard']);
   });
 });
 
