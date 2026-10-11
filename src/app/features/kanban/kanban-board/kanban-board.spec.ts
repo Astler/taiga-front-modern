@@ -3,16 +3,19 @@ import { signal } from '@angular/core';
 import { CdkDrag, CdkDragHandle, CdkDropList, type CdkDragDrop } from '@angular/cdk/drag-drop';
 import { By } from '@angular/platform-browser';
 import { TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
+import { Subject, of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthService } from '../../../core/auth';
 import { RuntimeConfigService } from '../../../core/config';
 import { StoryEditorLayoutService } from '../../../shared/story-editor-layout.service';
+import { KanbanSortPreferenceService } from '../data/kanban-sort-preference.service';
 import {
   KanbanApiService,
   KanbanFilterPresetsService,
   type KanbanLane,
   type KanbanMoveRequest,
+  type KanbanFilterPreset,
+  type KanbanSortMode,
   type KanbanProjectSnapshot,
   type KanbanStatus,
   type KanbanUserStory,
@@ -39,6 +42,10 @@ describe('KanbanBoard', () => {
   const updateStoryPoints = vi.fn();
   const loadPresets = vi.fn();
   const savePresets = vi.fn();
+  const readSort = vi.fn();
+  const loadRemoteSort = vi.fn();
+  const saveSort = vi.fn();
+  const cacheSort = vi.fn();
   const fullscreenPreference = signal(false);
 
   beforeEach(async () => {
@@ -102,6 +109,10 @@ describe('KanbanBoard', () => {
     deleteAttachment.mockReturnValue(of(undefined));
     loadPresets.mockReturnValue(of([]));
     savePresets.mockReturnValue(of(undefined));
+    readSort.mockReset().mockReturnValue('manual');
+    loadRemoteSort.mockReset().mockReturnValue(of(null));
+    saveSort.mockReset();
+    cacheSort.mockReset();
 
     await TestBed.configureTestingModule({
       imports: [KanbanBoard],
@@ -145,6 +156,15 @@ describe('KanbanBoard', () => {
         {
           provide: StoryEditorLayoutService,
           useValue: { fullscreen: fullscreenPreference.asReadonly() },
+        },
+        {
+          provide: KanbanSortPreferenceService,
+          useValue: {
+            readLocal: readSort,
+            loadRemote: loadRemoteSort,
+            save: saveSort,
+            cacheLocal: cacheSort,
+          },
         },
       ],
     }).compileComponents();
@@ -694,6 +714,131 @@ describe('KanbanBoard', () => {
     expect(paste.defaultPrevented).toBe(true);
     expect(uploadAttachment).toHaveBeenCalledWith({ projectId: 17, storyId: 101, file });
     expect(host.querySelector('.detail-attachment-list')?.textContent).toContain('clipboard.png');
+  });
+
+
+  it('restores a saved project sort and applies remote account preference on first load', async () => {
+    readSort.mockReturnValue('newest');
+    loadRemoteSort.mockReturnValue(of('title'));
+
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', project());
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    expect(readSort).toHaveBeenCalledWith(7, 17);
+    expect(loadRemoteSort).toHaveBeenCalledWith(7, 17);
+    expect(cacheSort).toHaveBeenCalledWith(7, 17, 'title');
+    expect(saveSort).not.toHaveBeenCalled();
+    expect(
+      host.querySelector<HTMLButtonElement>('[aria-label^="Sort stories"]')?.getAttribute('aria-label'),
+    ).toContain('Title A–Z');
+  });
+
+  it('keeps the sort when choosing built-in filter chips and saves explicit changes', async () => {
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', project());
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const board = fixture.componentInstance as unknown as {
+      selectSort(mode: KanbanSortMode): void;
+      applyPreset(preset: KanbanFilterPreset): void;
+    };
+    const host = fixture.nativeElement as HTMLElement;
+
+    board.selectSort('newest');
+    fixture.detectChanges();
+    expect(saveSort).toHaveBeenLastCalledWith(7, 17, 'newest');
+    expect(
+      host.querySelector<HTMLButtonElement>('[aria-label^="Sort stories"]')?.getAttribute('aria-label'),
+    ).toContain('Newest created');
+
+    const allWork = [...host.querySelectorAll<HTMLButtonElement>('.preset-chip')].find(
+      ({ textContent }) => textContent?.trim() === 'All work',
+    )!;
+    allWork.click();
+    fixture.detectChanges();
+    expect(allWork.classList.contains('preset-chip-active')).toBe(true);
+    expect(
+      host.querySelector<HTMLButtonElement>('[aria-label^="Sort stories"]')?.getAttribute('aria-label'),
+    ).toContain('Newest created');
+    expect(saveSort).toHaveBeenCalledTimes(1);
+
+    board.applyPreset({
+      id: 'saved:deadline',
+      name: 'Deadline view',
+      query: '',
+      sort: 'due',
+      filters: [],
+    });
+    fixture.detectChanges();
+    expect(saveSort).toHaveBeenLastCalledWith(7, 17, 'due');
+    expect(
+      host.querySelector<HTMLButtonElement>('[aria-label^="Sort stories"]')?.getAttribute('aria-label'),
+    ).toContain('Due date');
+  });
+
+  it('does not overwrite a newer choice with a delayed server response', async () => {
+    const pending = new Subject<KanbanSortMode | null>();
+    loadRemoteSort.mockReturnValue(pending);
+
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', project());
+    fixture.detectChanges();
+    const board = fixture.componentInstance as unknown as {
+      selectSort(mode: KanbanSortMode): void;
+    };
+    board.selectSort('points');
+    fixture.detectChanges();
+
+    pending.next('manual');
+    pending.complete();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    expect(saveSort).toHaveBeenCalledWith(7, 17, 'points');
+    expect(cacheSort).not.toHaveBeenCalled();
+    expect(
+      host.querySelector<HTMLButtonElement>('[aria-label^="Sort stories"]')?.getAttribute('aria-label'),
+    ).toContain('Highest points');
+  });
+
+  it('restores a separate sort when changing projects and ignores stale project responses', async () => {
+    const firstResponse = new Subject<KanbanSortMode | null>();
+    readSort.mockImplementation((_user: number, projectId: number) =>
+      projectId === 17 ? 'newest' : 'updated',
+    );
+    loadRemoteSort.mockReturnValueOnce(firstResponse).mockReturnValueOnce(of(null));
+
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', project());
+    fixture.detectChanges();
+
+    fixture.componentRef.setInput('project', {
+      ...project(),
+      id: 18,
+      slug: 'beta',
+      name: 'Beta',
+    });
+    fixture.detectChanges();
+    firstResponse.next('due');
+    firstResponse.complete();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    expect(readSort).toHaveBeenCalledWith(7, 17);
+    expect(readSort).toHaveBeenCalledWith(7, 18);
+    expect(loadRemoteSort).toHaveBeenCalledWith(7, 18);
+    expect(cacheSort).not.toHaveBeenCalled();
+    expect(saveSort).not.toHaveBeenCalled();
+    expect(
+      host.querySelector<HTMLButtonElement>('[aria-label^="Sort stories"]')?.getAttribute('aria-label'),
+    ).toContain('Recently updated');
   });
 
   it('applies project-specific saved views', async () => {

@@ -20,6 +20,7 @@ import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../core/auth';
 import { CompactKanbanToolbarService } from '../../../shared/compact-kanban-toolbar.service';
 import { StoryEditorLayoutService } from '../../../shared/story-editor-layout.service';
+import { KanbanSortPreferenceService } from '../data/kanban-sort-preference.service';
 import type { TaigaId } from '../../../shared/models';
 import {
   KanbanStore,
@@ -124,6 +125,7 @@ export class KanbanBoard {
   protected readonly store = inject(KanbanStore);
   private readonly auth = inject(AuthService);
   private readonly presetApi = inject(KanbanFilterPresetsService);
+  private readonly sortPreferences = inject(KanbanSortPreferenceService);
   protected readonly compactToolbar = inject(CompactKanbanToolbarService);
   protected readonly editorLayout = inject(StoryEditorLayoutService);
   private readonly editorLayoutOverride = signal<boolean | null>(null);
@@ -166,6 +168,9 @@ export class KanbanBoard {
   protected readonly liveAnnouncement = signal('');
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private loadedProjectId: TaigaId | undefined;
+  private loadedSortUserId: TaigaId | null | undefined;
+  private sortLoadRevision = 0;
+  private sortChangeRevision = 0;
   private presetLoadRevision = 0;
   private consumedStoryLink: string | null = null;
 
@@ -445,7 +450,7 @@ export class KanbanBoard {
       candidates.find(
         (preset) =>
           preset.query === this.query() &&
-          preset.sort === this.sortMode() &&
+          (preset.id.startsWith('builtin:') || preset.sort === this.sortMode()) &&
           clausesEqual(preset.filters, this.filterClauses()),
       )?.id ?? null
     );
@@ -547,23 +552,52 @@ export class KanbanBoard {
 
     effect(() => {
       const projectId = this.project().id;
+      const userId = this.auth.user()?.id ?? null;
       untracked(() => {
-        if (this.loadedProjectId === projectId) {
-          return;
-        }
+        const projectChanged = this.loadedProjectId !== projectId;
+        const accountChanged = this.loadedSortUserId !== userId;
+        if (!projectChanged && !accountChanged) return;
 
         this.loadedProjectId = projectId;
+        this.loadedSortUserId = userId;
         this.consumedStoryLink = null;
         this.clearFilters();
-        this.sortMode.set('manual');
         this.filterPanelOpen.set(false);
         this.presetName.set('');
         this.presetEditorOpen.set(false);
         this.presetsSaving.set(false);
         this.cancelQuickCreate(false);
         this.activeStory.set(null);
-        this.store.load(projectId);
-        this.loadPresets(projectId);
+
+        const loadRevision = ++this.sortLoadRevision;
+        this.sortChangeRevision = 0;
+        this.sortMode.set(userId === null
+          ? 'manual'
+          : this.sortPreferences.readLocal(userId, projectId));
+
+        if (userId !== null) {
+          const changeRevision = this.sortChangeRevision;
+          void firstValueFrom(this.sortPreferences.loadRemote(userId, projectId))
+            .then((mode) => {
+              // Never overwrite a newer selection, another project's mode, or another account.
+              if (
+                mode === null ||
+                loadRevision !== this.sortLoadRevision ||
+                changeRevision !== this.sortChangeRevision ||
+                this.loadedProjectId !== projectId ||
+                this.loadedSortUserId !== userId
+              ) return;
+
+              this.sortMode.set(mode);
+              this.sortPreferences.cacheLocal(userId, projectId, mode);
+            })
+            .catch(() => undefined);
+        }
+
+        if (projectChanged) {
+          this.store.load(projectId);
+          this.loadPresets(projectId);
+        }
       });
     });
 
@@ -620,7 +654,13 @@ export class KanbanBoard {
   }
 
   protected selectSort(mode: KanbanSortMode): void {
+    if (this.sortMode() === mode) return;
     this.sortMode.set(mode);
+    ++this.sortChangeRevision;
+    const userId = this.auth.user()?.id;
+    if (userId !== undefined) {
+      this.sortPreferences.save(userId, this.project().id, mode);
+    }
   }
 
   protected toggleFilterPanel(): void {
@@ -671,7 +711,10 @@ export class KanbanBoard {
 
   protected applyPreset(preset: KanbanFilterPreset): void {
     this.query.set(preset.query);
-    this.sortMode.set(preset.sort);
+    // Built-in chips are filters, not sort overrides. Saved user views retain their sort.
+    if (!preset.id.startsWith('builtin:')) {
+      this.selectSort(preset.sort);
+    }
     this.filterClauses.set(preset.filters.map((filter) => ({ ...filter })));
   }
 
@@ -901,7 +944,7 @@ export class KanbanBoard {
     }
     this.announceMoveResult(result, story, lane, status);
     if (result === 'moved' && this.sortMode() !== 'manual') {
-      this.sortMode.set('manual');
+      this.selectSort('manual');
     }
   }
 
@@ -1430,7 +1473,7 @@ export class KanbanBoard {
     }
     this.announceMoveResult(result, story, lane, status);
     if (result === 'moved' && this.sortMode() !== 'manual') {
-      this.sortMode.set('manual');
+      this.selectSort('manual');
     }
     this.activeStory.set(null);
     this.restoreStoryMenuFocus(story.id);
