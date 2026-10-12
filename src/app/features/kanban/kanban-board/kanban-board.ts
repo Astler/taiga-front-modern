@@ -118,6 +118,7 @@ const SORT_OPTIONS: readonly SortOption[] = [
     './kanban-task-editor.scss',
     './kanban-comment-editor.scss',
     './kanban-points-editor.scss',
+    './kanban-attachment-gallery.scss',
   ],
   templateUrl: './kanban-board.html',
 })
@@ -1498,7 +1499,7 @@ export class KanbanBoard {
     if (!story || !this.canModify() || this.attachmentUploadName() || this.attachmentDeletingId()) {
       return;
     }
-    if (!globalThis.confirm(`Remove “${attachment.name}” from this story?`)) {
+    if (!globalThis.confirm(`Remove “${this.attachmentName(attachment)}” from this story?`)) {
       return;
     }
 
@@ -1507,10 +1508,10 @@ export class KanbanBoard {
     const result = await this.store.deleteAttachment(this.project().id, story.id, attachment.id);
     this.attachmentDeletingId.set(null);
     if (result === 'deleted') {
-      this.liveAnnouncement.set(`${attachment.name} removed from story #${story.ref}.`);
+      this.liveAnnouncement.set(`${this.attachmentName(attachment)} removed from story #${story.ref}.`);
       return;
     }
-    this.attachmentUploadError.set(`Could not remove “${attachment.name}”.`);
+    this.attachmentUploadError.set(`Could not remove “${this.attachmentName(attachment)}”.`);
   }
 
   private async uploadStoryFiles(files: readonly File[]): Promise<void> {
