@@ -174,6 +174,8 @@ export class KanbanBoard {
   protected readonly attachmentUploadName = signal<string | null>(null);
   protected readonly attachmentUploadError = signal<string | null>(null);
   protected readonly attachmentDeletingId = signal<TaigaId | null>(null);
+  protected readonly attachmentPreview = signal<KanbanAttachmentSummary | null>(null);
+  protected readonly attachmentPreviewError = signal(false);
   protected readonly liveAnnouncement = signal('');
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private loadedProjectId: TaigaId | undefined;
@@ -994,6 +996,7 @@ export class KanbanBoard {
     this.storyDraft.set(storyDraftFrom(story));
     this.storyDraftDirty.set(false);
     this.store.openStoryDetails(story.id);
+    this.store.loadStoryAttachments(story.id);
     this.store.loadStoryHistory(story.id);
   }
 
@@ -1016,6 +1019,7 @@ export class KanbanBoard {
   }
 
   protected closeStoryDetails(): void {
+    this.attachmentPreview.set(null);
     this.commentDraft.set('');
     this.cancelCommentEdit();
     this.resetTaskEditor();
@@ -1398,8 +1402,8 @@ export class KanbanBoard {
     void this.uploadStoryFiles([...(event.dataTransfer?.files ?? [])]);
   }
 
-  protected formatFileSize(value: number | undefined): string {
-    if (value === undefined || value < 0) {
+  protected formatFileSize(value: number | null | undefined): string {
+    if (value == null || !Number.isFinite(value) || value < 0) {
       return '';
     }
     if (value < 1024) {
@@ -1409,6 +1413,84 @@ export class KanbanBoard {
       return `${(value / 1024).toFixed(1)} KB`;
     }
     return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  protected attachmentName(attachment: KanbanAttachmentSummary): string {
+    if (attachment.name?.trim()) return attachment.name.trim();
+    const path = (attachment.attached_file || attachment.url || '').split(/[?#]/, 1)[0] ?? '';
+    const lastPart = path.split('/').pop();
+    if (lastPart) {
+      try {
+        return decodeURIComponent(lastPart);
+      } catch {
+        return lastPart;
+      }
+    }
+    return 'Attachment #' + attachment.id;
+  }
+
+  protected attachmentKind(attachment: KanbanAttachmentSummary): 'image' | 'video' | 'pdf' | 'file' {
+    const name = this.attachmentName(attachment).toLowerCase();
+    if (/\.pdf$/i.test(name)) return 'pdf';
+    if (/\.(mp4|webm|ogv|ogg|mov)$/i.test(name)) return 'video';
+    if (/\.(png|jpe?g|gif|webp|bmp|avif|svg|psd)$/i.test(name) ||
+      attachment.thumbnail_card_url) return 'image';
+    return 'file';
+  }
+
+  protected attachmentFileType(attachment: KanbanAttachmentSummary): string {
+    const name = this.attachmentName(attachment);
+    const extension = /\.([\w]{1,8})$/.exec(name)?.[1];
+    return extension ? extension.toUpperCase() : 'FILE';
+  }
+
+  protected attachmentThumbnailUrl(attachment: KanbanAttachmentSummary): string | null {
+    return this.attachmentKind(attachment) === 'image'
+      ? attachment.thumbnail_card_url || attachment.preview_url || attachment.url || null
+      : null;
+  }
+
+  protected attachmentPreviewUrl(attachment: KanbanAttachmentSummary): string | null {
+    return attachment.preview_url || attachment.url || attachment.thumbnail_card_url || null;
+  }
+
+  protected openAttachmentPreview(attachment: KanbanAttachmentSummary): void {
+    if (this.attachmentKind(attachment) !== 'image' &&
+        this.attachmentKind(attachment) !== 'video') return;
+    if (!this.attachmentPreviewUrl(attachment)) return;
+    this.attachmentPreviewError.set(false);
+    this.attachmentPreview.set(attachment);
+  }
+
+  protected closeAttachmentPreview(): void {
+    const id = this.attachmentPreview()?.id;
+    this.attachmentPreview.set(null);
+    this.attachmentPreviewError.set(false);
+    if (id != null) {
+      queueMicrotask(() => {
+        const trigger = [...this.host.nativeElement.querySelectorAll<HTMLButtonElement>(
+          '[data-attachment-preview]',
+        )].find((button) => button.dataset['attachmentPreview'] === String(id));
+        trigger?.focus();
+      });
+    }
+  }
+
+  protected cancelAttachmentPreview(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.closeAttachmentPreview();
+  }
+
+  protected attachmentThumbnailError(attachment: KanbanAttachmentSummary, event: Event): void {
+    const image = event.target as HTMLImageElement;
+    const fallback = attachment.preview_url || attachment.url;
+    if (fallback && image.dataset['fallbackAttempted'] !== 'true') {
+      image.dataset['fallbackAttempted'] = 'true';
+      image.src = fallback;
+    } else {
+      image.hidden = true;
+    }
   }
 
   protected async removeStoryAttachment(attachment: KanbanAttachmentSummary): Promise<void> {
