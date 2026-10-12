@@ -5,6 +5,7 @@ import type { TaigaId } from '../../../shared/models';
 import { KanbanApiService } from './kanban-api.service';
 import type {
   KanbanCreateRequest,
+  KanbanAttachmentSummary,
   KanbanAttachmentUploadRequest,
   KanbanFiltersData,
   KanbanMilestone,
