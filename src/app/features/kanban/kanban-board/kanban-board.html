@@ -975,7 +975,12 @@
             <div class="detail-section-heading">
               <div>
                 <h3>Files</h3>
-                <span>{{ detail.attachments?.length ?? 0 }} attached</span>
+                <span>
+                  {{ store.storyAttachments().length ||
+                    (store.storyAttachmentsLoading()
+                      ? (detail.total_attachments ?? detail.attachments?.length ?? 0)
+                      : 0) }} attached
+                </span>
               </div>
               @if (canModify()) {
                 <input
@@ -1001,6 +1006,7 @@
                 class="file-drop-zone"
                 [class.file-drop-zone-active]="attachmentDragActive()"
                 [class.file-drop-zone-busy]="attachmentUploadName()"
+                [class.file-drop-zone-compact]="store.storyAttachments().length > 0"
                 (dragover)="storyFilesDragOver($event)"
                 (dragleave)="storyFilesDragLeave($event)"
                 (drop)="dropStoryFiles($event)"
@@ -1015,8 +1021,14 @@
                       d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v4.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V14"
                     />
                   </svg>
-                  <strong>Drop files here or paste an image</strong>
-                  <span>Ctrl+V works anywhere while this card is open.</span>
+                  <strong>
+                    {{ store.storyAttachments().length
+                      ? 'Drop more files or paste an image'
+                      : 'Drop files here or paste an image' }}
+                  </strong>
+                  @if (!store.storyAttachments().length) {
+                    <span>Ctrl+V works anywhere while this card is open.</span>
+                  }
                 }
               </div>
             }
@@ -1025,50 +1037,129 @@
               <p class="file-upload-error" role="alert">{{ uploadError }}</p>
             }
 
-            @if (detail.attachments?.length) {
-              <ul class="detail-attachment-list">
-                @for (attachment of detail.attachments; track attachment.id) {
-                  <li>
-                    <span class="file-preview" aria-hidden="true">
-                      @if (attachment.thumbnail_card_url) {
-                        <img [src]="attachment.thumbnail_card_url" alt="" />
+            @if (store.storyAttachmentsLoading()) {
+              <p class="file-metadata-state" role="status">Loading file previews…</p>
+            }
+            @if (store.storyAttachmentsError(); as filesError) {
+              <div class="file-metadata-error" role="alert">
+                <span>{{ filesError }}</span>
+                <button type="button" (click)="store.loadStoryAttachments(detail.id)">Retry</button>
+              </div>
+            }
+
+            @if (store.storyAttachments().length) {
+              <ul class="detail-attachment-grid" aria-label="Story attachments">
+                @for (attachment of store.storyAttachments(); track attachment.id) {
+                  <li class="attachment-card">
+                    @if (attachmentKind(attachment) === 'image') {
+                      @if (attachmentThumbnailUrl(attachment); as thumbnail) {
+                        <button
+                          type="button"
+                          class="attachment-image-trigger"
+                          [attr.data-attachment-preview]="attachment.id"
+                          [attr.aria-label]="'Preview image ' + attachmentName(attachment)"
+                          (click)="openAttachmentPreview(attachment)"
+                        >
+                          <span class="attachment-image-fallback" aria-hidden="true">
+                            <svg viewBox="0 0 24 24">
+                              <rect x="3" y="4" width="18" height="16" rx="2" />
+                              <circle cx="9" cy="10" r="1.8" />
+                              <path d="m4 18 5-5 3 3 4-5 5 6" />
+                            </svg>
+                          </span>
+                          <img
+                            [src]="thumbnail"
+                            [alt]="attachmentName(attachment)"
+                            loading="lazy"
+                            (error)="attachmentThumbnailError(attachment, $event)"
+                          />
+                          <span class="attachment-preview-hint">Preview</span>
+                        </button>
                       } @else {
-                        <svg viewBox="0 0 24 24">
-                          <path d="M7 3.5h7l4 4V20H7zM14 3.5V8h4" />
-                        </svg>
+                        <div class="attachment-type-preview">
+                          <span>IMG</span>
+                        </div>
                       }
-                    </span>
-                    <span class="file-copy">
-                      @if (attachment.url) {
-                        <a [href]="attachment.url" target="_blank" rel="noopener">
-                          {{ attachment.name }}
-                        </a>
-                      } @else {
-                        {{ attachment.name }}
-                      }
-                      @if (formatFileSize(attachment.size)) {
-                        <small>{{ formatFileSize(attachment.size) }}</small>
-                      }
-                    </span>
-                    @if (canModify()) {
+                    } @else if (attachmentKind(attachment) === 'video' &&
+                               attachmentPreviewUrl(attachment)) {
                       <button
-                        class="file-remove"
                         type="button"
-                        [disabled]="attachmentDeletingId() !== null"
-                        [attr.aria-label]="'Remove ' + attachment.name"
-                        (click)="removeStoryAttachment(attachment)"
+                        class="attachment-type-preview attachment-video-trigger"
+                        [attr.data-attachment-preview]="attachment.id"
+                        [attr.aria-label]="'Preview video ' + attachmentName(attachment)"
+                        (click)="openAttachmentPreview(attachment)"
                       >
-                        @if (attachmentDeletingId() === attachment.id) {
-                          <span class="file-upload-spinner" aria-hidden="true"></span>
-                        } @else {
-                          <span aria-hidden="true">×</span>
-                        }
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <rect x="3" y="5" width="18" height="14" rx="2" />
+                          <path d="m10 9 5 3-5 3V9Z" />
+                        </svg>
+                        <span>Video</span>
                       </button>
+                    } @else {
+                      <div class="attachment-type-preview" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                          <path d="M7 3.5h7l4 4V20H7zM14 3.5V8h4M9 13h6m-6 3h6" />
+                        </svg>
+                        <span>{{ attachmentFileType(attachment) }}</span>
+                      </div>
                     }
+
+                    <div class="attachment-card-details">
+                      <div class="attachment-card-name">
+                        @if (attachment.url; as url) {
+                          <a [href]="url" target="_blank" rel="noopener noreferrer"
+                             [title]="attachmentName(attachment)">
+                            {{ attachmentName(attachment) }}
+                          </a>
+                        } @else {
+                          <span [title]="attachmentName(attachment)">
+                            {{ attachmentName(attachment) }}
+                          </span>
+                        }
+                      </div>
+                      <span class="attachment-file-meta">
+                        {{ attachmentFileType(attachment) }}
+                        @if (formatFileSize(attachment.size)) {
+                          · {{ formatFileSize(attachment.size) }}
+                        }
+                      </span>
+                      <div class="attachment-card-actions">
+                        @if (attachment.url; as url) {
+                          <a
+                            [href]="url"
+                            class="attachment-open-link"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            [attr.aria-label]="'Open original file ' + attachmentName(attachment)"
+                            title="Open original"
+                          >
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path d="M7 17 17 7M8 7h9v9" />
+                            </svg>
+                          </a>
+                        }
+                        @if (canModify()) {
+                          <button
+                            class="file-remove"
+                            type="button"
+                            [disabled]="attachmentDeletingId() !== null"
+                            [attr.aria-label]="'Remove ' + attachmentName(attachment)"
+                            (click)="removeStoryAttachment(attachment)"
+                            title="Remove attachment"
+                          >
+                            @if (attachmentDeletingId() === attachment.id) {
+                              <span class="file-upload-spinner" aria-hidden="true"></span>
+                            } @else {
+                              <span aria-hidden="true">×</span>
+                            }
+                          </button>
+                        }
+                      </div>
+                    </div>
                   </li>
                 }
               </ul>
-            } @else {
+            } @else if (!store.storyAttachmentsLoading() && !store.storyAttachmentsError()) {
               <p class="files-empty">No files attached yet.</p>
             }
           </section>
@@ -1229,6 +1320,56 @@
           }
         </footer>
       </aside>
+    </dialog>
+  }
+
+  @if (attachmentPreview(); as preview) {
+    <dialog
+      pfModalTopLayer
+      class="attachment-lightbox"
+      aria-labelledby="attachment-lightbox-title"
+      (click)="closeAttachmentPreview()"
+      (cancel)="cancelAttachmentPreview($event)"
+      (keydown.escape)="cancelAttachmentPreview($event)"
+    >
+      <div class="attachment-lightbox-panel" (click)="$event.stopPropagation()">
+        <header class="attachment-lightbox-header">
+          <strong id="attachment-lightbox-title" [title]="attachmentName(preview)">
+            {{ attachmentName(preview) }}
+          </strong>
+          <div class="attachment-lightbox-actions">
+            @if (preview.url; as original) {
+              <a [href]="original" target="_blank" rel="noopener noreferrer">
+                Open original
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M7 17 17 7M8 7h9v9" />
+                </svg>
+              </a>
+            }
+            <button
+              type="button"
+              autofocus
+              aria-label="Close attachment preview"
+              (click)="closeAttachmentPreview()"
+            >×</button>
+          </div>
+        </header>
+        <div class="attachment-lightbox-media">
+          @if (attachmentKind(preview) === 'video') {
+            <video [src]="attachmentPreviewUrl(preview)" controls playsinline preload="metadata">
+              Your browser cannot play this file. Use Open original.
+            </video>
+          } @else if (attachmentPreviewError()) {
+            <p role="alert">Preview unavailable. Open the original file instead.</p>
+          } @else {
+            <img
+              [src]="attachmentPreviewUrl(preview)"
+              [alt]="attachmentName(preview)"
+              (error)="attachmentPreviewError.set(true)"
+            />
+          }
+        </div>
+      </div>
     </dialog>
   }
 

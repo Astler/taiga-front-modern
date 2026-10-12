@@ -184,6 +184,17 @@ export class KanbanApiService {
     return this.http.delete<void>(`${this.config.resolveApiPath('userstories')}/${storyId}`);
   }
 
+  /** Story detail embeds only tiny thumbnails; this endpoint returns full file metadata. */
+  listAttachments(projectId: TaigaId, storyId: TaigaId): Observable<readonly KanbanAttachmentSummary[]> {
+    return this.http.get<readonly KanbanAttachmentSummary[]>(
+      this.config.resolveApiPath('userstories/attachments'),
+      {
+        headers: UNPAGINATED_HEADERS,
+        params: new HttpParams().set('project', projectId).set('object_id', storyId),
+      },
+    );
+  }
+
   uploadAttachment(request: KanbanAttachmentUploadRequest): Observable<KanbanAttachmentSummary> {
     const body = new FormData();
     body.append('project', String(request.projectId));

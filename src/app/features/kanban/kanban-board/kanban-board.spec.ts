@@ -30,6 +30,7 @@ describe('KanbanBoard', () => {
   const getUserStory = vi.fn();
   const updateUserStory = vi.fn();
   const uploadAttachment = vi.fn();
+  const listAttachments = vi.fn();
   const deleteAttachment = vi.fn();
   const deleteUserStory = vi.fn();
   const listTaskStatuses = vi.fn();
@@ -61,6 +62,7 @@ describe('KanbanBoard', () => {
     getUserStory.mockReset();
     updateUserStory.mockReset();
     uploadAttachment.mockReset();
+    listAttachments.mockReset().mockReturnValue(of([]));
     deleteAttachment.mockReset();
     deleteUserStory.mockReset();
     deleteUserStory.mockReturnValue(of(undefined));
@@ -131,6 +133,7 @@ describe('KanbanBoard', () => {
             getUserStory,
             updateUserStory,
             uploadAttachment,
+            listAttachments,
             deleteAttachment,
             deleteUserStory,
             listTaskStatuses,
@@ -289,6 +292,10 @@ describe('KanbanBoard', () => {
       attachments: [{ id: 7, name: 'login.png', url: 'https://files.example.test/login.png' }],
     } satisfies KanbanUserStory;
     getUserStory.mockReturnValue(of(detail));
+    listAttachments.mockReturnValue(of([
+      { id: 7, name: 'login.png', url: 'https://files.example.test/login.png',
+        preview_url: 'https://files.example.test/login.png', size: 1024 },
+    ]));
 
     const fixture = TestBed.createComponent(KanbanBoard);
     fixture.componentRef.setInput('project', project());
@@ -311,7 +318,8 @@ describe('KanbanBoard', () => {
       'Login work that must ship with the release.',
     );
     expect(host.querySelector('.detail-section-heading span')?.textContent).toContain('1/2');
-    expect(host.querySelector('.detail-attachment-list')?.textContent).toContain('login.png');
+    expect(listAttachments).toHaveBeenCalledWith(17, 101);
+    expect(host.querySelector('.detail-attachment-grid')?.textContent).toContain('login.png');
     expect(host.querySelector('.story-drawer-footer a')).toBeNull();
 
     host.querySelector<HTMLButtonElement>('.drawer-close')!.click();
@@ -784,6 +792,126 @@ describe('KanbanBoard', () => {
     expect(host.querySelector('.story-drawer-footer a')).toBeNull();
   });
 
+  it('renders real image previews and document cards from full attachment metadata', async () => {
+    getUserStory.mockReturnValue(of({
+      ...stories()[0]!,
+      attachments: [
+        { id: 10, attached_file: 'attachments/screenshot.png', thumbnail_card_url: '/tiny.png' },
+      ],
+      total_attachments: 3,
+    }));
+    listAttachments.mockReturnValue(of([
+      {
+        id: 10, name: 'screenshot.png',
+        url: 'https://files.example.test/screenshot.png',
+        preview_url: 'https://files.example.test/screenshot.png',
+        thumbnail_card_url: 'https://files.example.test/thumb.png',
+        size: 20480,
+      },
+      {
+        id: 11, name: 'specification.pdf',
+        url: 'https://files.example.test/specification.pdf',
+        size: 4096,
+      },
+      {
+        id: 12, name: 'project.zip',
+        url: 'https://files.example.test/project.zip',
+        size: 256000,
+      },
+    ]));
+
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', project());
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    host.querySelector<HTMLButtonElement>('.story-subject')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(listAttachments).toHaveBeenCalledWith(17, 101);
+    const cards = host.querySelectorAll<HTMLElement>('.detail-attachment-grid .attachment-card');
+    expect(cards).toHaveLength(3);
+    expect(cards[0]?.querySelector('img')?.getAttribute('src'))
+      .toBe('https://files.example.test/thumb.png');
+    expect(cards[0]?.querySelector('.attachment-file-meta')?.textContent).toContain('20.0 KB');
+    expect(cards[1]?.textContent).toContain('specification.pdf');
+    expect(cards[1]?.querySelector('.attachment-type-preview')?.textContent).toContain('PDF');
+    expect(cards[2]?.querySelector('.attachment-type-preview')?.textContent).toContain('ZIP');
+    expect(cards[2]?.querySelector('a.attachment-open-link')?.getAttribute('href'))
+      .toBe('https://files.example.test/project.zip');
+    expect(host.querySelector('.file-drop-zone-compact')).toBeTruthy();
+
+    cards[0]!.querySelector<HTMLButtonElement>('.attachment-image-trigger')!.click();
+    fixture.detectChanges();
+    const preview = host.querySelector<HTMLDialogElement>('.attachment-lightbox')!;
+    expect(preview).toBeTruthy();
+    expect(preview.querySelector('img')?.getAttribute('src'))
+      .toBe('https://files.example.test/screenshot.png');
+    expect(preview.querySelector('a')?.getAttribute('href'))
+      .toBe('https://files.example.test/screenshot.png');
+
+    preview.querySelector<HTMLButtonElement>('[aria-label="Close attachment preview"]')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(host.querySelector('.attachment-lightbox')).toBeNull();
+    expect(host.querySelector('dialog.story-drawer-backdrop')?.getAttribute('open')).not.toBeNull();
+  });
+
+  it('supports video preview and PDF original links without embedding arbitrary document URLs', async () => {
+    listAttachments.mockReturnValue(of([
+      { id: 20, name: 'recording.webm', url: 'https://files.example.test/recording.webm' },
+      { id: 21, name: 'report.pdf', url: 'https://files.example.test/report.pdf' },
+    ]));
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', project());
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    host.querySelector<HTMLButtonElement>('.story-subject')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const gallery = host.querySelector<HTMLElement>('.detail-attachment-grid')!;
+    gallery.querySelector<HTMLButtonElement>('.attachment-video-trigger')!.click();
+    fixture.detectChanges();
+    const preview = host.querySelector<HTMLDialogElement>('.attachment-lightbox')!;
+    expect(preview.querySelector('video')?.getAttribute('src'))
+      .toBe('https://files.example.test/recording.webm');
+    preview.dispatchEvent(new Event('cancel', { cancelable: true }));
+    fixture.detectChanges();
+    expect(host.querySelector('.attachment-lightbox')).toBeNull();
+    expect(host.querySelector('.story-drawer')).toBeTruthy();
+    expect(gallery.querySelector('iframe')).toBeNull();
+    expect(gallery.querySelector('a[href$=".pdf"]')?.getAttribute('target')).toBe('_blank');
+  });
+
+  it('retries failed attachment metadata without hiding the rest of the story editor', async () => {
+    listAttachments
+      .mockReturnValueOnce(throwError(() => new Error('Network unavailable')))
+      .mockReturnValueOnce(of([
+        { id: 19, name: 'restored.png', url: 'https://files.example.test/restored.png' },
+      ]));
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', project());
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    host.querySelector<HTMLButtonElement>('.story-subject')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(host.querySelector('.file-metadata-error')).toBeTruthy();
+    expect(host.querySelector('.story-drawer h2')).toBeTruthy();
+    host.querySelector<HTMLButtonElement>('.file-metadata-error button')!.click();
+    fixture.detectChanges();
+    expect(host.querySelector('.file-metadata-error')).toBeNull();
+    expect(host.querySelector('.detail-attachment-grid')?.textContent).toContain('restored.png');
+  });
+
   it('keeps the files block visible and uploads an image pasted into the editor', async () => {
     const detail = { ...stories()[0]!, attachments: [], total_attachments: 0 };
     getUserStory.mockReturnValue(of(detail));
@@ -811,7 +939,7 @@ describe('KanbanBoard', () => {
 
     expect(paste.defaultPrevented).toBe(true);
     expect(uploadAttachment).toHaveBeenCalledWith({ projectId: 17, storyId: 101, file });
-    expect(host.querySelector('.detail-attachment-list')?.textContent).toContain('clipboard.png');
+    expect(host.querySelector('.detail-attachment-grid')?.textContent).toContain('clipboard.png');
   });
 
 

@@ -81,10 +81,15 @@ export interface KanbanEpicSummary {
 
 export interface KanbanAttachmentSummary {
   readonly id: TaigaId;
-  readonly name: string;
+  // Embedded story attachments only contain id, attached_file and thumbnail_card_url.
+  // /userstories/attachments supplies the full filename, size and public URL.
+  readonly name?: string;
+  readonly attached_file?: string | null;
   readonly url?: string;
+  readonly preview_url?: string | null;
   readonly thumbnail_card_url?: string | null;
-  readonly size?: number;
+  readonly size?: number | null;
+  readonly description?: string | null;
   readonly created_date?: string;
 }
 

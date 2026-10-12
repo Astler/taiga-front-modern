@@ -5,6 +5,7 @@ import type { TaigaId } from '../../../shared/models';
 import { KanbanApiService } from './kanban-api.service';
 import type {
   KanbanCreateRequest,
+  KanbanAttachmentSummary,
   KanbanAttachmentUploadRequest,
   KanbanFiltersData,
   KanbanMilestone,
@@ -56,6 +57,9 @@ export class KanbanStore {
   private readonly selectedStoryState = signal<KanbanUserStory | null>(null);
   private readonly selectedStoryStatusState = signal<KanbanStoryDetailStatus>('idle');
   private readonly selectedStoryErrorState = signal<string | null>(null);
+  private readonly storyAttachmentsState = signal<readonly KanbanAttachmentSummary[]>([]);
+  private readonly storyAttachmentsLoadingState = signal(false);
+  private readonly storyAttachmentsErrorState = signal<string | null>(null);
   private readonly storyHistoryState = signal<readonly KanbanStoryHistoryEntry[]>([]);
   private readonly storyHistoryLoadingState = signal(false);
   private readonly storyHistoryErrorState = signal<string | null>(null);
@@ -64,6 +68,7 @@ export class KanbanStore {
   private requestRevision = 0;
   private mutationRevision = 0;
   private storyDetailRevision = 0;
+  private storyAttachmentsRevision = 0;
 
   readonly projectId = this.projectIdState.asReadonly();
   readonly status = this.statusState.asReadonly();
@@ -81,6 +86,9 @@ export class KanbanStore {
   readonly selectedStory = this.selectedStoryState.asReadonly();
   readonly selectedStoryStatus = this.selectedStoryStatusState.asReadonly();
   readonly selectedStoryError = this.selectedStoryErrorState.asReadonly();
+  readonly storyAttachments = this.storyAttachmentsState.asReadonly();
+  readonly storyAttachmentsLoading = this.storyAttachmentsLoadingState.asReadonly();
+  readonly storyAttachmentsError = this.storyAttachmentsErrorState.asReadonly();
   readonly storyHistory = this.storyHistoryState.asReadonly();
   readonly storyComments = computed(() =>
     this.storyHistoryState().filter(({ comment, is_comment_deleted, delete_comment_date, is_hidden }) =>
@@ -829,6 +837,19 @@ export class KanbanStore {
             : story,
         );
       }
+      if (this.selectedStoryState()?.id === request.storyId) {
+        const shouldRefresh = this.storyAttachmentsLoadingState() ||
+          this.storyAttachmentsErrorState() !== null;
+        ++this.storyAttachmentsRevision;
+        this.storyAttachmentsState.update((attachments) =>
+          attachments.some(({ id }) => id === attachment.id)
+            ? attachments
+            : [...attachments, attachment],
+        );
+        this.storyAttachmentsLoadingState.set(false);
+        this.storyAttachmentsErrorState.set(null);
+        if (shouldRefresh) this.loadStoryAttachments(request.storyId);
+      }
       this.lastSyncedAtState.set(new Date());
       this.mutationState.set(null);
       return 'uploaded';
@@ -878,6 +899,17 @@ export class KanbanStore {
       if (this.selectedStoryState()?.id === storyId) {
         this.selectedStoryState.update((story) => (story ? withoutAttachment(story) : story));
       }
+      if (this.selectedStoryState()?.id === storyId) {
+        const shouldRefresh = this.storyAttachmentsLoadingState() ||
+          this.storyAttachmentsErrorState() !== null;
+        ++this.storyAttachmentsRevision;
+        this.storyAttachmentsState.update((attachments) =>
+          attachments.filter(({ id }) => id !== attachmentId),
+        );
+        this.storyAttachmentsLoadingState.set(false);
+        this.storyAttachmentsErrorState.set(null);
+        if (shouldRefresh) this.loadStoryAttachments(storyId);
+      }
       this.lastSyncedAtState.set(new Date());
       this.mutationState.set(null);
       return 'deleted';
@@ -889,6 +921,35 @@ export class KanbanStore {
       this.mutationErrorState.set('The file could not be removed.');
       return 'failed';
     }
+  }
+
+  /**
+   * Unlike the embedded user-story array, the dedicated attachments endpoint
+   * supplies names, sizes, original URLs and image preview URLs.
+   */
+  loadStoryAttachments(storyId: TaigaId): void {
+    const projectId = this.projectIdState();
+    if (projectId === null || this.selectedStoryState()?.id !== storyId) return;
+
+    const revision = ++this.storyAttachmentsRevision;
+    this.storyAttachmentsLoadingState.set(true);
+    this.storyAttachmentsErrorState.set(null);
+    this.api.listAttachments(projectId, storyId).subscribe({
+      next: (attachments) => {
+        if (revision !== this.storyAttachmentsRevision ||
+          this.projectIdState() !== projectId ||
+          this.selectedStoryState()?.id !== storyId) return;
+        this.storyAttachmentsState.set(attachments);
+        this.storyAttachmentsLoadingState.set(false);
+      },
+      error: () => {
+        if (revision !== this.storyAttachmentsRevision ||
+          this.projectIdState() !== projectId ||
+          this.selectedStoryState()?.id !== storyId) return;
+        this.storyAttachmentsErrorState.set('Could not load the files. Try again.');
+        this.storyAttachmentsLoadingState.set(false);
+      },
+    });
   }
 
   openStoryDetails(storyId: TaigaId): void {
@@ -923,6 +984,10 @@ export class KanbanStore {
   }
 
   closeStoryDetails(): void {
+    ++this.storyAttachmentsRevision;
+    this.storyAttachmentsState.set([]);
+    this.storyAttachmentsLoadingState.set(false);
+    this.storyAttachmentsErrorState.set(null);
     ++this.historyRevision;
     this.pendingHistoryReconciliationState.set(false);
     this.storyHistoryState.set([]);

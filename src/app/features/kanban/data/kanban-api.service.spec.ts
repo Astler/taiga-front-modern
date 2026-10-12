@@ -241,6 +241,28 @@ describe('KanbanApiService', () => {
     await expect(result).resolves.toEqual(response);
   });
 
+  it('loads full story attachment metadata instead of embedded thumbnail-only summaries', async () => {
+    const result = firstValueFrom(service.listAttachments(17, 101));
+    const request = httpTesting.expectOne(
+      (req) => req.url === '/api/v1/userstories/attachments',
+    );
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('project')).toBe('17');
+    expect(request.request.params.get('object_id')).toBe('101');
+    expect(request.request.headers.get('X-Disable-Pagination')).toBe('1');
+
+    const attachments = [{
+      id: 12,
+      name: 'screenshot.png',
+      url: 'https://files.example.test/screenshot.png',
+      preview_url: 'https://files.example.test/screenshot.png',
+      thumbnail_card_url: 'https://files.example.test/thumb.png',
+      size: 23210,
+    }];
+    request.flush(attachments);
+    await expect(result).resolves.toEqual(attachments);
+  });
+
   it('uploads story files with the stable multipart attachment contract', async () => {
     const file = new File(['image data'], 'clipboard.png', { type: 'image/png' });
     const response = { id: 12, name: file.name, url: 'https://files.example.test/clipboard.png' };

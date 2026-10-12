@@ -25,6 +25,9 @@ describe('KanbanStore', () => {
       typeof vi.fn<(request: KanbanCreateRequest) => Observable<readonly KanbanUserStory[]>>
     >;
     getUserStory: ReturnType<typeof vi.fn<(storyId: number) => Observable<KanbanUserStory>>>;
+    listAttachments: ReturnType<typeof vi.fn<
+      (projectId: number, storyId: number) => Observable<readonly KanbanAttachmentSummary[]>
+    >>;
     updateUserStory: ReturnType<
       typeof vi.fn<(request: KanbanStoryUpdateRequest) => Observable<KanbanUserStory>>
     >;
@@ -57,6 +60,7 @@ describe('KanbanStore', () => {
       moveUserStories: vi.fn(),
       createUserStories: vi.fn(),
       getUserStory: vi.fn(),
+      listAttachments: vi.fn(),
       updateUserStory: vi.fn(),
       uploadAttachment: vi.fn(),
       deleteAttachment: vi.fn(),
@@ -71,6 +75,7 @@ describe('KanbanStore', () => {
       addStoryComment: vi.fn(),
       updateStoryPoints: vi.fn(),
     };
+    api.listAttachments.mockReturnValue(of([]));
     TestBed.configureTestingModule({
       providers: [KanbanStore, { provide: KanbanApiService, useValue: api }],
     });
@@ -465,6 +470,76 @@ describe('KanbanStore', () => {
     expect(store.storyComments()).toEqual([]);
   });
 
+  it('loads complete story attachments instead of embedded thumbnail-only rows', () => {
+    const basic = { id: 22, attached_file: 'attachments/test/screenshot.png', thumbnail_card_url: '/tiny.png' };
+    const full = {
+      ...basic,
+      name: 'screenshot.png',
+      url: 'https://files.example.test/screenshot.png',
+      preview_url: 'https://files.example.test/screenshot.png',
+      size: 1048576,
+    };
+    api.load.mockReturnValue(of({
+      swimlanes: [],
+      userStories: [{ ...userStory(1, 1), attachments: [basic], total_attachments: 1 }],
+    }));
+    api.getUserStory.mockReturnValue(of({ ...userStory(1, 1), attachments: [basic] }));
+    api.listAttachments.mockReturnValue(of([full]));
+    store.load(17);
+    store.openStoryDetails(1);
+    store.loadStoryAttachments(1);
+
+    expect(api.listAttachments).toHaveBeenCalledWith(17, 1);
+    expect(store.storyAttachments()).toEqual([full]);
+    expect(store.storyAttachmentsLoading()).toBe(false);
+    expect(store.storyAttachmentsError()).toBeNull();
+  });
+
+  it('ignores stale attachment metadata after closing and switching stories', () => {
+    const pending = new Subject<readonly KanbanAttachmentSummary[]>();
+    api.load.mockReturnValue(of({
+      swimlanes: [],
+      userStories: [userStory(1, 1), userStory(2, 2)],
+    }));
+    api.getUserStory.mockImplementation((id) => of(userStory(id, id)));
+    api.listAttachments.mockReturnValueOnce(pending).mockReturnValueOnce(of([
+      { id: 34, name: 'fresh.pdf', url: 'https://files.example.test/fresh.pdf' },
+    ]));
+    store.load(17);
+    store.openStoryDetails(1);
+    store.loadStoryAttachments(1);
+    expect(store.storyAttachmentsLoading()).toBe(true);
+
+    store.closeStoryDetails();
+    expect(store.storyAttachments()).toEqual([]);
+    store.openStoryDetails(2);
+    store.loadStoryAttachments(2);
+    pending.next([{ id: 33, name: 'stale.png' }]);
+    pending.complete();
+
+    expect(store.selectedStory()?.id).toBe(2);
+    expect(store.storyAttachments().map(({ id }) => id)).toEqual([34]);
+  });
+
+  it('surfaces attachment listing errors and retries without discarding the story', () => {
+    api.load.mockReturnValue(of({ swimlanes: [], userStories: [userStory(1, 1)] }));
+    api.getUserStory.mockReturnValue(of(userStory(1, 1)));
+    api.listAttachments
+      .mockReturnValueOnce(throwError(() => new Error('Network unavailable')))
+      .mockReturnValueOnce(of([
+        { id: 12, name: 'report.pdf', url: 'https://files.example.test/report.pdf' },
+      ]));
+    store.load(17);
+    store.openStoryDetails(1);
+    store.loadStoryAttachments(1);
+    expect(store.storyAttachmentsError()).toContain('Could not load');
+    expect(store.selectedStory()?.id).toBe(1);
+
+    store.loadStoryAttachments(1);
+    expect(store.storyAttachmentsError()).toBeNull();
+    expect(store.storyAttachments()[0]?.name).toBe('report.pdf');
+  });
+
   it('adds and removes attachments in both the board and open editor', async () => {
     const original = { ...userStory(1, 1), attachments: [], total_attachments: 0 };
     const attachment = {
@@ -479,19 +554,50 @@ describe('KanbanStore', () => {
     api.deleteAttachment.mockReturnValue(of(undefined));
     store.load(17);
     store.openStoryDetails(1);
+    store.loadStoryAttachments(1);
 
     await expect(store.uploadAttachment({ projectId: 17, storyId: 1, file })).resolves.toBe(
       'uploaded',
     );
     expect(store.userStories()[0]?.attachments).toEqual([attachment]);
     expect(store.selectedStory()?.attachments).toEqual([attachment]);
+    expect(store.storyAttachments()).toEqual([attachment]);
     expect(store.selectedStory()?.total_attachments).toBe(1);
 
     await expect(store.deleteAttachment(17, 1, attachment.id)).resolves.toBe('deleted');
     expect(api.deleteAttachment).toHaveBeenCalledWith(12);
     expect(store.userStories()[0]?.attachments).toEqual([]);
     expect(store.selectedStory()?.attachments).toEqual([]);
+    expect(store.storyAttachments()).toEqual([]);
     expect(store.selectedStory()?.total_attachments).toBe(0);
+  });
+
+  it('does not let an older attachment request erase a freshly uploaded image', async () => {
+    const oldList = new Subject<readonly KanbanAttachmentSummary[]>();
+    const original = { ...userStory(1, 1), attachments: [], total_attachments: 0 };
+    const image = {
+      id: 77, name: 'new.png', url: 'https://files.example.test/new.png', size: 100,
+    };
+    api.load.mockReturnValue(of({ swimlanes: [], userStories: [original] }));
+    api.getUserStory.mockReturnValue(of(original));
+    api.listAttachments
+      .mockReturnValueOnce(oldList)
+      .mockReturnValueOnce(of([image]));
+    api.uploadAttachment.mockReturnValue(of(image));
+
+    store.load(17);
+    store.openStoryDetails(1);
+    store.loadStoryAttachments(1);
+    expect(store.storyAttachmentsLoading()).toBe(true);
+    const file = new File(['image'], 'new.png', { type: 'image/png' });
+    await expect(store.uploadAttachment({ projectId: 17, storyId: 1, file }))
+      .resolves.toBe('uploaded');
+    expect(api.listAttachments).toHaveBeenCalledTimes(2);
+
+    oldList.next([]);
+    oldList.complete();
+    expect(store.storyAttachments()).toEqual([image]);
+    expect(store.storyAttachmentsLoading()).toBe(false);
   });
 
   it('surfaces the attachment validation message returned by Taiga', async () => {
