@@ -572,6 +572,34 @@ describe('KanbanStore', () => {
     expect(store.selectedStory()?.total_attachments).toBe(0);
   });
 
+  it('does not let an older attachment request erase a freshly uploaded image', async () => {
+    const oldList = new Subject<readonly KanbanAttachmentSummary[]>();
+    const original = { ...userStory(1, 1), attachments: [], total_attachments: 0 };
+    const image = {
+      id: 77, name: 'new.png', url: 'https://files.example.test/new.png', size: 100,
+    };
+    api.load.mockReturnValue(of({ swimlanes: [], userStories: [original] }));
+    api.getUserStory.mockReturnValue(of(original));
+    api.listAttachments
+      .mockReturnValueOnce(oldList)
+      .mockReturnValueOnce(of([image]));
+    api.uploadAttachment.mockReturnValue(of(image));
+
+    store.load(17);
+    store.openStoryDetails(1);
+    store.loadStoryAttachments(1);
+    expect(store.storyAttachmentsLoading()).toBe(true);
+    const file = new File(['image'], 'new.png', { type: 'image/png' });
+    await expect(store.uploadAttachment({ projectId: 17, storyId: 1, file }))
+      .resolves.toBe('uploaded');
+    expect(api.listAttachments).toHaveBeenCalledTimes(2);
+
+    oldList.next([]);
+    oldList.complete();
+    expect(store.storyAttachments()).toEqual([image]);
+    expect(store.storyAttachmentsLoading()).toBe(false);
+  });
+
   it('surfaces the attachment validation message returned by Taiga', async () => {
     api.load.mockReturnValue(of({ swimlanes: [], userStories: [userStory(1, 1)] }));
     api.uploadAttachment.mockReturnValue(
