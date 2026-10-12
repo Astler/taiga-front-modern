@@ -770,17 +770,6 @@ export class KanbanStore {
 
       this.userStoriesState.update((stories) => stories.filter(({ id }) => id !== storyId));
       if (this.selectedStoryState()?.id === storyId) this.closeStoryDetails();
-      if (this.selectedStoryState()?.id === storyId) {
-        const shouldRefresh = this.storyAttachmentsLoadingState() ||
-          this.storyAttachmentsErrorState() !== null;
-        ++this.storyAttachmentsRevision;
-        this.storyAttachmentsState.update((attachments) =>
-          attachments.filter(({ id }) => id !== attachmentId),
-        );
-        this.storyAttachmentsLoadingState.set(false);
-        this.storyAttachmentsErrorState.set(null);
-        if (shouldRefresh) this.loadStoryAttachments(storyId);
-      }
       this.lastSyncedAtState.set(new Date());
       this.mutationState.set(null);
       return 'deleted';
@@ -909,6 +898,17 @@ export class KanbanStore {
       );
       if (this.selectedStoryState()?.id === storyId) {
         this.selectedStoryState.update((story) => (story ? withoutAttachment(story) : story));
+      }
+      if (this.selectedStoryState()?.id === storyId) {
+        const shouldRefresh = this.storyAttachmentsLoadingState() ||
+          this.storyAttachmentsErrorState() !== null;
+        ++this.storyAttachmentsRevision;
+        this.storyAttachmentsState.update((attachments) =>
+          attachments.filter(({ id }) => id !== attachmentId),
+        );
+        this.storyAttachmentsLoadingState.set(false);
+        this.storyAttachmentsErrorState.set(null);
+        if (shouldRefresh) this.loadStoryAttachments(storyId);
       }
       this.lastSyncedAtState.set(new Date());
       this.mutationState.set(null);
