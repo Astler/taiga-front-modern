@@ -1,0 +1,468 @@
+/* Full attachment gallery for the story detail drawer.
+   The story serializer embeds only id + tiny thumbnail; the gallery uses
+   metadata fetched from /userstories/attachments. */
+
+.file-drop-zone-compact {
+  display: flex;
+  min-height: 3.25rem;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0.6rem 0.85rem;
+}
+
+.file-drop-zone-compact svg {
+  width: 1.2rem;
+  height: 1.2rem;
+  flex: 0 0 1.2rem;
+}
+
+.file-drop-zone-compact strong {
+  font: var(--mat-sys-body-medium);
+  font-weight: 650;
+}
+
+.file-metadata-state {
+  margin: 0.75rem 0 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+
+.file-metadata-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  margin-block-start: 0.75rem;
+  border-radius: var(--app-radius-md);
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+  padding: 0.65rem 0.75rem;
+  font: var(--mat-sys-body-small);
+}
+
+.file-metadata-error button {
+  min-height: 1.9rem;
+  flex: 0 0 auto;
+  border: 1px solid currentColor;
+  border-radius: var(--app-radius-full);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0.2rem 0.6rem;
+  font: var(--mat-sys-label-medium);
+}
+
+.detail-attachment-grid {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 11.5rem), 1fr));
+  gap: 0.7rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.attachment-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-md);
+  background: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface);
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.attachment-card:hover {
+  border-color: color-mix(in srgb, var(--mat-sys-primary) 50%, var(--app-border-color));
+  background: var(--mat-sys-surface-container-highest);
+}
+
+.attachment-image-trigger,
+.attachment-type-preview {
+  display: grid;
+  position: relative;
+  width: 100%;
+  height: 10rem;
+  min-height: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  place-items: center;
+  border: 0;
+  border-block-end: 1px solid var(--app-border-color);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--mat-sys-surface-container-highest) 75%, transparent);
+  color: var(--mat-sys-on-surface-variant);
+  padding: 0;
+}
+
+.attachment-image-trigger,
+.attachment-video-trigger {
+  cursor: zoom-in;
+}
+
+.attachment-image-trigger > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  transition: transform 180ms ease;
+}
+
+.attachment-image-trigger > img[hidden] {
+  display: none;
+}
+
+.attachment-image-trigger:hover > img:not([hidden]) {
+  transform: scale(1.04);
+}
+
+.attachment-image-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.attachment-image-fallback svg,
+.attachment-type-preview svg {
+  width: 2.4rem;
+  height: 2.4rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.4;
+}
+
+.attachment-preview-hint {
+  position: absolute;
+  right: 0.55rem;
+  bottom: 0.55rem;
+  z-index: 1;
+  border-radius: var(--app-radius-full);
+  background: rgb(18 16 25 / 75%);
+  color: #fff;
+  opacity: 0;
+  padding: 0.25rem 0.55rem;
+  font: var(--mat-sys-label-small);
+  pointer-events: none;
+  transition: opacity 140ms ease;
+}
+
+.attachment-image-trigger:hover .attachment-preview-hint,
+.attachment-image-trigger:focus-visible .attachment-preview-hint {
+  opacity: 1;
+}
+
+.attachment-type-preview {
+  align-content: center;
+  gap: 0.45rem;
+  color: var(--mat-sys-primary);
+  font: var(--mat-sys-title-small);
+  font-weight: 700;
+}
+
+.attachment-type-preview span {
+  max-width: calc(100% - 1rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-video-trigger:hover {
+  background: color-mix(in srgb, var(--mat-sys-primary-container) 45%, transparent);
+}
+
+.attachment-card-details {
+  display: grid;
+  min-height: 4.35rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: minmax(1.45rem, auto) auto;
+  align-items: center;
+  gap: 0.15rem 0.3rem;
+  padding: 0.5rem 0.65rem;
+}
+
+.attachment-card-name {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.attachment-card-name a,
+.attachment-card-name span {
+  display: block;
+  overflow: hidden;
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-medium);
+  font-weight: 650;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-card-name a:hover,
+.attachment-card-name a:focus-visible {
+  color: var(--mat-sys-primary);
+  text-decoration: underline;
+}
+
+.attachment-file-meta {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-card-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.15rem;
+}
+
+.attachment-open-link,
+.attachment-card .file-remove {
+  display: grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  box-sizing: border-box;
+  flex: 0 0 1.8rem;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--mat-sys-on-surface-variant);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.attachment-card .file-remove {
+  font-size: 1.25rem;
+}
+
+.attachment-open-link svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.attachment-open-link:hover,
+.attachment-open-link:focus-visible {
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+}
+
+.attachment-card .file-remove:hover:not(:disabled),
+.attachment-card .file-remove:focus-visible {
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+}
+
+.attachment-card .file-remove:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+.attachment-image-trigger:focus-visible,
+.attachment-video-trigger:focus-visible,
+.attachment-open-link:focus-visible,
+.attachment-card .file-remove:focus-visible,
+.file-metadata-error button:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: -2px;
+}
+
+/* A second native modal sits above the editor and provides real focus
+   containment rather than a visually large but unclickable image. */
+.attachment-lightbox {
+  display: grid;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  box-sizing: border-box;
+  place-items: center;
+  overflow: auto;
+  margin: 0;
+  border: 0;
+  padding: clamp(0.5rem, 2.5vw, 1.5rem);
+  background: transparent;
+}
+
+.attachment-lightbox:not([open]) {
+  display: none;
+}
+
+.attachment-lightbox::backdrop {
+  background: rgb(0 0 0 / 84%);
+  backdrop-filter: blur(4px);
+}
+
+.attachment-lightbox-panel {
+  display: flex;
+  width: min(80rem, 100%);
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-lg);
+  background: var(--mat-sys-surface-container);
+  box-shadow: var(--mat-sys-level5);
+  color: var(--mat-sys-on-surface);
+}
+
+.attachment-lightbox-header {
+  display: flex;
+  min-height: 3.3rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.45rem clamp(0.65rem, 2vw, 1rem);
+}
+
+.attachment-lightbox-header strong {
+  min-width: 0;
+  overflow: hidden;
+  font: var(--mat-sys-title-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-lightbox-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.attachment-lightbox-actions a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--mat-sys-primary);
+  font: var(--mat-sys-label-medium);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.attachment-lightbox-actions a:hover {
+  text-decoration: underline;
+}
+
+.attachment-lightbox-actions a svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+}
+
+.attachment-lightbox-actions button {
+  display: grid;
+  width: 2.2rem;
+  height: 2.2rem;
+  flex: 0 0 2.2rem;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface);
+  cursor: pointer;
+  font-size: 1.6rem;
+}
+
+.attachment-lightbox-actions button:hover,
+.attachment-lightbox-actions button:focus-visible {
+  background: var(--mat-sys-surface-container-highest);
+}
+
+.attachment-lightbox-media {
+  display: grid;
+  min-height: 0;
+  flex: 1 1 auto;
+  place-items: center;
+  overflow: auto;
+  border-block-start: 1px solid var(--app-border-color);
+  background: var(--mat-sys-surface-container-low);
+  padding: clamp(0.35rem, 1.5vw, 1rem);
+}
+
+.attachment-lightbox-media img,
+.attachment-lightbox-media video {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100dvh - 7.5rem);
+  object-fit: contain;
+}
+
+.attachment-lightbox-media img {
+  width: auto;
+  height: auto;
+}
+
+.attachment-lightbox-media video {
+  width: min(60rem, 100%);
+}
+
+.attachment-lightbox-media p {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-medium);
+}
+
+@media (max-width: 38rem) {
+  .detail-attachment-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 9rem), 1fr));
+    gap: 0.5rem;
+  }
+
+  .attachment-image-trigger,
+  .attachment-type-preview {
+    height: 8rem;
+  }
+
+  .attachment-card-details {
+    padding: 0.4rem 0.5rem;
+  }
+
+  .attachment-lightbox-header {
+    gap: 0.35rem;
+  }
+
+  .attachment-lightbox-actions a {
+    font-size: 0;
+  }
+
+  .attachment-lightbox-actions a svg {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .attachment-card,
+  .attachment-image-trigger > img,
+  .attachment-preview-hint {
+    transition: none;
+  }
+}
