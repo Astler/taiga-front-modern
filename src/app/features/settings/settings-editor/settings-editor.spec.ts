@@ -156,6 +156,16 @@ describe('SettingsEditor', () => {
     await submit(f);
     expect(api.update).toHaveBeenCalledWith('roles', 10, { name: 'Changed' });
   });
+  it('reads the shared tag catalogue independently from project discovery tags', async () => {
+    const f = await setup('tags', {
+      ...project,
+      tags: ['discovery'],
+      tags_colors: { task: '#123456' },
+    });
+    expect(f.nativeElement.querySelector('.config-list').textContent).toContain('task');
+    expect(f.nativeElement.querySelector('.config-list').textContent).not.toContain('discovery');
+  });
+
   it('renames a tag through its project-wide action', async () => {
     const f = await setup('tags');
     f.nativeElement.querySelector('.config-row button').click();

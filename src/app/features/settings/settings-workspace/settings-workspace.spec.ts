@@ -23,12 +23,15 @@ describe('SettingsWorkspace', () => {
       imports: [SettingsWorkspace],
       providers: [
         { provide: AuthService, useValue: { user: user.asReadonly() } },
-        { provide: KanbanPointsVisibilityService, useValue: {
-          visibleFor: (projectId: number) => visibleByProject().get(projectId) ?? false,
-          syncFor: () => 'synced',
-          load: loadPoints,
-          setVisible: setPointsVisible,
-        } },
+        {
+          provide: KanbanPointsVisibilityService,
+          useValue: {
+            visibleFor: (projectId: number) => visibleByProject().get(projectId) ?? false,
+            syncFor: () => 'synced',
+            load: loadPoints,
+            setVisible: setPointsVisible,
+          },
+        },
       ],
     }).compileComponents();
   });
@@ -55,10 +58,23 @@ describe('SettingsWorkspace', () => {
     expect(host.querySelector('.summary-count')?.textContent).toContain('4/5 on');
   });
 
+  it('shows shared task tags rather than project discovery tags', () => {
+    const fixture = TestBed.createComponent(SettingsWorkspace);
+    fixture.componentRef.setInput('project', {
+      ...project(),
+      tags: ['discovery'],
+      tags_colors: { task: '#123456' },
+    });
+    fixture.detectChanges();
+    expect(tagNames(fixture.nativeElement)).toEqual(['task']);
+  });
+
   it('defaults to hiding points and lets any member enable them for their own project', () => {
     const fixture = TestBed.createComponent(SettingsWorkspace);
     fixture.componentRef.setInput('project', {
-      ...project(), i_am_admin: false, i_am_owner: false,
+      ...project(),
+      i_am_admin: false,
+      i_am_owner: false,
     });
     fixture.detectChanges();
 
@@ -70,8 +86,9 @@ describe('SettingsWorkspace', () => {
     expect(toggle).toBeTruthy();
     expect(toggle.checked).toBe(false);
     expect(toggle.getAttribute('role')).toBe('switch');
-    expect(host.querySelector('.kanban-preferences-card')?.textContent)
-      .toContain('Other members are unaffected');
+    expect(host.querySelector('.kanban-preferences-card')?.textContent).toContain(
+      'Other members are unaffected',
+    );
 
     toggle.click();
     fixture.detectChanges();
@@ -79,7 +96,10 @@ describe('SettingsWorkspace', () => {
     expect(toggle.checked).toBe(true);
 
     fixture.componentRef.setInput('project', {
-      ...project(), id: 18, slug: 'other', name: 'Other project',
+      ...project(),
+      id: 18,
+      slug: 'other',
+      name: 'Other project',
     });
     fixture.detectChanges();
     expect(loadPoints).toHaveBeenCalledWith(18);

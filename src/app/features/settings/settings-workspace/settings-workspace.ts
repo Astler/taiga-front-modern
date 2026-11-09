@@ -120,6 +120,7 @@ export class SettingsWorkspace {
       .us_statuses.filter((status) => !status.is_archived)
       .sort((left, right) => left.order - right.order),
   );
+  protected readonly projectTags = computed(() => Object.keys(this.project().tags_colors));
   protected readonly archivedStatusCount = computed(
     () => this.project().us_statuses.filter((status) => status.is_archived).length,
   );

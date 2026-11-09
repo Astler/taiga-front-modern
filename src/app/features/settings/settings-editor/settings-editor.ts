@@ -184,7 +184,10 @@ export class SettingsEditor {
           is_wiki_activated: project.is_wiki_activated,
         };
         this.tags.set(
-          project.tags.map((name) => ({ name, color: project.tags_colors[name] ?? null })),
+          Object.keys(project.tags_colors).map((name) => ({
+            name,
+            color: project.tags_colors[name] ?? null,
+          })),
         );
         if (mode === 'workflow' || mode === 'roles') void this.loadValues();
       });

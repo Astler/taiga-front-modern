@@ -237,13 +237,13 @@
             <button mat-button type="button" (click)="openEditor('tags')">Edit tags</button>
           }
         </div>
-        @if (project().tags.length > 0) {
+        @if (projectTags().length > 0) {
           <div class="tag-list">
-            @for (tag of project().tags.slice(0, 12); track tag) {
+            @for (tag of projectTags().slice(0, 12); track tag) {
               <span [style.--tag-color]="tagColor(tag)">{{ tag }}</span>
             }
-            @if (project().tags.length > 12) {
-              <span class="tag-overflow">+{{ project().tags.length - 12 }} more</span>
+            @if (projectTags().length > 12) {
+              <span class="tag-overflow">+{{ projectTags().length - 12 }} more</span>
             }
           </div>
         } @else {
