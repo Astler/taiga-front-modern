@@ -1,6 +1,7 @@
 @if (activeProject(); as project) {
   @if (project.is_issues_activated) {
-    <pf-issues-workspace [project]="project" [initialSearch]="requestedSearch()" />
+    <pf-issues-workspace [project]="project" [initialSearch]="requestedSearch()"
+      [issueId]="requestedIssue()" (issueSelected)="selectIssue($event)" />
   } @else {
     <section class="project-state">
       <span class="state-mark state-mark-info">i</span>

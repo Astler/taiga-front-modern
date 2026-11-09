@@ -1,5 +1,16 @@
 import type { TaigaId } from '../../../shared/models';
 
+export interface IssueComment {
+  readonly id?: string | number;
+  readonly key?: string;
+  readonly comment?: string | null;
+  readonly created_at?: string;
+  readonly is_comment_deleted?: boolean;
+  readonly delete_comment_date?: string | null;
+  readonly is_hidden?: boolean;
+  readonly user?: { readonly name?: string; readonly username?: string };
+}
+
 export type IssueTag = readonly [name: string, color: string | null];
 
 export interface IssueStatusExtraInfo {

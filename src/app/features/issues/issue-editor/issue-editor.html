@@ -179,6 +179,15 @@
               (stagedFilesChanged)="stagedFilesChanged.emit($event)"
             />
           </section>
+          @if (mode() === 'edit') {
+            <section class="issue-editor-section">
+              <pf-issue-discussion
+                [comments]="comments()" [loading]="commentsLoading()" [error]="commentsError()"
+                [canComment]="canComment()" [busy]="busy()" [blocked]="writeBlocked()"
+                [sentRevision]="commentSentRevision()"
+                (send)="commentRequested.emit($event)" (retry)="commentsRefreshRequested.emit()" />
+            </section>
+          }
           <section class="issue-editor-section issue-blocked-section"
             [class.issue-blocked-active]="draft().isBlocked">
             <label class="issue-block-toggle">

@@ -6,6 +6,7 @@ import {
   effect,
   inject,
   input,
+  output,
   signal,
   untracked,
 } from '@angular/core';
@@ -77,6 +78,8 @@ const FILTERS: readonly FilterDefinition[] = [
 export class IssuesWorkspace implements OnDestroy {
   readonly project = input.required<TaigaProjectDetail>();
   readonly initialSearch = input('');
+  readonly issueId = input<number | null>(null);
+  readonly issueSelected = output<number | null>();
 
   protected readonly store = inject(IssuesStore);
   private readonly issuesApi = inject(IssuesApiService);
@@ -110,6 +113,7 @@ export class IssuesWorkspace implements OnDestroy {
   private loadedProjectId: number | undefined;
   private appliedInitialSearch = '';
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
+  private requestedIssueKey = '';
 
   constructor() {
     effect(() => {
@@ -138,6 +142,23 @@ export class IssuesWorkspace implements OnDestroy {
         }
       });
     });
+    effect(() => {
+      const projectId = this.project().id;
+      const issueId = this.issueId();
+      const key = `${projectId}:${issueId}`;
+      untracked(() => {
+        if (key === this.requestedIssueKey) return;
+        this.requestedIssueKey = key;
+        if (issueId !== null) {
+          this.pendingFiles.set([]);
+          this.editorMode.set('edit');
+          this.store.openIssueById(issueId);
+        } else {
+          this.editorMode.set(null);
+          this.store.closeIssue();
+        }
+      });
+    });
   }
 
   ngOnDestroy(): void {
@@ -152,6 +173,8 @@ export class IssuesWorkspace implements OnDestroy {
     this.store.dismissMutationError();
     this.store.closeIssue();
     this.editorMode.set('create');
+    this.requestedIssueKey = `${this.project().id}:null`;
+    this.issueSelected.emit(null);
   }
 
   protected openIssue(issue: TaigaIssue): void {
@@ -159,12 +182,16 @@ export class IssuesWorkspace implements OnDestroy {
     this.store.dismissMutationError();
     this.editorMode.set('edit');
     this.store.openIssue(issue);
+    this.requestedIssueKey = `${this.project().id}:${issue.id}`;
+    this.issueSelected.emit(issue.id);
   }
 
   protected closeEditor(): void {
     this.pendingFiles.set([]);
     this.editorMode.set(null);
     this.store.closeIssue();
+    this.requestedIssueKey = `${this.project().id}:null`;
+    this.issueSelected.emit(null);
   }
 
   protected async saveIssue(changes: IssueChanges): Promise<void> {

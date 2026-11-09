@@ -6,6 +6,7 @@ import type { TaigaId } from '../../../shared/models';
 import {
   ISSUE_FILTER_CATEGORIES,
   type IssueAttachment,
+  type IssueComment,
   type IssueChanges,
   type IssueCreateRequest,
   type IssueFiltersData,
@@ -58,6 +59,20 @@ export class IssuesApiService {
 
   delete(issueId: TaigaId): Observable<void> {
     return this.http.delete<void>(`${this.config.resolveApiPath('issues')}/${issueId}`);
+  }
+
+  history(issueId: TaigaId): Observable<readonly IssueComment[]> {
+    return this.http.get<readonly IssueComment[]>(
+      `${this.config.resolveApiPath('history/issue')}/${issueId}`,
+      { headers: UNPAGINATED_HEADERS },
+    );
+  }
+
+  addComment(issueId: TaigaId, comment: string, version?: number): Observable<TaigaIssue> {
+    return this.http.patch<TaigaIssue>(`${this.config.resolveApiPath('issues')}/${issueId}`, {
+      comment,
+      ...(version === undefined ? {} : { version }),
+    });
   }
 
   listAttachments(projectId: TaigaId, issueId: TaigaId): Observable<readonly IssueAttachment[]> {

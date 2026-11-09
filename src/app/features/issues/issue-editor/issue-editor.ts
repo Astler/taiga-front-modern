@@ -11,6 +11,8 @@ import {
 } from '@angular/core';
 import type { TaigaProjectDetail } from '../../projects/data';
 import { IssueAttachments } from './issue-attachments';
+import { IssueDiscussion } from './issue-discussion';
+import type { IssueComment } from '../data/issues.models';
 import { ModalTopLayerDirective } from '../../../shared/modal-top-layer.directive';
 import type { IssueChanges, IssueFilterOption, IssueFiltersData, TaigaIssue } from '../data';
 
@@ -55,7 +57,7 @@ const EMPTY_DRAFT: IssueEditorDraft = {
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ModalTopLayerDirective, IssueAttachments],
+  imports: [ModalTopLayerDirective, IssueAttachments, IssueDiscussion],
   selector: 'pf-issue-editor',
   templateUrl: './issue-editor.html',
   styleUrls: ['./issue-editor.scss', './issue-editor-controls.scss'],
@@ -66,6 +68,13 @@ export class IssueEditor {
   readonly issue = input<TaigaIssue | null>(null);
   readonly filters = input<IssueFiltersData | null>(null);
   readonly busy = input(false);
+  readonly writeBlocked = input(false);
+  readonly comments = input<readonly IssueComment[]>([]);
+  readonly commentsLoading = input(false);
+  readonly commentsError = input<string | null>(null);
+  readonly commentSentRevision = input(0);
+  readonly commentRequested = output<string>();
+  readonly commentsRefreshRequested = output<void>();
   readonly error = input<string | null>(null);
   readonly saved = output<IssueChanges>();
   readonly stagedFilesChanged = output<readonly File[]>();
@@ -78,6 +87,10 @@ export class IssueEditor {
   protected readonly assigneesExpanded = signal(false);
   protected readonly assigneeSearch = signal('');
   protected readonly attachmentPanel = viewChild(IssueAttachments);
+  protected readonly discussion = viewChild(IssueDiscussion);
+  protected readonly canComment = computed(() => this.mode() === 'edit' &&
+    !this.project().archived_code && !this.project().blocked_code &&
+    (this.project().my_permissions ?? []).includes('comment_issue'));
   private readonly initialized = signal(false);
 
   protected readonly canEdit = computed(() =>
@@ -171,7 +184,7 @@ export class IssueEditor {
 
   protected readonly canSubmit = computed(() => {
     const draft = this.draft();
-    return this.canEdit() && !this.busy() && this.dirty() &&
+    return this.canEdit() && !this.busy() && !this.writeBlocked() && this.dirty() &&
       !!draft.subject.trim() &&
       draft.status !== null && draft.type !== null &&
       draft.severity !== null && draft.priority !== null;
@@ -368,8 +381,9 @@ export class IssueEditor {
   protected requestClose(): void {
     if (this.busy()) return;
     const hasPendingFiles = (this.attachmentPanel()?.stagedFiles().length ?? 0) > 0;
-    if ((this.dirty() || hasPendingFiles) && this.canEdit() &&
-      !globalThis.confirm('Discard unsaved issue changes and queued files?')) return;
+    const hasCommentDraft = !!this.discussion()?.draft().trim();
+    if (((this.dirty() || hasPendingFiles) && this.canEdit() || hasCommentDraft) &&
+      !globalThis.confirm('Discard unsaved issue changes, comment draft and queued files?')) return;
     this.closeRequested.emit();
   }
 

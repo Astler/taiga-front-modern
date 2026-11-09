@@ -28,6 +28,20 @@ describe('IssuesApiService', () => {
 
   afterEach(() => httpTesting.verify());
 
+  it('loads the complete issue discussion and sends only the comment and concurrency token', async () => {
+    const history = firstValueFrom(service.history(31));
+    const request = httpTesting.expectOne('/api/v1/history/issue/31');
+    expect(request.request.headers.get('X-Disable-Pagination')).toBe('1');
+    request.flush([{ id: '1', comment: 'Existing discussion' }]);
+    await expect(history).resolves.toHaveLength(1);
+    const result = firstValueFrom(service.addComment(31, 'My reply', 8));
+    const patch = httpTesting.expectOne('/api/v1/issues/31');
+    expect(patch.request.method).toBe('PATCH');
+    expect(patch.request.body).toEqual({ comment: 'My reply', version: 8 });
+    patch.flush({ ...issue(31), version: 9 });
+    await expect(result).resolves.toMatchObject({ version: 9 });
+  });
+
   it('maps search, sorting, pagination, and include/exclude filters to the stable endpoint', async () => {
     const result = firstValueFrom(
       service.list(17, {
@@ -134,7 +148,7 @@ describe('IssuesApiService', () => {
     const del = httpTesting.expectOne('/api/v1/issues/38');
     expect(del.request.method).toBe('DELETE');
     del.flush(null, { status: 204, statusText: 'No content' });
-    await expect(deletion).resolves.toBeUndefined();
+    await expect(deletion).resolves.toBeNull();
   });
 
 
@@ -165,7 +179,7 @@ describe('IssuesApiService', () => {
     const del = httpTesting.expectOne('/api/v1/issues/attachments/90');
     expect(del.request.method).toBe('DELETE');
     del.flush(null, { status: 204, statusText: 'No content' });
-    await expect(deleting).resolves.toBeUndefined();
+    await expect(deleting).resolves.toBeNull();
   });
 
   it('omits blank optional query parameters', async () => {

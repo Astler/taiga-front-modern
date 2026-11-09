@@ -1,0 +1,57 @@
+<section aria-labelledby="issue-discussion-title">
+  <header>
+    <h3 id="issue-discussion-title">
+      Discussion <span>{{ comments().length }}</span>
+    </h3>
+    <button type="button" [disabled]="loading() || busy()" (click)="retry.emit()">Refresh</button>
+  </header>
+  @if (loading()) {
+    <p role="status">Loading comments…</p>
+  }
+  @if (error(); as message) {
+    <p role="alert">
+      {{ message }} <button type="button" (click)="retry.emit()">Try again</button>
+    </p>
+  }
+  <ol aria-label="Issue comments">
+    @for (entry of comments(); track entry.id ?? entry.key ?? $index) {
+      <li>
+        <div class="comment-byline">
+          <strong>{{ entry.user?.name || entry.user?.username || 'Team member' }}</strong>
+          <time [attr.datetime]="entry.created_at">{{ entry.created_at | date: 'medium' }}</time>
+        </div>
+        <p class="comment-body">{{ entry.comment }}</p>
+      </li>
+    } @empty {
+      @if (!loading() && !error()) {
+        <p>No comments yet.</p>
+      }
+    }
+  </ol>
+  @if (canComment()) {
+    <label>
+      <span>Add a comment</span>
+      <textarea
+        rows="3"
+        placeholder="Write a comment…"
+        [value]="draft()"
+        [disabled]="busy()"
+        (input)="draft.set($any($event.target).value)"
+        (keydown)="onKeydown($event)"
+      ></textarea>
+    </label>
+    <div class="comment-actions">
+      <span>Ctrl / ⌘ + Enter to send</span>
+      <button
+        type="button"
+        class="comment-send"
+        [disabled]="busy() || blocked() || !draft().trim()"
+        (click)="submit()"
+      >
+        {{ busy() ? 'Please wait…' : 'Send comment' }}
+      </button>
+    </div>
+  } @else {
+    <p>You can read this discussion. Your project role does not allow adding comments.</p>
+  }
+</section>

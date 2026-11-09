@@ -17,6 +17,7 @@ describe('IssuesWorkspace', () => {
   const listAttachments = vi.fn();
   const uploadAttachment = vi.fn();
   const deleteAttachment = vi.fn();
+  const addComment = vi.fn();
 
   beforeEach(async () => {
     list.mockReset().mockReturnValue(of(issuePage()));
@@ -32,13 +33,14 @@ describe('IssuesWorkspace', () => {
       id: 99, name: 'screenshot.png', url: '/media/screenshot.png', size: 4,
     }));
     deleteAttachment.mockReset().mockReturnValue(of(undefined));
+    addComment.mockReset().mockReturnValue(of({ ...issuePage().items[0]!, version: 5 }));
 
     await TestBed.configureTestingModule({
       imports: [IssuesWorkspace],
       providers: [{
         provide: IssuesApiService,
         useValue: {
-          list, filters, get, create, update, delete: deleteIssue,
+          list, filters, get, create, update, delete: deleteIssue, history: () => of([]), addComment,
           listAttachments, uploadAttachment, deleteAttachment,
         },
       }],
@@ -64,6 +66,34 @@ describe('IssuesWorkspace', () => {
     expect(host.querySelector('.issue-tags')?.textContent).toContain('frontend');
     expect(host.querySelector('.assignee-name')?.textContent).toContain('Ada Lovelace');
     expect(host.querySelector('.issue-main-cell a')).toBeNull();
+  });
+
+  it('opens a linked issue directly and keeps edited fields when posting a comment', async () => {
+    const fixture = TestBed.createComponent(IssuesWorkspace);
+    fixture.componentRef.setInput('project', { ...project(), my_permissions: ['modify_issue', 'comment_issue'] });
+    fixture.componentRef.setInput('issueId', 38);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(get).toHaveBeenCalledWith(38);
+    const host = fixture.nativeElement as HTMLElement;
+    const title = host.querySelector<HTMLInputElement>('pf-issue-editor input[required]')!;
+    title.value = 'Unfinished title edit';
+    title.dispatchEvent(new Event('input'));
+    const comment = host.querySelector<HTMLTextAreaElement>('pf-issue-discussion textarea')!;
+    comment.value = 'Investigating';
+    comment.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    host.querySelector<HTMLButtonElement>('.comment-send')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(addComment).toHaveBeenCalledWith(38, 'Investigating', 4);
+    expect(title.value).toBe('Unfinished title edit');
+    expect(comment.value).toBe('');
+    expect(update).not.toHaveBeenCalled();
+    fixture.componentRef.setInput('issueId', null);
+    fixture.detectChanges();
+    expect(host.querySelector('pf-issue-editor')).toBeNull();
   });
 
   it('keeps search, sorting and filters on one compact toolbar without a repeated page title', async () => {

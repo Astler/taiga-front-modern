@@ -6,6 +6,7 @@ import { IssuesApiService } from './issues-api.service';
 import {
   DEFAULT_ISSUE_QUERY,
   type IssueChanges,
+  type IssueComment,
   type IssueCreateRequest,
   type IssueMutationResult,
   type IssueFilterCategory,
@@ -18,7 +19,7 @@ import {
 
 export type IssuesLoadStatus = 'idle' | 'loading' | 'loaded' | 'error';
 export type IssueDetailStatus = 'idle' | 'loading' | 'loaded' | 'error';
-export type IssueMutationKind = 'create' | 'update' | 'delete';
+export type IssueMutationKind = 'create' | 'update' | 'delete' | 'comment';
 
 @Injectable()
 export class IssuesStore {
@@ -40,6 +41,11 @@ export class IssuesStore {
   private requestRevision = 0;
   private detailRevision = 0;
   private mutationRevision = 0;
+  private historyRevision = 0;
+  readonly comments = signal<readonly IssueComment[]>([]);
+  readonly commentsLoading = signal(false);
+  readonly commentsError = signal<string | null>(null);
+  readonly commentSentRevision = signal(0);
 
   readonly projectId = this.projectIdState.asReadonly();
   readonly status = this.statusState.asReadonly();
@@ -100,23 +106,38 @@ export class IssuesStore {
 
   openIssue(issue: TaigaIssue): void {
     if (issue.project !== this.projectIdState()) return;
+    this.openIssueById(issue.id, issue);
+  }
+
+  openIssueById(issueId: TaigaId, summary: TaigaIssue | null = null): void {
     const projectId = this.projectIdState();
+    if (projectId === null) return;
     const revision = ++this.detailRevision;
-    this.selectedIssueState.set(issue);
+    this.clearComments();
+    this.selectedIssueState.set(summary);
     this.detailStatusState.set('loading');
     this.detailErrorState.set(null);
-    this.api.get(issue.id).subscribe({
+    this.api.get(issueId).subscribe({
       next: (detail) => {
         if (revision !== this.detailRevision ||
-          projectId !== this.projectIdState() ||
-          this.selectedIssueState()?.id !== issue.id) return;
+          projectId !== this.projectIdState()) return;
+        if (detail.project !== projectId) {
+          this.selectedIssueState.set(null);
+          this.detailStatusState.set('error');
+          this.detailErrorState.set('This issue belongs to a different project.');
+          return;
+        }
         this.selectedIssueState.set(detail);
+        if (!this.isMutating()) {
+          this.requiresReconciliationState.set(false);
+          this.mutationErrorState.set(null);
+        }
         this.detailStatusState.set('loaded');
+        this.loadComments();
       },
       error: () => {
         if (revision !== this.detailRevision ||
-          projectId !== this.projectIdState() ||
-          this.selectedIssueState()?.id !== issue.id) return;
+          projectId !== this.projectIdState()) return;
         this.detailStatusState.set('error');
         this.detailErrorState.set('This issue could not be loaded. Try reopening it.');
       },
@@ -128,6 +149,76 @@ export class IssuesStore {
     this.selectedIssueState.set(null);
     this.detailStatusState.set('idle');
     this.detailErrorState.set(null);
+    this.clearComments();
+  }
+
+  private clearComments(): void {
+    ++this.historyRevision;
+    this.comments.set([]);
+    this.commentsLoading.set(false);
+    this.commentsError.set(null);
+  }
+
+  loadComments(): void {
+    const issue = this.selectedIssueState();
+    if (!issue) return;
+    const revision = ++this.historyRevision;
+    this.commentsLoading.set(true);
+    this.commentsError.set(null);
+    this.api.history(issue.id).subscribe({
+      next: (history) => {
+        if (revision !== this.historyRevision || this.selectedIssueState()?.id !== issue.id) return;
+        this.comments.set(history.filter((entry) =>
+          !!entry.comment?.trim() && !entry.is_hidden &&
+          !entry.is_comment_deleted && !entry.delete_comment_date,
+        ).sort((a, b) => (a.created_at ?? '').localeCompare(b.created_at ?? '')));
+        this.commentsLoading.set(false);
+      },
+      error: () => {
+        if (revision !== this.historyRevision) return;
+        this.commentsLoading.set(false);
+        this.commentsError.set('Comments could not be loaded. Try again.');
+      },
+    });
+  }
+
+  async addComment(text: string): Promise<void> {
+    const detail = this.selectedIssueState();
+    const projectId = this.projectIdState();
+    const comment = text.trim();
+    if (!detail || !comment || projectId === null || !this.canWrite(projectId)) return;
+    const revision = ++this.mutationRevision;
+    const detailRevision = this.detailRevision;
+    this.mutationState.set('comment');
+    this.mutationErrorState.set(null);
+    try {
+      const updated = await firstValueFrom(this.api.addComment(detail.id, comment, detail.version));
+      if (!this.isCurrentMutation(revision, projectId)) return;
+      this.mutationState.set(null);
+      if (detailRevision !== this.detailRevision) return;
+      // Preserve the form's original field values: only advance its concurrency token.
+      this.selectedIssueState.set({ ...detail,
+        ...(updated.version === undefined ? {} : { version: updated.version }),
+      });
+      this.issuesState.update((issues) => issues.map((issue) => issue.id === updated.id ? updated : issue));
+      this.commentSentRevision.update((value) => value + 1);
+      this.loadComments();
+    } catch (error: unknown) {
+      if (!this.isCurrentMutation(revision, projectId)) return;
+      this.mutationState.set(null);
+      if (detailRevision !== this.detailRevision) return;
+      const uncertain = isAmbiguousFailure(error);
+      const conflict = error instanceof HttpErrorResponse && error.status === 409;
+      if (uncertain || conflict) this.requiresReconciliationState.set(true);
+      this.mutationErrorState.set(uncertain
+        ? 'Taiga did not confirm the comment. Your draft is kept. Check the discussion, then reopen the issue before sending again.'
+        : conflict
+          ? 'This issue changed elsewhere. Your comment draft is kept. Reopen the issue before sending again.'
+          : error instanceof HttpErrorResponse && error.status === 403
+            ? 'Your project role does not permit comments on this issue.'
+            : 'The comment could not be sent. Your draft is kept.');
+      this.loadComments();
+    }
   }
 
   dismissMutationError(): void {

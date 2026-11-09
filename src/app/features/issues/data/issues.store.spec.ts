@@ -10,6 +10,7 @@ import type {
   IssueListPage,
   IssueListQuery,
   TaigaIssue,
+  IssueComment,
 } from './issues.models';
 import { IssuesStore } from './issues.store';
 
@@ -25,11 +26,13 @@ describe('IssuesStore', () => {
     create: ReturnType<typeof vi.fn<(request: IssueCreateRequest) => Observable<TaigaIssue>>>;
     update: ReturnType<typeof vi.fn<(issueId: number, changes: IssueChanges, version?: number) => Observable<TaigaIssue>>>;
     delete: ReturnType<typeof vi.fn<(issueId: number) => Observable<void>>>;
+    history: ReturnType<typeof vi.fn<(issueId: number) => Observable<readonly IssueComment[]>>>;
+    addComment: ReturnType<typeof vi.fn<(issueId: number, comment: string, version?: number) => Observable<TaigaIssue>>>;
   };
   let store: IssuesStore;
 
   beforeEach(() => {
-    api = { list: vi.fn(), filters: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() };
+    api = { list: vi.fn(), filters: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn(), history: vi.fn().mockReturnValue(of([])), addComment: vi.fn() };
     TestBed.configureTestingModule({
       providers: [IssuesStore, { provide: IssuesApiService, useValue: api }],
     });
@@ -209,6 +212,74 @@ describe('IssuesStore', () => {
     load.complete();
     expect(store.requiresReconciliation()).toBe(false);
     expect(store.issues()[0]?.id).toBe(4);
+  });
+
+  it('opens an issue outside the current page and ignores history from a previous issue', () => {
+    api.list.mockReturnValue(of(page(1, 40)));
+    api.filters.mockReturnValue(of(filtersData()));
+    const lateHistory = new Subject<readonly IssueComment[]>();
+    api.history.mockReturnValueOnce(lateHistory).mockReturnValueOnce(of([
+      { id: 'deleted', comment: 'private old text', is_comment_deleted: true },
+      { id: 'hidden', comment: 'hidden text', is_hidden: true },
+      { id: 'visible', comment: 'Current discussion', created_at: '2026-11-09' },
+    ]));
+    api.get.mockReturnValueOnce(of(page(99, 1).items[0]!))
+      .mockReturnValueOnce(of(page(100, 1).items[0]!));
+    store.loadProject(17);
+    store.openIssueById(99);
+    expect(store.selectedIssue()?.id).toBe(99);
+    store.openIssueById(100);
+    lateHistory.next([{ comment: 'Stale discussion' }]);
+    expect(store.comments().map((entry) => entry.comment)).toEqual(['Current discussion']);
+  });
+
+  it('advances the version after a comment without replacing unsaved editor fields', async () => {
+    api.list.mockReturnValue(of(page(1, 1)));
+    api.filters.mockReturnValue(of(filtersData()));
+    const original = { ...page(1, 1).items[0]!, version: 4 };
+    api.get.mockReturnValue(of(original));
+    api.addComment.mockReturnValue(of({ ...original, version: 5 }));
+    api.update.mockReturnValue(of({ ...original, version: 6 }));
+    store.loadProject(17);
+    store.openIssue(original);
+    await store.addComment('  Confirmed the bug  ');
+    expect(api.addComment).toHaveBeenCalledWith(1, 'Confirmed the bug', 4);
+    expect(store.commentSentRevision()).toBe(1);
+    expect(store.selectedIssue()).toEqual({ ...original, version: 5 });
+    const changes: IssueChanges = {
+      subject: 'Unsaved title', description: '', status: 1, type: 1, priority: 1,
+      severity: 1, assigned_to: null, due_date: null, tags: [], is_blocked: false, blocked_note: '',
+    };
+    await store.updateIssue(1, changes);
+    expect(api.update).toHaveBeenCalledWith(1, changes, 5);
+  });
+
+  it('prevents duplicate comments after an uncertain response until a fresh detail is opened', async () => {
+    api.list.mockReturnValue(of(page(1, 1)));
+    api.filters.mockReturnValue(of(filtersData()));
+    api.get.mockReturnValue(of({ ...page(1, 1).items[0]!, version: 4 }));
+    api.addComment.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 0 })));
+    store.loadProject(17);
+    store.openIssueById(1);
+    await store.addComment('Maybe sent');
+    await store.addComment('Maybe sent');
+    expect(api.addComment).toHaveBeenCalledTimes(1);
+    expect(store.commentSentRevision()).toBe(0);
+    expect(store.requiresReconciliation()).toBe(true);
+    store.closeIssue();
+    store.openIssueById(1);
+    expect(store.requiresReconciliation()).toBe(false);
+  });
+
+  it('rejects a deep link to an issue belonging to a different project', () => {
+    api.list.mockReturnValue(of(page(1, 1)));
+    api.filters.mockReturnValue(of(filtersData()));
+    api.get.mockReturnValue(of({ ...page(99, 1).items[0]!, project: 23 }));
+    store.loadProject(17);
+    store.openIssueById(99);
+    expect(store.detailStatus()).toBe('error');
+    expect(store.selectedIssue()).toBeNull();
+    expect(api.history).not.toHaveBeenCalled();
   });
 
   it('surfaces failures and retries the current query', () => {

@@ -342,7 +342,7 @@ export class Topbar {
       return;
     }
     void this.router.navigate(['/project', project.slug, kind === 'issue' ? 'issues' : 'epics'], {
-      queryParams: { q: reference },
+      queryParams: kind === 'issue' ? { issue: item.id } : { q: reference },
     });
   }
 

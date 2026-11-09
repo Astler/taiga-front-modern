@@ -203,7 +203,8 @@ export class DashboardPage {
     if (item.type === 'task') {
       return item.parentStoryId === null ? null : { story: item.parentStoryId };
     }
-    if (item.type === 'issue' || item.type === 'epic') {
+    if (item.type === 'issue') return { issue: item.id };
+    if (item.type === 'epic') {
       return { q: item.ref === null ? item.title : `#${item.ref}` };
     }
     return null;

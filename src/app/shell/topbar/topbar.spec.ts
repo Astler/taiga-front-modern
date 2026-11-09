@@ -199,7 +199,7 @@ describe('Topbar', () => {
     fixture.componentRef.setInput('navigationExpanded', true);
     fixture.detectChanges();
 
-    const trigger = fixture.nativeElement.querySelector<HTMLButtonElement>('.profile-button')!;
+    const trigger = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('.profile-button')!;
     expect(trigger.getAttribute('aria-expanded')).toBe('false');
     trigger.click();
     fixture.detectChanges();

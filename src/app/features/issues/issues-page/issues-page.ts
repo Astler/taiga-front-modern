@@ -9,7 +9,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { distinctUntilChanged, map } from 'rxjs';
 import { AuthService } from '../../../core/auth';
 import { ProjectStore } from '../../projects/data';
@@ -26,6 +26,7 @@ export class IssuesPage {
   protected readonly projects = inject(ProjectStore);
   protected readonly requestedSlug = signal<string | null>(null);
   protected readonly requestedSearch = signal('');
+  protected readonly requestedIssue = signal<number | null>(null);
   protected readonly requestedProjectFailed = signal(false);
   protected readonly activeProject = computed(() => {
     const project = this.projects.selectedProject();
@@ -35,13 +36,19 @@ export class IssuesPage {
 
   private readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router, { optional: true });
   private readonly destroyRef = inject(DestroyRef);
   private requestedProjectRevision = 0;
 
   constructor() {
     this.route.queryParamMap
       ?.pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((params) => this.requestedSearch.set(params.get('q')?.trim() ?? ''));
+      .subscribe((params) => {
+        this.requestedSearch.set(params.get('q')?.trim() ?? '');
+        const value = params.get('issue');
+        const id = value && /^\d+$/.test(value) ? Number(value) : NaN;
+        this.requestedIssue.set(Number.isSafeInteger(id) && id > 0 ? id : null);
+      });
 
     this.route.paramMap
       .pipe(
@@ -71,6 +78,15 @@ export class IssuesPage {
     if (userId !== undefined) {
       void this.projects.loadMemberProjects(userId).catch(() => undefined);
     }
+  }
+
+  protected selectIssue(issue: number | null): void {
+    if (issue === this.requestedIssue()) return;
+    void this.router?.navigate([], {
+      relativeTo: this.route,
+      queryParams: { issue },
+      queryParamsHandling: 'merge',
+    });
   }
 
   private loadRequestedProject(slug: string): void {
