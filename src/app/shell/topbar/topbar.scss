@@ -521,7 +521,7 @@ button svg,
     padding-inline: 0.4rem;
   }
   :host .topbar-compact .compact-board-search input { min-width: 0; width: 100%; }
-  :host .topbar-compact .topbar-spacer { flex: 0 0 0; }
+  :host .topbar-compact .compact-board-search ~ .topbar-spacer { flex: 0 0 0; }
   :host .topbar-compact .compact-board-overflow { display: inline-flex; }
   :host .topbar-compact :is(.navigation-toggle, .compact-board-overflow,
     .notification-button, .profile-button, .compact-search) {
