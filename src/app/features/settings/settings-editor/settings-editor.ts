@@ -392,6 +392,12 @@ export class SettingsEditor {
       this.error.set('This tag already exists. Choose another name.');
       return;
     }
+    const current = this.tags().find((tag) => tag.name === original);
+    if (current && current.name === name && current.color === color) {
+      this.cancelDraft();
+      this.notice.set('No changes to save.');
+      return;
+    }
     await this.perform(
       original
         ? this.api.editTag(this.project().id, original, name, color)

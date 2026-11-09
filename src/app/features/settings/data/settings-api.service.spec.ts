@@ -59,6 +59,14 @@ describe('SettingsApiService', () => {
     update.flush({ id: 12 });
     await patched;
   });
+  it('omits the rename field for color-only edits on older Taiga servers', async () => {
+    const result = firstValueFrom(api.editTag(7, 'tag', 'tag', '#123456'));
+    const request = http.expectOne('/api/v1/projects/7/edit_tag');
+    expect(request.request.body).toEqual({ from_tag: 'tag', color: '#123456' });
+    request.flush(null);
+    await result;
+  });
+
   it('uses Taiga project tag actions instead of replacing the tag catalogue', async () => {
     const created = firstValueFrom(api.createTag(7, 'new', null));
     const create = http.expectOne('/api/v1/projects/7/create_tag');

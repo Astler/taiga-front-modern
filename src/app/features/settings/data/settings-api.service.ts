@@ -81,7 +81,7 @@ export class SettingsApiService {
   editTag(projectId: number, from: string, to: string, color: string | null): Observable<unknown> {
     return this.http.post(this.url(`projects/${projectId}/edit_tag`), {
       from_tag: from,
-      to_tag: to,
+      ...(from === to ? {} : { to_tag: to }),
       color,
     });
   }
