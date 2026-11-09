@@ -19,7 +19,6 @@
 
 .page-header,
 .page-actions,
-.page-eyebrow,
 .metric-heading,
 .card-header,
 .focus-item,
@@ -60,36 +59,6 @@
   font: var(--mat-sys-body-large);
 }
 
-.page-eyebrow {
-  gap: 0.5rem;
-  color: var(--mat-sys-primary);
-  font: var(--mat-sys-label-medium);
-}
-
-.account-indicator {
-  display: grid;
-  width: 1.75rem;
-  height: 1.75rem;
-  place-items: center;
-  border-radius: 0.5rem;
-  background: var(--mat-sys-primary-container);
-  color: var(--mat-sys-on-primary-container);
-  font: var(--mat-sys-label-small);
-  font-weight: 750;
-}
-
-.live-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  border: 1px solid var(--app-border-color);
-  border-radius: var(--app-radius-full);
-  background: var(--mat-sys-surface-container-high);
-  color: var(--mat-sys-on-surface-variant);
-  padding: 0.2rem 0.5rem;
-}
-
-.live-badge i,
 .metric-indicator,
 .focus-status {
   width: 0.5rem;
@@ -105,12 +74,24 @@
 }
 
 .page-actions svg {
+  display: block;
+  flex: 0 0 auto;
+  margin: 0;
   width: 1.125rem;
   height: 1.125rem;
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
   stroke-width: 1.8;
+}
+
+.page-actions .app-button-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  vertical-align: middle;
+  line-height: 1.25rem;
 }
 
 .metrics {
@@ -438,7 +419,35 @@
     font-weight: 700;
   }
   .page-actions { width: 100%; }
-  .metrics { grid-template-columns: minmax(0, 1fr); }
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+  .metric-card {
+    position: relative;
+    min-height: 0;
+    align-content: start;
+    gap: 0.35rem;
+    padding: 0.75rem 0.875rem;
+    border-radius: var(--app-radius-lg);
+  }
+  .metric-heading {
+    gap: 0.45rem;
+    font-size: 0.75rem;
+  }
+  .metric-card > strong {
+    font-size: 1.5rem;
+    line-height: 1.15;
+  }
+  // Keep the explanation available to assistive technology without enlarging mobile tiles.
+  .metric-card > small {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
   .focus-card,
   .activity-card { padding: 0.85rem; }
   .focus-tags { align-self: flex-start; }
