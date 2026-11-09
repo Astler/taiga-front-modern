@@ -1,0 +1,50 @@
+// Native icon-only controls share one layout. Material owns its own wrappers,
+// density and touch targets and is intentionally excluded from this reset.
+@mixin styles {
+  svg.app-control-icon {
+    display: inline-block;
+    width: var(--app-control-icon-size, 1.125rem);
+    height: var(--app-control-icon-size, 1.125rem);
+    flex: 0 0 auto;
+    vertical-align: middle;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    pointer-events: none;
+  }
+
+  // Icon spans can also appear beside a text label in a Material button.
+  span:has(> svg.app-control-icon:only-child),
+  .mdc-button__label:has(svg.app-control-icon) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    line-height: 1;
+  }
+
+  .mdc-button__label:has(svg.app-control-icon) { gap: .4rem; }
+
+  :root :is(button, a):not(.mdc-button):not(.mdc-icon-button):has(> svg:only-child) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 0;
+    line-height: 0;
+    vertical-align: middle;
+
+    > svg {
+      display: block;
+      width: var(--app-control-icon-size, 1.125rem);
+      height: var(--app-control-icon-size, 1.125rem);
+      max-width: 100%;
+      max-height: 100%;
+      flex: 0 0 auto;
+      margin: 0;
+      pointer-events: none;
+    }
+  }
+}

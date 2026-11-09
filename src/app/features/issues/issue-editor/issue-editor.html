@@ -25,7 +25,7 @@
         aria-label="Close issue editor"
         [disabled]="busy()"
         (click)="requestClose()"
-      >×</button>
+      ><svg class="app-control-icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6 6 18" /></svg></button>
     </header>
 
     <form id="issue-editor-form" class="issue-editor-fields" (submit)="submit($event)">
@@ -111,7 +111,7 @@
                         [disabled]="busy()"
                         [attr.aria-label]="'Remove tag ' + tag"
                         (click)="removeTag(tag)"
-                      >×</button>
+                      ><svg class="app-control-icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6 6 18" /></svg></button>
                     }
                   </span>
                 }
@@ -140,7 +140,7 @@
                   [disabled]="!tagInput().trim() || busy()"
                   (click)="commitTagInput()"
                 >
-                  <span aria-hidden="true">+</span>
+                  <span aria-hidden="true"><svg class="app-control-icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" /></svg></span>
                   Add
                 </button>
               </div>

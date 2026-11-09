@@ -59,7 +59,7 @@
         [disabled]="store.isMutating() || store.isLoading() || store.requiresReconciliation()"
         (click)="openNewEpic()"
       >
-        <span class="epic-create-plus" aria-hidden="true">+</span>
+        <span class="epic-create-plus" aria-hidden="true"><svg class="app-control-icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" /></svg></span>
         <span class="epic-create-label">New epic</span>
       </button>
     }
@@ -124,7 +124,7 @@
       <span>{{ error }}</span>
       @if (!store.requiresReconciliation()) {
         <button type="button" aria-label="Dismiss epic error" (click)="store.dismissMutationError()">
-          ×
+          <svg class="app-control-icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6 6 18" /></svg>
         </button>
       }
     </div>
