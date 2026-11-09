@@ -10,6 +10,8 @@
 }
 
 .topbar {
+  --app-topbar-control-size: 2.5rem;
+  --app-topbar-avatar-size: 2rem;
   min-width: 0;
   height: var(--app-topbar-height);
   align-items: center;
@@ -308,6 +310,8 @@ button svg,
 }
 
 :host .topbar-compact {
+  --app-topbar-control-size: 2.25rem;
+  --app-topbar-avatar-size: 1.75rem;
   box-sizing: border-box;
   height: var(--app-topbar-height);
   min-height: var(--app-topbar-height);
@@ -333,24 +337,10 @@ button svg,
     height: 1.6rem;
   }
 
-  .navigation-toggle,
-  .notification-button,
-  .profile-button {
-    --mat-icon-button-state-layer-size: 2.25rem;
-    width: 2.25rem;
-    min-width: 2.25rem;
-    height: 2.25rem;
-    padding: 0;
-  }
-
   .profile-button {
     margin-inline-start: 0.1rem;
   }
 
-  .profile-avatar {
-    width: 1.75rem;
-    height: 1.75rem;
-  }
 }
 
 .global-search:focus-within {
@@ -427,8 +417,9 @@ button svg,
 
 .profile-avatar {
   display: grid;
-  width: 2rem;
-  height: 2rem;
+  width: var(--app-topbar-avatar-size);
+  height: var(--app-topbar-avatar-size);
+  flex: 0 0 auto;
   place-items: center;
   border: 1px solid color-mix(in srgb, var(--mat-sys-primary) 42%, transparent);
   border-radius: 50%;
@@ -503,6 +494,7 @@ button svg,
 
 @media (max-width: 760px) {
   :host .topbar-compact {
+    --app-topbar-control-size: 2rem;
     gap: 0.25rem;
     padding-inline: 0.25rem;
   }
@@ -525,12 +517,37 @@ button svg,
   :host .topbar-compact .compact-board-overflow { display: inline-flex; }
   :host .topbar-compact :is(.navigation-toggle, .compact-board-overflow,
     .notification-button, .profile-button, .compact-search) {
-    --mat-icon-button-state-layer-size: 2rem;
-    flex: 0 0 2rem;
-    width: 2rem;
-    min-width: 2rem;
-    height: 2rem;
-    padding: 0;
     margin-inline: 0;
   }
+}
+
+// Material icon buttons normally use inline text layout and calculated padding.
+// Explicit centring keeps the SVG/avatar and Material state layer concentric.
+.topbar .mat-mdc-icon-button {
+  --mat-icon-button-icon-size: 1.25rem;
+  --mat-icon-button-touch-target-size: var(--mat-icon-button-state-layer-size);
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 0;
+  vertical-align: middle;
+}
+
+.topbar :is(.navigation-toggle, .notification-button, .profile-button) {
+  display: inline-flex;
+}
+
+.topbar :is(.navigation-toggle, .compact-search, .compact-board-overflow, .notification-button, .profile-button) {
+  --mat-icon-button-state-layer-size: var(--app-topbar-control-size);
+  width: var(--app-topbar-control-size);
+  min-width: var(--app-topbar-control-size);
+  height: var(--app-topbar-control-size);
+  flex: 0 0 var(--app-topbar-control-size);
+}
+
+.topbar .mat-mdc-icon-button > svg {
+  display: block;
+  flex: 0 0 auto;
+  margin: 0;
+  vertical-align: middle;
 }
