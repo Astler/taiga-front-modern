@@ -3,12 +3,6 @@
     display: block;
     min-width: 0;
   }
-  :host-context(html[data-ui-density='compact']) {
-    height: 100%;
-    min-height: 0;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
   .dashboard {
     width: min(100%, 90rem);
     box-sizing: border-box;
