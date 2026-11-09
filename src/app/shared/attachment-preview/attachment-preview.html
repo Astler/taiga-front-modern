@@ -6,7 +6,7 @@
   (cancel)="close($event)"
   (keydown)="keydown($event)"
 >
-  <div class="attachment-lightbox-panel">
+  <div class="attachment-lightbox-panel" [class.has-gallery]="hasGallery()">
     <header class="attachment-lightbox-header">
       <strong id="attachment-lightbox-title" [title]="name()">{{ name() }}</strong>
       <div class="attachment-lightbox-actions">
@@ -49,6 +49,10 @@
     <div
       class="attachment-lightbox-media"
       [class.is-zoomed]="zoomed()"
+      [class.can-swipe]="canSwipe()"
+      (pointerdown)="pointerDown($event)"
+      (pointerup)="pointerUp($event)"
+      (pointercancel)="pointerCancel()"
       [attr.aria-busy]="!loaded() && !failed()"
     >
       @if (failed()) {
@@ -72,9 +76,37 @@
             Your browser cannot play this file. Download the original.
           </video>
         } @else {
-          <img [src]="src()" [alt]="name()" (load)="loaded.set(true)" (error)="failed.set(true)" />
+          <img
+            draggable="false"
+            [src]="src()"
+            [alt]="name()"
+            (load)="loaded.set(true)"
+            (error)="failed.set(true)"
+          />
         }
       }
     </div>
+    @if (hasGallery()) {
+      <nav class="attachment-gallery-nav" aria-label="Image navigation">
+        <button
+          type="button"
+          aria-label="Previous image"
+          title="Previous image (←)"
+          (click)="navigate(-1)"
+        >
+          ‹
+        </button>
+        <span
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          [attr.aria-label]="'Image ' + (imageIndex() + 1) + ' of ' + images().length"
+          >{{ imageIndex() + 1 }} / {{ images().length }}</span
+        >
+        <button type="button" aria-label="Next image" title="Next image (→)" (click)="navigate(1)">
+          ›
+        </button>
+      </nav>
+    }
   </div>
 </dialog>

@@ -859,6 +859,26 @@ describe('KanbanBoard', () => {
     expect(host.querySelector('dialog.story-drawer-backdrop')?.getAttribute('open')).not.toBeNull();
   });
 
+  it('switches between story images while skipping documents and videos', async () => {
+    listAttachments.mockReturnValue(of([
+      { id: 10, name: 'first.png', url: '/first.png' },
+      { id: 11, name: 'doc.pdf', url: '/doc.pdf' },
+      { id: 12, name: 'clip.webm', url: '/clip.webm' },
+      { id: 13, name: 'second.jpg', url: '/second.jpg' },
+    ]));
+    const fixture = TestBed.createComponent(KanbanBoard);
+    fixture.componentRef.setInput('project', project()); fixture.detectChanges();
+    await fixture.whenStable(); fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    host.querySelector<HTMLButtonElement>('.story-subject')!.click();
+    await fixture.whenStable(); fixture.detectChanges();
+    host.querySelector<HTMLButtonElement>('.attachment-name-preview')!.click(); fixture.detectChanges();
+    host.querySelector<HTMLButtonElement>('[aria-label="Next image"]')!.click(); fixture.detectChanges();
+    expect(host.querySelector('.attachment-lightbox img')?.getAttribute('src')).toBe('/second.jpg');
+    expect(host.querySelector('.attachment-gallery-nav span')?.textContent).toContain('2 / 2');
+    expect(host.querySelector('.story-drawer')).toBeTruthy();
+  });
+
   it('supports video preview and PDF original links without embedding arbitrary document URLs', async () => {
     listAttachments.mockReturnValue(of([
       { id: 20, name: 'recording.webm', url: 'https://files.example.test/recording.webm' },

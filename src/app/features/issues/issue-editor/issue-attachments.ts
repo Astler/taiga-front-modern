@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   OnDestroy,
+  computed,
   effect,
   inject,
   input,
@@ -37,6 +38,22 @@ export class IssueAttachments implements OnDestroy {
   // Staged files are not sent to Taiga until the issue has been created.
   readonly stagedFiles = signal<readonly File[]>([]);
   protected readonly attachments = signal<readonly IssueAttachment[]>([]);
+  protected readonly galleryImages = computed(() =>
+    this.attachments()
+      .filter((attachment) => this.mediaKind(attachment) === 'image')
+      .map((attachment) => ({
+        id: attachment.id,
+        name: attachment.name,
+        src: attachment.preview_url || attachment.url,
+        downloadUrl: attachment.url,
+      })),
+  );
+  protected selectPreviewImage(id: number): void {
+    const attachment = this.attachments().find(
+      (item) => item.id === id && this.mediaKind(item) === 'image',
+    );
+    if (attachment) this.preview.set(attachment);
+  }
   protected readonly preview = signal<IssueAttachment | null>(null);
   private previewTrigger: HTMLElement | null = null;
   protected mediaKind(attachment: IssueAttachment): 'image' | 'video' | null {

@@ -166,6 +166,9 @@
     [src]="current.preview_url || current.url"
     [downloadUrl]="current.url"
     [kind]="mediaKind(current) === 'video' ? 'video' : 'image'"
+    [images]="galleryImages()"
+    [imageId]="current.id"
+    (imageSelected)="selectPreviewImage($event)"
     (closed)="closePreview()"
   />
 }

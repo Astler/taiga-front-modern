@@ -71,6 +71,27 @@ describe('IssueAttachments', () => {
     expect(host.querySelector('[aria-label="Issue files"]')).toBeTruthy();
   });
 
+  it('switches only between issue images and keeps the viewer open', () => {
+    api.listAttachments.mockReturnValue(
+      of([
+        { id: 1, name: 'first.png', url: '/first.png', size: 42 },
+        { id: 2, name: 'archive.zip', url: '/archive.zip', size: 42 },
+        { id: 3, name: 'clip.webm', url: '/clip.webm', size: 42 },
+        { id: 4, name: 'second.jpg', url: '/second.jpg', size: 42 },
+      ]),
+    );
+    const { fixture, host } = create(38);
+    host.querySelector<HTMLButtonElement>('[aria-label="View first.png"]')!.click();
+    fixture.detectChanges();
+    host.querySelector<HTMLButtonElement>('[aria-label="Next image"]')!.click();
+    fixture.detectChanges();
+    expect(host.querySelector('.attachment-lightbox img')?.getAttribute('src')).toBe('/second.jpg');
+    expect(host.querySelector('.attachment-gallery-nav span')?.textContent).toContain('2 / 2');
+    expect(host.querySelector('.attachment-lightbox a[download]')?.getAttribute('href')).toBe(
+      '/second.jpg',
+    );
+  });
+
   it('keeps ordinary document links and closes an old preview when the issue changes', () => {
     api.listAttachments.mockReturnValue(
       of([

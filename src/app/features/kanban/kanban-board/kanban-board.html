@@ -1327,7 +1327,7 @@
   }
 
   @if (attachmentPreview(); as preview) {
-    <pf-attachment-preview [name]="attachmentName(preview)" [src]="attachmentPreviewUrl(preview)!" [downloadUrl]="preview.url || null" [kind]="attachmentKind(preview) === 'video' ? 'video' : 'image'" (closed)="closeAttachmentPreview()" />
+    <pf-attachment-preview [name]="attachmentName(preview)" [src]="attachmentPreviewUrl(preview)!" [downloadUrl]="preview.url || null" [kind]="attachmentKind(preview) === 'video' ? 'video' : 'image'" [images]="attachmentGalleryImages()" [imageId]="preview.id" (imageSelected)="selectAttachmentImage($event)" (closed)="closeAttachmentPreview()" />
   }
 
   <p class="visually-hidden board-live-region" aria-live="polite">{{ liveAnnouncement() }}</p>

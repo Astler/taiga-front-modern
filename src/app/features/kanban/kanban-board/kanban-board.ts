@@ -177,6 +177,13 @@ export class KanbanBoard {
   protected readonly attachmentUploadName = signal<string | null>(null);
   protected readonly attachmentUploadError = signal<string | null>(null);
   protected readonly attachmentDeletingId = signal<TaigaId | null>(null);
+  protected readonly attachmentGalleryImages = computed(() => this.store.storyAttachments()
+    .filter(attachment => this.attachmentKind(attachment) === 'image' && !!this.attachmentPreviewUrl(attachment))
+    .map(attachment => ({ id: attachment.id, name: this.attachmentName(attachment), src: this.attachmentPreviewUrl(attachment)!, downloadUrl: attachment.url || null })));
+  protected selectAttachmentImage(id: number): void {
+    const attachment = this.store.storyAttachments().find(item => item.id === id && this.attachmentKind(item) === 'image');
+    if (attachment) this.attachmentPreview.set(attachment);
+  }
   protected readonly attachmentPreview = signal<KanbanAttachmentSummary | null>(null);
   protected readonly liveAnnouncement = signal('');
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
