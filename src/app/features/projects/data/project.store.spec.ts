@@ -89,6 +89,23 @@ describe('ProjectStore', () => {
     store = TestBed.inject(ProjectStore);
   }
 
+  it('updates saved project data across the shell without switching away from another project', async () => {
+    const first = projectListItem(1, 'first'),
+      other = projectListItem(2, 'other');
+    api.listByMember.mockReturnValue(of([first, other]));
+    api.getBySlug.mockReturnValue(of(projectDetail(first)));
+    createStore();
+    await store.loadMemberProjects(9);
+    const saved = { ...projectDetail(first), name: 'Renamed', is_epics_activated: false };
+    store.applyProjectUpdate(saved);
+    expect(store.selectedProject()).toEqual(saved);
+    expect(store.projects()[0]?.name).toBe('Renamed');
+    await store.selectProject(projectDetail(other));
+    store.applyProjectUpdate({ ...saved, name: 'Changed again' });
+    expect(store.selectedProject()?.id).toBe(2);
+    expect(store.projects()[0]?.name).toBe('Changed again');
+  });
+
   it('loads member projects and selects the first pinned project as full detail', async () => {
     const first = projectListItem(1, 'first');
     const pinned = projectListItem(2, 'pinned');

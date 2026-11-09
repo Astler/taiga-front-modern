@@ -142,6 +142,13 @@ export class ProjectStore {
     return this.loadSelection(() => this.api.getById(projectId));
   }
 
+  applyProjectUpdate(project: TaigaProjectDetail): void {
+    if (this.selectedProjectState()?.id === project.id) this.selectedProjectState.set(project);
+    this.projectsState.update((projects) =>
+      projects.map((current) => (current.id === project.id ? project : current)),
+    );
+  }
+
   clearSelection(): void {
     ++this.selectionRevision;
     this.selectedProjectState.set(null);

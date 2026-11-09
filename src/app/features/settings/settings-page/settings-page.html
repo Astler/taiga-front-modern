@@ -1,5 +1,5 @@
 @if (activeProject(); as project) {
-  <pf-settings-workspace [project]="project" />
+  <pf-settings-workspace [project]="project" (projectSaved)="projects.applyProjectUpdate($event)" />
 } @else if (requestedProjectFailed() || projects.error()) {
   <section class="project-state" role="alert">
     <span class="state-mark" aria-hidden="true">!</span>

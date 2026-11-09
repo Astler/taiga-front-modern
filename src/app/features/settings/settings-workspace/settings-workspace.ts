@@ -1,5 +1,16 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, untracked } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+  untracked,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { SettingsEditor, type SettingsEditorMode } from '../settings-editor/settings-editor';
 import type { TaigaProjectDetail } from '../../projects/data';
 import { AuthService } from '../../../core/auth';
 import { KanbanPointsVisibilityService } from '../../kanban/data/kanban-points-visibility.service';
@@ -13,22 +24,28 @@ interface ProjectModule {
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatButtonModule],
+  imports: [MatButtonModule, SettingsEditor],
   selector: 'pf-settings-workspace',
   styleUrl: './settings-workspace.scss',
   templateUrl: './settings-workspace.html',
 })
 export class SettingsWorkspace {
   readonly project = input.required<TaigaProjectDetail>();
+  readonly projectSaved = output<TaigaProjectDetail>();
+  protected readonly editor = signal<{ mode: SettingsEditorMode; projectId: number } | null>(null);
+  protected readonly canEdit = computed(
+    () => this.canAdminister() && !this.project().archived_code && !this.project().blocked_code,
+  );
+  protected openEditor(mode: SettingsEditorMode): void {
+    if (this.canEdit()) this.editor.set({ mode, projectId: this.project().id });
+  }
   private readonly auth = inject(AuthService);
   private readonly pointsVisibility = inject(KanbanPointsVisibilityService);
 
   protected readonly showStoryPoints = computed(() =>
     this.pointsVisibility.visibleFor(this.project().id),
   );
-  protected readonly pointsSync = computed(() =>
-    this.pointsVisibility.syncFor(this.project().id),
-  );
+  protected readonly pointsSync = computed(() => this.pointsVisibility.syncFor(this.project().id));
 
   constructor() {
     effect(() => {
@@ -41,12 +58,8 @@ export class SettingsWorkspace {
   }
 
   protected toggleStoryPoints(event: Event): void {
-    this.pointsVisibility.setVisible(
-      this.project().id,
-      (event.target as HTMLInputElement).checked,
-    );
+    this.pointsVisibility.setVisible(this.project().id, (event.target as HTMLInputElement).checked);
   }
-
 
   protected readonly canAdminister = computed(
     () => this.project().i_am_admin || this.project().i_am_owner,

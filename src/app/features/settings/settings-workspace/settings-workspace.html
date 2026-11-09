@@ -3,7 +3,7 @@
     <div>
       <span class="eyebrow">{{ project().name }}</span>
       <h1>Project settings</h1>
-      <p>Configuration, access and workflow at a glance.</p>
+      <p>Manage project configuration, access and workflow.</p>
     </div>
 
     @if (!canAdminister()) {
@@ -17,8 +17,8 @@
       <div>
         <strong>You can view this configuration</strong>
         <p>
-          Only project owners and admins can change shared project configuration.
-          Your personal Kanban appearance settings below are still editable.
+          Only project owners and admins can change shared project configuration. Your personal
+          Kanban appearance settings below are still editable.
         </p>
       </div>
     </aside>
@@ -42,6 +42,9 @@
         <div>
           <span class="card-kicker">Identity</span>
           <h2>Project profile</h2>
+          @if (canEdit()) {
+            <button mat-button type="button" (click)="openEditor('profile')">Edit profile</button>
+          }
         </div>
         <span class="privacy-badge">{{ project().is_private ? 'Private' : 'Public' }}</span>
       </header>
@@ -81,6 +84,9 @@
         <div>
           <span class="card-kicker">Workspace</span>
           <h2>Modules</h2>
+          @if (canEdit()) {
+            <button mat-button type="button" (click)="openEditor('modules')">Edit modules</button>
+          }
         </div>
         <span class="summary-count">{{ enabledModuleCount() }}/{{ modules().length }} on</span>
       </header>
@@ -133,15 +139,23 @@
       </label>
       <p class="points-visibility-note">
         @switch (pointsSync()) {
-          @case ('saving') { Saving to your Taiga account… }
-          @case ('loading') { Loading your preference… }
-          @case ('synced') { Saved to your Taiga account. }
-          @default { Saved on this device. }
+          @case ('saving') {
+            Saving to your Taiga account…
+          }
+          @case ('loading') {
+            Loading your preference…
+          }
+          @case ('synced') {
+            Saved to your Taiga account.
+          }
+          @default {
+            Saved on this device.
+          }
         }
       </p>
       <p class="points-visibility-note">
-        This is a personal setting for {{ project().name }}. Other members are unaffected.
-        Existing estimates stay in Taiga and can be shown again any time.
+        This is a personal setting for {{ project().name }}. Other members are unaffected. Existing
+        estimates stay in Taiga and can be shown again any time.
       </p>
     </article>
 
@@ -150,6 +164,9 @@
         <div>
           <span class="card-kicker">Access</span>
           <h2>People and permissions</h2>
+          @if (canEdit()) {
+            <button mat-button type="button" (click)="openEditor('roles')">Manage roles</button>
+          }
         </div>
         <span class="summary-count">{{ project().members.length }} members</span>
       </header>
@@ -181,6 +198,9 @@
         <div>
           <span class="card-kicker">Workflow</span>
           <h2>Story statuses and tags</h2>
+          @if (canEdit()) {
+            <button mat-button type="button" (click)="openEditor('workflow')">Edit workflow</button>
+          }
         </div>
         <span class="summary-count">{{ activeStatuses().length }} statuses</span>
       </header>
@@ -211,7 +231,12 @@
       </div>
 
       <div class="workflow-section">
-        <h3>Project tags</h3>
+        <div class="workflow-tag-heading">
+          <h3>Project tags</h3>
+          @if (canEdit()) {
+            <button mat-button type="button" (click)="openEditor('tags')">Edit tags</button>
+          }
+        </div>
         @if (project().tags.length > 0) {
           <div class="tag-list">
             @for (tag of project().tags.slice(0, 12); track tag) {
@@ -228,3 +253,14 @@
     </article>
   </div>
 </section>
+
+@if (editor(); as current) {
+  @if (current.projectId === project().id) {
+    <pf-settings-editor
+      [project]="project()"
+      [mode]="current.mode"
+      (projectSaved)="projectSaved.emit($event)"
+      (closeRequested)="editor.set(null)"
+    />
+  }
+}

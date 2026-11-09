@@ -1,0 +1,334 @@
+<dialog
+  pfModalTopLayer
+  class="settings-backdrop"
+  aria-labelledby="settings-editor-title"
+  (cancel)="requestClose($event)"
+  (click)="requestClose()"
+>
+  <section class="settings-panel" (click)="$event.stopPropagation()">
+    <header class="editor-header">
+      <div>
+        <small>{{ project().name }}</small>
+        <h2 id="settings-editor-title">{{ title() }}</h2>
+      </div>
+      <button
+        type="button"
+        class="icon-button"
+        aria-label="Close settings editor"
+        autofocus
+        [disabled]="busy()"
+        (click)="requestClose()"
+      >
+        ×
+      </button>
+    </header>
+    <div class="editor-body" [attr.aria-busy]="busy() || loading()">
+      @if (error(); as message) {
+        <p #feedback class="error" role="alert" tabindex="-1">{{ message }}</p>
+      }
+      @if (notice(); as message) {
+        <p class="notice" role="status">{{ message }}</p>
+      }
+      @if (!canEdit()) {
+        <p class="error">This project is read only for your account.</p>
+      }
+      @switch (mode()) {
+        @case ('profile') {
+          <form id="settings-form" (submit)="saveProject($event)">
+            <fieldset [disabled]="busy() || !canEdit()">
+              <label
+                >Name<input
+                  name="name"
+                  [(ngModel)]="profile.name"
+                  (ngModelChange)="changed()"
+                  required
+                  maxlength="250"
+              /></label>
+              <label
+                >Description<textarea
+                  name="description"
+                  [(ngModel)]="profile.description"
+                  (ngModelChange)="changed()"
+                  rows="6"
+                ></textarea>
+              </label>
+              <label class="check"
+                ><input
+                  type="checkbox"
+                  name="private"
+                  [(ngModel)]="profile.is_private"
+                  (ngModelChange)="changed()"
+                />Private project</label
+              >
+              <p class="help">
+                Public projects may be visible to people outside the team. Private projects are
+                restricted to members.
+              </p>
+            </fieldset>
+          </form>
+        }
+        @case ('modules') {
+          <form id="settings-form" (submit)="saveProject($event)">
+            <fieldset [disabled]="busy() || !canEdit()">
+              @for (field of moduleFields; track field.key) {
+                <label class="check module-option"
+                  ><input
+                    type="checkbox"
+                    [name]="field.key"
+                    [(ngModel)]="modules[field.key]"
+                    (ngModelChange)="changed()"
+                  />{{ field.label }}</label
+                >
+              }
+              <p class="help">
+                Turning a module off keeps its existing data in Taiga. Backlog and Wiki can be
+                enabled here; their full workspaces are currently available in classic Taiga.
+              </p>
+            </fieldset>
+          </form>
+        }
+        @case ('tags') {
+          <p class="help">
+            Renaming a tag updates it across the project, including existing stories and issues.
+          </p>
+          <div class="config-list">
+            @for (tag of tags(); track tag.name) {
+              <div class="config-row">
+                <span class="dot" [style.background]="tag.color || '#8f8a99'"></span
+                ><strong>{{ tag.name }}</strong
+                ><button type="button" [disabled]="busy() || !canEdit()" (click)="editTag(tag)">
+                  Edit
+                </button>
+              </div>
+            } @empty {
+              <p class="help">No project tags yet.</p>
+            }
+          </div>
+          <button type="button" [disabled]="busy() || !canEdit()" (click)="editTag()">
+            + Add tag
+          </button>
+          @if (editing() !== null) {
+            <form id="settings-form" class="draft-form" (submit)="saveTag($event)">
+              <h3>{{ editing() === '' ? 'New tag' : 'Edit tag' }}</h3>
+              <fieldset [disabled]="busy() || !canEdit()">
+                <label
+                  >Tag name<input
+                    #draftName
+                    name="tagName"
+                    [(ngModel)]="draft.name"
+                    (ngModelChange)="changed()"
+                    required
+                    maxlength="100"
+                /></label>
+                <label
+                  >Color (optional HEX)<input
+                    name="color"
+                    placeholder="#8f8a99"
+                    [(ngModel)]="draft.color"
+                    (ngModelChange)="changed()"
+                    pattern="#[a-fA-F0-9]{6}"
+                /></label>
+              </fieldset>
+            </form>
+          }
+        }
+        @default {
+          @if (mode() === 'workflow') {
+            <label
+              >Configuration<select
+                aria-label="Workflow configuration"
+                [disabled]="busy()"
+                (change)="switchKind($event)"
+              >
+                @for (item of kinds; track item.key) {
+                  <option [value]="item.key" [selected]="kind() === item.key">
+                    {{ item.label }}
+                  </option>
+                }
+              </select></label
+            >
+          } @else {
+            <p class="help">
+              Changes apply to everyone with this role. Administrator access is managed separately
+              from role permissions.
+            </p>
+          }
+          @if (loading()) {
+            <p role="status">Loading configuration…</p>
+          } @else {
+            @if (error() && values().length === 0 && editing() === null) {
+              <button type="button" (click)="loadValues()">Retry loading</button>
+            }
+            <div class="config-list">
+              @for (item of values(); track item.id) {
+                <div class="config-row">
+                  @if (item.color) {
+                    <span class="dot" [style.background]="item.color"></span>
+                  }
+                  <div class="value-copy">
+                    <strong>{{ item.name }}</strong
+                    ><small>
+                      Order {{ item.order }}
+                      @if (item.is_closed) {
+                        · Closed
+                      }
+                      @if (item.is_archived) {
+                        · Archived
+                      }
+                      @if (item.wip_limit !== null && item.wip_limit !== undefined) {
+                        · WIP {{ item.wip_limit }}
+                      }
+                      @if (mode() === 'roles') {
+                        · {{ item.permissions?.length || 0 }} permissions
+                      }
+                      @if (kind() === 'points' && mode() !== 'roles') {
+                        · Value {{ item.value ?? 'Unestimated' }}
+                      }
+                    </small>
+                  </div>
+                  <button
+                    type="button"
+                    [attr.aria-label]="'Edit ' + item.name"
+                    [disabled]="busy() || !canEdit()"
+                    (click)="edit(item)"
+                  >
+                    Edit
+                  </button>
+                </div>
+              } @empty {
+                @if (!error()) {
+                  <p class="help">No values configured yet.</p>
+                }
+              }
+            </div>
+            <button type="button" [disabled]="busy() || !canEdit() || !!error()" (click)="edit()">
+              + {{ mode() === 'roles' ? 'Add role' : 'Add value' }}
+            </button>
+            @if (editing() !== null) {
+              <form id="settings-form" class="draft-form" (submit)="saveValue($event)">
+                <h3>{{ editing() === 'new' ? 'New value' : 'Edit value' }}</h3>
+                <fieldset [disabled]="busy() || !canEdit()">
+                  <label
+                    >Name<input
+                      #draftName
+                      name="valueName"
+                      [(ngModel)]="draft.name"
+                      (ngModelChange)="changed()"
+                      required
+                      maxlength="200"
+                  /></label>
+                  <div class="fields-grid">
+                    <label
+                      >Order<input
+                        type="number"
+                        name="order"
+                        [(ngModel)]="draft.order"
+                        (ngModelChange)="changed()"
+                        step="1"
+                        required
+                    /></label>
+                    @if (mode() !== 'roles' && definition().color) {
+                      <label
+                        >Color<input
+                          type="color"
+                          name="color"
+                          [(ngModel)]="draft.color"
+                          (ngModelChange)="changed()"
+                      /></label>
+                    }
+                    @if (mode() !== 'roles' && kind() === 'points') {
+                      <label
+                        >Value<input
+                          type="number"
+                          name="pointValue"
+                          [(ngModel)]="draft.value"
+                          (ngModelChange)="changed()"
+                          step="any"
+                          placeholder="Unestimated"
+                      /></label>
+                    }
+                  </div>
+                  @if (mode() !== 'roles' && definition().closed) {
+                    <label class="check"
+                      ><input
+                        type="checkbox"
+                        name="closed"
+                        [(ngModel)]="draft.closed"
+                        (ngModelChange)="changed()"
+                      />Closed status</label
+                    >
+                  }
+                  @if (mode() !== 'roles' && kind() === 'userstory-statuses') {
+                    <label
+                      >WIP limit<input
+                        type="number"
+                        name="wip"
+                        min="0"
+                        step="1"
+                        [(ngModel)]="draft.wip"
+                        (ngModelChange)="changed()"
+                        placeholder="No limit"
+                    /></label>
+                    <label class="check"
+                      ><input
+                        type="checkbox"
+                        name="archived"
+                        [(ngModel)]="draft.archived"
+                        (ngModelChange)="changed()"
+                      />Archive column</label
+                    >
+                    <p class="help">
+                      Archived columns and their stories are hidden from Kanban. Uncheck to restore
+                      them.
+                    </p>
+                  }
+                  @if (mode() === 'roles') {
+                    <label class="check"
+                      ><input
+                        type="checkbox"
+                        name="computable"
+                        [(ngModel)]="draft.computable"
+                        (ngModelChange)="changed()"
+                      />Use this role for story estimates</label
+                    >
+                    <div class="permissions-grid">
+                      @for (group of permissionGroups; track group.label) {
+                        <section>
+                          <h4>{{ group.label }}</h4>
+                          @for (permission of group.values; track permission) {
+                            <label class="check"
+                              ><input
+                                type="checkbox"
+                                [attr.aria-label]="permissionLabel(permission) + ' ' + group.label"
+                                [checked]="draft.permissions.includes(permission)"
+                                (change)="togglePermission(permission, $event)"
+                              />{{ permissionLabel(permission) }}</label
+                            >
+                          }
+                        </section>
+                      }
+                    </div>
+                  }
+                </fieldset>
+              </form>
+            }
+          }
+        }
+      }
+    </div>
+    <footer class="editor-footer">
+      @if (busy()) {
+        <span role="status">Saving…</span>
+      }
+      @if (editing() !== null) {
+        <button type="button" [disabled]="busy()" (click)="cancelDraft()">Cancel edit</button>
+      }
+      <button type="button" [disabled]="busy()" (click)="requestClose()">Close</button>
+      @if (mode() === 'profile' || mode() === 'modules' || editing() !== null) {
+        <button type="submit" form="settings-form" class="primary" [disabled]="!canSave()">
+          Save changes
+        </button>
+      }
+    </footer>
+  </section>
+</dialog>
