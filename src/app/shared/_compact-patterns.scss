@@ -13,6 +13,16 @@
       padding-inline: 0.5rem;
     }
   }
+  @media (min-width: 48.01rem) {
+    :host-context(html[data-ui-density='compact']) {
+      #{$open} {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+  }
   @media (max-width: 48rem) {
     :host-context(html[data-ui-density='compact']) {
       #{$wrap} {

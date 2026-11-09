@@ -593,3 +593,5 @@
     padding-top: 0.75rem;
   }
 }
+
+:host-context(html[data-ui-density='compact']) .settings-grid { align-items: start; }

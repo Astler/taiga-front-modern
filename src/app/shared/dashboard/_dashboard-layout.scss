@@ -3,6 +3,7 @@
     display: block;
     min-width: 0;
   }
+  :host-context(html[data-ui-density='compact']) .focus-item { min-height: 0; }
   .dashboard {
     width: min(100%, 90rem);
     box-sizing: border-box;

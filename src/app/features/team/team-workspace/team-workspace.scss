@@ -526,3 +526,15 @@ select option {
     }
   }
 }
+
+:host-context(html[data-ui-density='compact']) {
+  .member-card { grid-template-columns: 2rem minmax(0, 1fr) auto; gap: 0.3rem 0.6rem; }
+  .member-heading { display: contents; }
+  .avatar { grid-column: 1; grid-row: 1 / span 2; align-self: center; }
+  .identity { grid-column: 2; grid-row: 1; }
+  .identity strong { line-height: 1.2; }
+  .member-badges { grid-column: 2; grid-row: 2; min-width: 0; }
+  .role-badge { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .member-card footer { grid-column: 3; grid-row: 1 / span 2; display: grid; justify-items: end; align-content: center; border: 0; padding: 0; gap: 0.2rem; max-width: 6rem; }
+  .username { max-width: 6rem; font-size: 0.65rem; }
+}
