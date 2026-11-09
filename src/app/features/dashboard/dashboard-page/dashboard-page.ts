@@ -7,6 +7,8 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { DashboardHeader } from '../../../shared/dashboard/dashboard-header';
+import { DashboardMetrics, type DashboardMetric } from '../../../shared/dashboard/dashboard-metrics';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { RouterLink } from '@angular/router';
@@ -15,15 +17,6 @@ import type { ShellProject } from '../../../shell/project-context/mock-projects'
 import { ShellProjectContext } from '../../../shell/project-context/shell-project-context';
 import type { ProfileWorkItem, ProfileWorkType } from '../data/profile-dashboard.models';
 import { ProfileDashboardStore } from '../data/profile-dashboard.store';
-
-type MetricTone = 'primary' | 'tertiary' | 'warning' | 'error';
-
-interface DashboardMetric {
-  readonly label: string;
-  readonly value: string;
-  readonly detail: string;
-  readonly tone: MetricTone;
-}
 
 interface ProjectSummary {
   readonly id: number;
@@ -37,7 +30,7 @@ const PAGE_SIZE = 10;
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatButtonModule, MatProgressBarModule, RouterLink],
+  imports: [DashboardHeader, DashboardMetrics, MatButtonModule, MatProgressBarModule, RouterLink],
   providers: [ProfileDashboardStore],
   selector: 'pf-dashboard-page',
   styleUrl: './dashboard-page.scss',

@@ -1,46 +1,6 @@
 <section class="dashboard" aria-labelledby="page-title">
-  <header class="page-header">
-    <div>
-      <div class="page-eyebrow">
-        <span>{{ projectContext.selectedProject().code }}</span>
-        <span>{{ projectContext.selectedProject().name }}</span>
-        @if (store.status() === 'loaded') {
-          <span class="live-badge"><i aria-hidden="true"></i>Live data</span>
-        }
-      </div>
-      <h1 id="page-title">{{ greeting() }}</h1>
-      <p>What needs attention, what is moving, and what comes next.</p>
-    </div>
-
-    @if (project(); as activeProject) {
-      <div class="page-actions">
-        <button
-          class="app-icon-button"
-          mat-button
-          type="button"
-          [disabled]="store.loading() || store.refreshing()"
-          (click)="refresh()"
-        >
-          <span class="app-button-content">
-            <svg aria-hidden="true" viewBox="0 0 24 24">
-              <path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" />
-            </svg>
-            <span>{{ store.refreshing() ? 'Syncing…' : 'Refresh' }}</span>
-          </span>
-        </button>
-        <a
-          class="app-icon-button"
-          mat-flat-button
-          [routerLink]="['/project', activeProject.slug, 'kanban']"
-        >
-          <span class="app-button-content">
-            <span>Open Kanban</span>
-            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" /></svg>
-          </span>
-        </a>
-      </div>
-    }
-  </header>
+  <pf-dashboard-header [heading]="greeting()" titleId="page-title"
+    [busy]="store.loading() || store.refreshing()" (refreshRequested)="refresh()" />
 
   @if (store.loading()) {
     <section class="overview-state loading-state" role="status">
@@ -64,18 +24,7 @@
       <p class="refresh-error" role="status">{{ refreshError }} Showing the previous snapshot.</p>
     }
 
-    <div class="metrics" aria-label="Live project summary">
-      @for (metric of metrics(); track metric.label) {
-        <article class="metric-card" [attr.data-tone]="metric.tone">
-          <div class="metric-heading">
-            <span class="metric-indicator" aria-hidden="true"></span>
-            <span>{{ metric.label }}</span>
-          </div>
-          <strong>{{ metric.value }}</strong>
-          <small>{{ metric.change }}</small>
-        </article>
-      }
-    </div>
+    <pf-dashboard-metrics [metrics]="metrics()" label="Live project summary" />
 
     <div class="dashboard-grid">
       <article class="focus-card">

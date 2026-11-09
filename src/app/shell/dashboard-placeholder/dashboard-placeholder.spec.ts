@@ -80,7 +80,11 @@ describe('DashboardPlaceholder', () => {
     const host = fixture.nativeElement as HTMLElement;
     expect(load).toHaveBeenCalledWith(17);
     expect(host.querySelector('h1')?.textContent).toContain('Vlady');
-    expect(host.textContent).toContain('Live data');
+    expect(host.textContent).not.toContain('Live data');
+    expect(host.querySelector('.page-header')?.textContent).not.toContain('Open Kanban');
+    host.querySelector<HTMLButtonElement>('[aria-label="Refresh dashboard"]')!.click();
+    await fixture.whenStable();
+    expect(load).toHaveBeenCalledTimes(2);
     expect(host.textContent).not.toContain('Preview data');
     expect(metric(host, 'Open stories')).toContain('2');
     expect(metric(host, 'In progress')).toContain('1');

@@ -1,15 +1,6 @@
 <section class="dashboard" aria-labelledby="dashboard-title">
-  <header class="page-header">
-    <h1 id="dashboard-title">{{ greeting() }}</h1>
-    <button mat-icon-button type="button" class="refresh-button"
-      [attr.aria-label]="store.refreshing() ? 'Refreshing dashboard' : 'Refresh dashboard'"
-      title="Refresh dashboard"
-      [disabled]="store.loading() || store.refreshing()" (click)="refresh()">
-      <svg aria-hidden="true" viewBox="0 0 24 24">
-        <path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" />
-      </svg>
-    </button>
-  </header>
+  <pf-dashboard-header [heading]="greeting()" titleId="dashboard-title"
+    [busy]="store.loading() || store.refreshing()" (refreshRequested)="refresh()" />
 
   @if (store.loading() || (store.status() === 'idle' && !store.error())) {
     <section class="overview-state loading-state" role="status">
@@ -40,18 +31,7 @@
       </div>
     }
 
-    <div class="metrics" aria-label="My account work summary">
-      @for (metric of metrics(); track metric.label) {
-        <article class="metric-card" [attr.data-tone]="metric.tone">
-          <div class="metric-heading">
-            <span class="metric-indicator" aria-hidden="true"></span>
-            <span>{{ metric.label }}</span>
-          </div>
-          <strong>{{ metric.value }}</strong>
-          <small>{{ metric.detail }}</small>
-        </article>
-      }
-    </div>
+    <pf-dashboard-metrics [metrics]="metrics()" label="My account work summary" />
 
     <div class="dashboard-grid">
       <section class="focus-card" aria-labelledby="assigned-title">

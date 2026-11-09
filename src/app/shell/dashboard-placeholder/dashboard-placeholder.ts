@@ -6,6 +6,8 @@ import {
   inject,
   untracked,
 } from '@angular/core';
+import { DashboardHeader } from '../../shared/dashboard/dashboard-header';
+import { DashboardMetrics, type DashboardMetric } from '../../shared/dashboard/dashboard-metrics';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { RouterLink } from '@angular/router';
@@ -16,16 +18,9 @@ import { ShellProjectContext } from '../project-context/shell-project-context';
 import type { OverviewMilestone } from './dashboard-overview.models';
 import { DashboardOverviewStore } from './dashboard-overview.store';
 
-interface DashboardMetric {
-  readonly change: string;
-  readonly label: string;
-  readonly tone: 'primary' | 'tertiary' | 'warning' | 'error';
-  readonly value: string;
-}
-
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatButtonModule, MatProgressBarModule, RouterLink],
+  imports: [DashboardHeader, DashboardMetrics, MatButtonModule, MatProgressBarModule, RouterLink],
   providers: [DashboardOverviewStore],
   selector: 'pf-dashboard-placeholder',
   styleUrl: './dashboard-placeholder.scss',
@@ -61,25 +56,25 @@ export class DashboardPlaceholder {
 
     return [
       {
-        change: `${mine.length} assigned to you`,
+        detail: `${mine.length} assigned to you`,
         label: 'Open stories',
         tone: 'primary',
         value: String(open.length),
       },
       {
-        change: `${inProgress.filter((story) => userId !== undefined && isAssignedTo(story, userId)).length} yours`,
+        detail: `${inProgress.filter((story) => userId !== undefined && isAssignedTo(story, userId)).length} yours`,
         label: 'In progress',
         tone: 'warning',
         value: String(inProgress.length),
       },
       {
-        change: blocked.length ? 'Needs a decision' : 'No blockers right now',
+        detail: blocked.length ? 'Needs a decision' : 'No blockers right now',
         label: 'Blocked',
         tone: 'error',
         value: String(blocked.length),
       },
       {
-        change: `${dueSoon.length} due in the next 7 days`,
+        detail: `${dueSoon.length} due in the next 7 days`,
         label: 'Overdue',
         tone: 'tertiary',
         value: String(overdue.length),

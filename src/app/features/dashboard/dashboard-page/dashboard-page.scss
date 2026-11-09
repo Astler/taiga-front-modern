@@ -1,24 +1,7 @@
-:host {
-  display: block;
-  min-width: 0;
-}
+@use '../../../shared/dashboard/dashboard-layout' as dashboard;
 
-:host-context(html[data-ui-density='compact']) {
-  height: 100%;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
+@include dashboard.page;
 
-.dashboard {
-  width: min(100%, 90rem);
-  box-sizing: border-box;
-  margin-inline: auto;
-  padding: clamp(1rem, 2.5vw, 2.25rem);
-}
-
-.page-header,
-.metric-heading,
 .card-header,
 .focus-item,
 .activity-item {
@@ -26,23 +9,7 @@
   align-items: center;
 }
 
-.page-header {
-  justify-content: flex-start;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.page-header h1 {
-  min-width: 0;
-  margin: 0;
-  font: var(--mat-sys-display-small);
-  font-weight: 650;
-  letter-spacing: -0.03em;
-}
-
 .section-label,
-.metric-heading,
-.metric-card small,
 .work-context,
 .watch-copy small,
 .watch-copy > span,
@@ -51,8 +18,6 @@
 .project-summary {
   color: var(--mat-sys-on-surface-variant);
 }
-
-.metric-indicator,
 .focus-status {
   width: 0.5rem;
   height: 0.5rem;
@@ -61,38 +26,6 @@
   background: var(--mat-sys-primary);
 }
 
-.refresh-button {
-  --mat-icon-button-state-layer-size: 2.5rem;
-  display: inline-flex;
-  flex: 0 0 2.5rem;
-  align-items: center;
-  justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  padding: 0;
-  color: var(--mat-sys-primary);
-}
-
-.refresh-button svg {
-  display: block;
-  flex: 0 0 auto;
-  margin: 0;
-  width: 1.125rem;
-  height: 1.125rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-width: 1.8;
-}
-
-.metrics {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.875rem;
-  margin-bottom: 1rem;
-}
-
-.metric-card,
 .focus-card,
 .activity-card {
   min-width: 0;
@@ -100,38 +33,6 @@
   border-radius: var(--app-radius-xl);
   background: var(--app-card-bg);
   box-shadow: var(--app-card-shadow);
-}
-
-.metric-card {
-  display: grid;
-  min-height: 7.5rem;
-  align-content: space-between;
-  gap: 0.25rem;
-  padding: 1rem;
-}
-
-.metric-heading {
-  gap: 0.5rem;
-  font: var(--mat-sys-label-large);
-}
-
-.metric-indicator {
-  background: var(--metric-color, var(--mat-sys-primary));
-  box-shadow: 0 0 0 0.3rem color-mix(in srgb, var(--metric-color, var(--mat-sys-primary)) 12%, transparent);
-}
-
-.metric-card[data-tone='tertiary'] { --metric-color: var(--mat-sys-tertiary); }
-.metric-card[data-tone='warning'] { --metric-color: var(--app-warning); }
-.metric-card[data-tone='error'] { --metric-color: var(--mat-sys-error); }
-
-.metric-card > strong {
-  font: var(--mat-sys-headline-medium);
-  font-weight: 700;
-}
-
-.metric-card > small {
-  font: var(--mat-sys-body-small);
-  line-height: 1.4;
 }
 
 .dashboard-grid,
@@ -157,7 +58,9 @@
   gap: 0.75rem;
 }
 
-.card-header > div { min-width: 0; }
+.card-header > div {
+  min-width: 0;
+}
 .card-header h2 {
   margin: 0.2rem 0 0;
   font: var(--mat-sys-title-large);
@@ -207,7 +110,9 @@
   background: var(--mat-sys-surface-container-high);
 }
 
-.focus-status { margin-top: 0.7rem; }
+.focus-status {
+  margin-top: 0.7rem;
+}
 .focus-copy,
 .watch-copy,
 .activity-copy,
@@ -217,7 +122,9 @@
   gap: 0.2rem;
 }
 
-.focus-copy { flex: 1; }
+.focus-copy {
+  flex: 1;
+}
 .work-context,
 .watch-copy small,
 .project-work-list small {
@@ -257,7 +164,11 @@
   font: var(--mat-sys-body-small);
 }
 
-.focus-tags { display: flex; flex: 0 0 auto; align-items: center; }
+.focus-tags {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
 .item-tag {
   border-radius: var(--app-radius-full);
   background: var(--mat-sys-primary-container);
@@ -305,7 +216,9 @@
   font-weight: 700;
 }
 
-.list-toggle:hover { background: var(--mat-sys-surface-container-high); }
+.list-toggle:hover {
+  background: var(--mat-sys-surface-container-high);
+}
 
 .activity-item {
   min-width: 0;
@@ -314,7 +227,9 @@
   padding: 0.75rem 0.2rem;
 }
 
-.activity-copy { flex: 1; }
+.activity-copy {
+  flex: 1;
+}
 .activity-copy > span {
   font: var(--mat-sys-body-small);
 }
@@ -328,7 +243,9 @@
   margin: 0.75rem 0;
   font: var(--mat-sys-body-medium);
 }
-.project-summary strong { color: var(--mat-sys-on-surface); }
+.project-summary strong {
+  color: var(--mat-sys-on-surface);
+}
 
 .project-work-list li {
   min-width: 0;
@@ -350,7 +267,10 @@
   font: var(--mat-sys-body-small);
 }
 
-.partial-warning { display: grid; gap: 0.25rem; }
+.partial-warning {
+  display: grid;
+  gap: 0.25rem;
+}
 
 .overview-state {
   display: flex;
@@ -363,8 +283,13 @@
   background: var(--app-card-bg);
   padding: 1.5rem;
 }
-.overview-state > div { display: grid; gap: 0.25rem; }
-.overview-state strong { font: var(--mat-sys-title-medium); }
+.overview-state > div {
+  display: grid;
+  gap: 0.25rem;
+}
+.overview-state strong {
+  font: var(--mat-sys-title-medium);
+}
 .overview-state span {
   color: var(--mat-sys-on-surface-variant);
   font: var(--mat-sys-body-medium);
@@ -393,58 +318,32 @@
 }
 
 @media (max-width: 1180px) {
-  .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dashboard-grid,
-  .lower-grid { grid-template-columns: minmax(0, 1fr); }
+  .lower-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 650px) {
-  .dashboard { padding: 1rem 0.75rem; }
-.page-header h1 {
-    font: var(--mat-sys-headline-large);
-    font-weight: 700;
-  }
-.metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.5rem;
-  }
-  .metric-card {
-    position: relative;
-    min-height: 0;
-    align-content: start;
-    gap: 0.35rem;
-    padding: 0.75rem 0.875rem;
-    border-radius: var(--app-radius-lg);
-  }
-  .metric-heading {
-    gap: 0.45rem;
-    font-size: 0.75rem;
-  }
-  .metric-card > strong {
-    font-size: 1.5rem;
-    line-height: 1.15;
-  }
-  // Keep the explanation available to assistive technology without enlarging mobile tiles.
-  .metric-card > small {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
   .focus-card,
-  .activity-card { padding: 0.85rem; }
-  .focus-tags { align-self: flex-start; }
+  .activity-card {
+    padding: 0.85rem;
+  }
+  .focus-tags {
+    align-self: flex-start;
+  }
 }
 
-/* Shared interface density; mobile layout and actions remain available. */
-:host-context(html[data-ui-density='compact']) .dashboard { padding: var(--app-density-page-padding); }
 :host-context(html[data-ui-density='compact']) .focus-card,
-:host-context(html[data-ui-density='compact']) .activity-card { padding: var(--app-density-card-padding); }
+:host-context(html[data-ui-density='compact']) .activity-card {
+  padding: var(--app-density-card-padding);
+}
 :host-context(html[data-ui-density='compact']) .dashboard-grid,
-:host-context(html[data-ui-density='compact']) .lower-grid,
-:host-context(html[data-ui-density='compact']) .metrics { gap: var(--app-density-gap); }
+:host-context(html[data-ui-density='compact']) .lower-grid {
+  gap: var(--app-density-gap);
+}
 :host-context(html[data-ui-density='compact']) .focus-item,
 :host-context(html[data-ui-density='compact']) .watch-item,
-:host-context(html[data-ui-density='compact']) .activity-item { padding-block: var(--app-density-row-padding); }
+:host-context(html[data-ui-density='compact']) .activity-item {
+  padding-block: var(--app-density-row-padding);
+}

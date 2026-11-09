@@ -1,0 +1,91 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--app-density-gap, 0.875rem);
+  margin-bottom: 1rem;
+}
+.metric-card {
+  display: grid;
+  min-width: 0;
+  min-height: 7.5rem;
+  align-content: space-between;
+  gap: 0.25rem;
+  padding: var(--app-density-card-padding, 1rem);
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-xl);
+  background: var(--app-card-bg);
+  box-shadow: var(--app-card-shadow);
+}
+.metric-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-large);
+}
+.metric-indicator {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--metric-color, var(--mat-sys-primary));
+  box-shadow: 0 0 0 0.3rem
+    color-mix(in srgb, var(--metric-color, var(--mat-sys-primary)) 12%, transparent);
+}
+.metric-card[data-tone='tertiary'] {
+  --metric-color: var(--mat-sys-tertiary);
+}
+.metric-card[data-tone='warning'] {
+  --metric-color: var(--app-warning);
+}
+.metric-card[data-tone='error'] {
+  --metric-color: var(--mat-sys-error);
+}
+strong {
+  font: var(--mat-sys-headline-medium);
+  font-weight: 700;
+}
+small {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+  line-height: 1.4;
+}
+@media (max-width: 1180px) {
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 650px) {
+  .metrics {
+    gap: var(--app-density-gap, 0.5rem);
+  }
+  .metric-card {
+    position: relative;
+    min-height: 0;
+    align-content: start;
+    gap: 0.35rem;
+    padding: var(--app-density-card-padding, 0.75rem 0.875rem);
+    border-radius: var(--app-radius-lg);
+  }
+  .metric-heading {
+    gap: 0.45rem;
+    font-size: 0.75rem;
+  }
+  strong {
+    font-size: 1.5rem;
+    line-height: 1.15;
+  }
+  // Keep explanations accessible without increasing mobile tile height.
+  small {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

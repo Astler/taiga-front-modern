@@ -1,0 +1,23 @@
+@mixin page {
+  :host {
+    display: block;
+    min-width: 0;
+  }
+  :host-context(html[data-ui-density='compact']) {
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .dashboard {
+    width: min(100%, 90rem);
+    box-sizing: border-box;
+    margin-inline: auto;
+    padding: var(--app-density-page-padding, clamp(1rem, 2.5vw, 2.25rem));
+  }
+  @media (max-width: 650px) {
+    .dashboard {
+      padding: var(--app-density-page-padding, 1rem 0.75rem);
+    }
+  }
+}
