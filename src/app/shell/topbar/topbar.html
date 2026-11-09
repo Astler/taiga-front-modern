@@ -134,6 +134,22 @@
         }
       </button>
 
+      <button class="compact-board-overflow" mat-icon-button type="button"
+        aria-label="Board controls" [matMenuTriggerFor]="compactBoardMenu">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 6h14M8 12h8M10 18h4" /></svg>
+      </button>
+      <mat-menu #compactBoardMenu="matMenu">
+        <button mat-menu-item type="button" [matMenuTriggerFor]="compactSortMenu">Sort cards</button>
+        <button mat-menu-item type="button" (click)="boardToolbar.toggleFilters()">Filters</button>
+        <button mat-menu-item type="button" (click)="boardToolbar.applyAllWork()">All work</button>
+        @if (boardToolbar.hasMyWork()) {
+          <button mat-menu-item type="button" (click)="boardToolbar.applyMyWork()">My work</button>
+        }
+        <button mat-menu-item type="button" (click)="boardToolbar.applyUnassigned()">Unassigned</button>
+        <button mat-menu-item type="button" (click)="boardToolbar.applyBlocked()">Blocked</button>
+        <button mat-menu-item type="button" (click)="boardToolbar.applyOverdue()">Overdue</button>
+      </mat-menu>
+
       <div class="compact-board-shortcuts" aria-label="Board views">
         <button
           type="button"
