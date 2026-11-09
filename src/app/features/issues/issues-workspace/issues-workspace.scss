@@ -1,3 +1,5 @@
+@use '../../../shared/compact-patterns' as compact;
+
 :host {
   display: block;
   min-width: 0;
@@ -215,7 +217,11 @@
 
 .filter-field-active {
   border-color: color-mix(in srgb, var(--mat-sys-primary) 70%, var(--app-border-color));
-  background: color-mix(in srgb, var(--mat-sys-primary-container) 32%, var(--mat-sys-surface-container));
+  background: color-mix(
+    in srgb,
+    var(--mat-sys-primary-container) 32%,
+    var(--mat-sys-surface-container)
+  );
 }
 
 .filter-field label {
@@ -811,57 +817,47 @@ time {
 }
 
 /* Shared interface density; mobile layout and actions remain available. */
-:host-context(html[data-ui-density='compact']) .issues-page { padding: var(--app-density-page-padding); }
+:host-context(html[data-ui-density='compact']) .issues-page {
+  padding: var(--app-density-page-padding);
+}
 
+@include compact.record-list(
+  '.issue-table',
+  '.issue-table-wrap',
+  '.issue-main-cell',
+  '.issue-title',
+  '.issue-open'
+);
 @media (max-width: 48rem) {
   :host-context(html[data-ui-density='compact']) {
-    .issue-table-wrap {
-      border: 1px solid var(--app-border-color);
-      border-radius: 0.5rem;
-      background: var(--app-card-bg);
+    td[data-label='Status'] {
+      grid-column: 1;
+      grid-row: 2;
     }
-    .issue-table tbody { gap: 0; }
-    .issue-table tbody tr {
-      grid-template-columns: minmax(0, 1fr) auto auto;
-      gap: 0.3rem 0.65rem;
-      border: 0;
-      border-bottom: 1px solid var(--app-border-color);
-      border-radius: 0;
-      background: transparent;
-      box-shadow: none;
-      padding: 0.5rem 0.625rem;
+    td[data-label='Priority'] {
+      grid-column: 2;
+      grid-row: 2;
+      white-space: nowrap;
     }
-    .issue-table tbody tr:last-child { border-bottom: 0; }
-    .issue-table td {
-      width: auto;
-      min-width: 0;
-      padding: 0;
-      align-self: center;
-      font-size: 0.7rem;
+    td[data-label='Assignee'] {
+      grid-column: 3;
+      grid-row: 2;
+      justify-self: end;
     }
-    .issue-table td::before { display: none; }
-    .issue-table .issue-main-cell {
-      grid-column: 1 / -1;
-      grid-row: 1;
+    .issue-table
+      td:is(
+        [data-label='Type'],
+        [data-label='Severity'],
+        [data-label='Tags'],
+        [data-label='Modified']
+      ) {
+      display: none;
     }
-    .issue-main-cell .issue-title {
-      align-items: baseline;
-      gap: 0.4rem;
-      font-size: 0.8125rem;
-      line-height: 1.35;
+    .assignee > span:first-child,
+    .assignee img {
+      width: 1.25rem;
+      height: 1.25rem;
     }
-    .issue-open {
-      display: -webkit-box;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 2;
-      overflow: hidden;
-    }
-    td[data-label='Status'] { grid-column: 1; grid-row: 2; }
-    td[data-label='Priority'] { grid-column: 2; grid-row: 2; white-space: nowrap; }
-    td[data-label='Assignee'] { grid-column: 3; grid-row: 2; justify-self: end; }
-    .issue-table td:is([data-label='Type'], [data-label='Severity'],
-      [data-label='Tags'], [data-label='Modified']) { display: none; }
-    .assignee > span:first-child, .assignee img { width: 1.25rem; height: 1.25rem; }
     .assignee-name {
       position: absolute;
       width: 1px;
@@ -870,6 +866,8 @@ time {
       clip-path: inset(50%);
       white-space: nowrap;
     }
-    .attribute-dot { margin-inline-end: 0.25rem; }
+    .attribute-dot {
+      margin-inline-end: 0.25rem;
+    }
   }
 }

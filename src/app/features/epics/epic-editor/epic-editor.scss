@@ -1,3 +1,5 @@
+@use '../../../shared/compact-patterns' as compact;
+
 :host {
   display: block;
   position: fixed;
@@ -184,7 +186,9 @@
   border-block-start: 1px solid var(--app-border-color);
 }
 
-.epic-editor-spacer { flex: 1 1 auto; }
+.epic-editor-spacer {
+  flex: 1 1 auto;
+}
 
 .epic-editor-footer button {
   min-height: 2.5rem;
@@ -261,7 +265,9 @@
 }
 
 @media (max-width: 540px) {
-  .epic-fields-grid { grid-template-columns: 1fr; }
+  .epic-fields-grid {
+    grid-template-columns: 1fr;
+  }
 
   .epic-editor-header h2 {
     font: var(--mat-sys-title-large);
@@ -273,12 +279,18 @@
     padding: 0.75rem;
   }
 
-  .epic-editor-fields { padding: 0.9rem; }
-  .epic-editor-footer button { padding-inline: 0.7rem; }
+  .epic-editor-fields {
+    padding: 0.9rem;
+  }
+  .epic-editor-footer button {
+    padding-inline: 0.7rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .epic-editor-backdrop { backdrop-filter: none; }
+  .epic-editor-backdrop {
+    backdrop-filter: none;
+  }
 }
 
 .epic-color-input {
@@ -296,3 +308,10 @@
   border: 0;
   border-radius: 0.45rem;
 }
+
+@include compact.editor(
+  '.epic-editor-header',
+  '.epic-editor-fields',
+  '.epic-editor-footer',
+  '.epic-editor-fields'
+);

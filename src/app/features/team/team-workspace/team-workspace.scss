@@ -1,3 +1,5 @@
+@use '../../../shared/compact-patterns' as compact;
+
 :host {
   display: block;
   min-width: 0;
@@ -440,7 +442,87 @@ select option {
 }
 
 /* Shared interface density; mobile layout and actions remain available. */
-:host-context(html[data-ui-density='compact']) .team-page { padding: var(--app-density-page-padding); }
-:host-context(html[data-ui-density='compact']) .member-card { padding: var(--app-density-card-padding); }
+:host-context(html[data-ui-density='compact']) .team-page {
+  padding: var(--app-density-page-padding);
+}
+:host-context(html[data-ui-density='compact']) .member-card {
+  padding: var(--app-density-card-padding);
+}
 :host-context(html[data-ui-density='compact']) .team-page,
-:host-context(html[data-ui-density='compact']) .member-grid { gap: var(--app-density-gap); }
+:host-context(html[data-ui-density='compact']) .member-grid {
+  gap: var(--app-density-gap);
+}
+
+@include compact.page-heading('.team-header', '.team-header h1');
+:host-context(html[data-ui-density='compact']) {
+  .team-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+  .team-summary article {
+    min-width: 0;
+    padding: 0.4rem 0.6rem;
+  }
+  .team-summary article > div {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+  }
+  .summary-icon {
+    display: none;
+  }
+  .team-summary strong {
+    font-size: 1.125rem;
+  }
+  .team-summary article span {
+    font-size: 0.75rem;
+  }
+  .member-card {
+    gap: 0.4rem;
+    padding: 0.625rem;
+    border-radius: 0.65rem;
+  }
+  .member-heading {
+    gap: 0.5rem;
+  }
+  .avatar {
+    width: 2rem;
+    height: 2rem;
+  }
+  .identity strong {
+    font-size: 0.875rem;
+  }
+  .role-badge,
+  .access-badge {
+    padding: 0.1rem 0.4rem;
+    font-size: 0.65rem;
+  }
+  .member-card footer {
+    padding-top: 0.35rem;
+    gap: 0.5rem;
+  }
+  .status-label {
+    padding-block: 0;
+    font-size: 0.65rem;
+  }
+}
+@media (max-width: 42rem) {
+  :host-context(html[data-ui-density='compact']) {
+    .team-controls {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.4rem;
+    }
+    .search-field {
+      grid-column: 1 / -1;
+    }
+    .select-field {
+      min-width: 0;
+      width: auto;
+    }
+    .select-field select {
+      min-width: 0;
+      width: 100%;
+    }
+  }
+}

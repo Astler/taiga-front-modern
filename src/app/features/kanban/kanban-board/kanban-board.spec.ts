@@ -506,7 +506,7 @@ describe('KanbanBoard', () => {
     setControlValue(status, '2', 'change');
     await fixture.whenStable();
     fixture.detectChanges();
-    expect(updateTask).toHaveBeenCalledWith(321, { status: 2 }, undefined);
+    expect(updateTask).toHaveBeenCalledWith(321, { status: 2 }, 1);
 
     const confirm = vi.spyOn(globalThis, 'confirm').mockReturnValue(true);
     try {
@@ -1757,7 +1757,7 @@ describe('KanbanBoard', () => {
 });
 
 function setControlValue(
-  control: HTMLInputElement | HTMLSelectElement,
+  control: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement,
   value: string,
   eventName: 'input' | 'change',
 ): void {

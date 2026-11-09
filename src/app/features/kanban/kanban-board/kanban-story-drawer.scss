@@ -1,3 +1,5 @@
+@use '../../../shared/compact-patterns' as compact;
+
 .story-drawer-backdrop {
   position: fixed;
   inset: 0;
@@ -458,7 +460,6 @@
   overflow-wrap: anywhere;
 }
 
-
 .file-remove {
   display: grid;
   width: 2.25rem;
@@ -520,7 +521,6 @@
   color: var(--mat-sys-error);
   font: var(--mat-sys-body-small);
 }
-
 
 /* Fullscreen uses the same editor instance, preserving draft state and uploads. */
 .story-editor-fullscreen {
@@ -668,3 +668,10 @@
     animation: none;
   }
 }
+
+@include compact.editor(
+  '.story-drawer-header',
+  '.story-drawer-content',
+  '.story-drawer-footer',
+  '.detail-section'
+);

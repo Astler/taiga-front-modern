@@ -210,7 +210,7 @@
                   </div>
                   <span>{{ progressPercent(epic) }}%</span>
                   <small>
-                    {{ epic.user_stories_counts.progress }}/{{ epic.user_stories_counts.total }}
+                    {{ (epic.user_stories_counts.progress || 0) }}/{{ epic.user_stories_counts.total }}
                     stories
                   </small>
                 </div>

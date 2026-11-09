@@ -1,3 +1,5 @@
+@use '../../../shared/compact-patterns' as compact;
+
 :host {
   display: block;
   min-width: 0;
@@ -190,7 +192,11 @@
 
 .filter-field-active {
   border-color: color-mix(in srgb, var(--mat-sys-primary) 70%, var(--app-border-color));
-  background: color-mix(in srgb, var(--mat-sys-primary-container) 32%, var(--mat-sys-surface-container));
+  background: color-mix(
+    in srgb,
+    var(--mat-sys-primary-container) 32%,
+    var(--mat-sys-surface-container)
+  );
 }
 
 .filter-field label {
@@ -775,4 +781,67 @@ time {
 }
 
 /* Shared interface density; mobile layout and actions remain available. */
-:host-context(html[data-ui-density='compact']) .epics-page { padding: var(--app-density-page-padding); }
+:host-context(html[data-ui-density='compact']) .epics-page {
+  padding: var(--app-density-page-padding);
+}
+
+@include compact.record-list(
+  '.epic-table',
+  '.epic-table-wrap',
+  '.epic-main-cell',
+  '.epic-title',
+  '.epic-open'
+);
+@media (max-width: 48rem) {
+  :host-context(html[data-ui-density='compact']) {
+    .epic-main-cell .epic-title {
+      grid-template-columns: 0.3rem auto minmax(0, 1fr);
+    }
+    .epic-color {
+      height: 1rem;
+      align-self: center;
+    }
+    td[data-label='Status'] {
+      grid-column: 1;
+      grid-row: 2;
+    }
+    td[data-label='Progress'] {
+      grid-column: 2;
+      grid-row: 2;
+    }
+    td[data-label='Assignee'] {
+      grid-column: 3;
+      grid-row: 2;
+      justify-self: end;
+    }
+    .epic-table td:is([data-label='Owner'], [data-label='Updated'], [data-label='Tags']) {
+      display: none;
+    }
+    .epic-progress {
+      min-width: 0;
+      flex-wrap: nowrap;
+      gap: 0.25rem;
+    }
+    .progress-track {
+      width: 2.5rem;
+    }
+    .epic-progress small {
+      flex-basis: auto;
+      white-space: nowrap;
+      font-size: 0.65rem;
+    }
+    .person > span:first-child,
+    .person img {
+      width: 1.25rem;
+      height: 1.25rem;
+    }
+    .person-name {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+  }
+}

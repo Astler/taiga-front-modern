@@ -1,3 +1,5 @@
+@use '../../../shared/compact-patterns' as compact;
+
 :host {
   display: block;
   min-width: 0;
@@ -249,7 +251,9 @@
   background: var(--app-card-bg);
   box-shadow: var(--app-card-shadow);
   padding: 1rem;
-  transition: border-color 150ms ease, transform 150ms ease;
+  transition:
+    border-color 150ms ease,
+    transform 150ms ease;
 }
 
 .project-card:hover,
@@ -465,6 +469,63 @@
 }
 
 /* Shared interface density; mobile layout and actions remain available. */
-:host-context(html[data-ui-density='compact']) .projects-page { padding: var(--app-density-page-padding); }
-:host-context(html[data-ui-density='compact']) .project-card { padding: var(--app-density-card-padding); }
-:host-context(html[data-ui-density='compact']) .projects-grid { gap: var(--app-density-gap); }
+:host-context(html[data-ui-density='compact']) .projects-page {
+  padding: var(--app-density-page-padding);
+}
+:host-context(html[data-ui-density='compact']) .project-card {
+  padding: var(--app-density-card-padding);
+}
+:host-context(html[data-ui-density='compact']) .projects-grid {
+  gap: var(--app-density-gap);
+}
+
+@include compact.page-heading('.projects-header', '.projects-header h1');
+:host-context(html[data-ui-density='compact']) {
+  .projects-summary {
+    margin-block: 0.5rem;
+  }
+  .projects-controls {
+    margin-block: 0.5rem;
+    gap: 0.5rem;
+  }
+  .project-card {
+    min-height: 0;
+    gap: 0.4rem;
+    padding: 0.625rem;
+    border-radius: 0.65rem;
+  }
+  .card-heading {
+    gap: 0.5rem;
+  }
+  .project-mark {
+    width: 2rem;
+    height: 2rem;
+    flex-basis: 2rem;
+  }
+  .project-mark img {
+    width: 100%;
+    height: 100%;
+  }
+  .project-slug {
+    display: none;
+  }
+  .project-description {
+    min-height: 0;
+    -webkit-line-clamp: 1;
+    font-size: 0.75rem;
+  }
+  .project-description:empty {
+    display: none;
+  }
+  .project-facts {
+    margin-top: 0;
+    gap: 0.25rem;
+  }
+  .project-facts span {
+    padding: 0.1rem 0.35rem;
+    font-size: 0.65rem;
+  }
+  .card-footer {
+    padding-top: 0.4rem;
+  }
+}

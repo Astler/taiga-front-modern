@@ -80,9 +80,9 @@
               [disabled]="!canEdit() || busy()"
               (change)="updateSelect('status', $event)"
             >
-              <option value="">No status</option>
+              <option value="" [selected]="draft().status === null">No status</option>
               @for (status of statusOptions(); track status.id) {
-                <option [value]="status.id">{{ status.name }}</option>
+                <option [value]="status.id" [selected]="draft().status === status.id">{{ status.name }}</option>
               }
             </select>
           </label>
@@ -96,9 +96,9 @@
             [disabled]="!canEdit() || busy()"
             (change)="updateSelect('assignedTo', $event)"
           >
-            <option value="">Unassigned</option>
+            <option value="" [selected]="draft().assignedTo === null">Unassigned</option>
             @for (member of assignees(); track member.id) {
-              <option [value]="member.id">{{ member.name }}</option>
+              <option [value]="member.id" [selected]="draft().assignedTo === member.id">{{ member.name }}</option>
             }
           </select>
         </label>

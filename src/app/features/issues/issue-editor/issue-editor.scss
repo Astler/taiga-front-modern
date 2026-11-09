@@ -1,3 +1,5 @@
+@use '../../../shared/compact-patterns' as compact;
+
 :host {
   display: block;
   position: fixed;
@@ -349,11 +351,21 @@
     display: contents;
   }
 
-  .issue-basics { order: 1; }
-  .issue-workflow { order: 2; }
-  .issue-classification { order: 3; }
-  .issue-tags-section { order: 4; }
-  .issue-blocked-section { order: 5; }
+  .issue-basics {
+    order: 1;
+  }
+  .issue-workflow {
+    order: 2;
+  }
+  .issue-classification {
+    order: 3;
+  }
+  .issue-tags-section {
+    order: 4;
+  }
+  .issue-blocked-section {
+    order: 5;
+  }
 }
 
 @media (max-width: 540px) {
@@ -390,3 +402,10 @@
     backdrop-filter: none;
   }
 }
+
+@include compact.editor(
+  '.issue-editor-header',
+  '.issue-editor-fields',
+  '.issue-editor-footer',
+  '.issue-editor-section'
+);
