@@ -438,3 +438,9 @@ select option {
     flex-direction: column;
   }
 }
+
+/* Shared interface density; mobile layout and actions remain available. */
+:host-context(html[data-ui-density='compact']) .team-page { padding: var(--app-density-page-padding); }
+:host-context(html[data-ui-density='compact']) .member-card { padding: var(--app-density-card-padding); }
+:host-context(html[data-ui-density='compact']) .team-page,
+:host-context(html[data-ui-density='compact']) .member-grid { gap: var(--app-density-gap); }

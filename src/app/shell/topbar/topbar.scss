@@ -309,16 +309,11 @@ button svg,
 
 :host .topbar-compact {
   box-sizing: border-box;
-  height: 2.5rem;
-  min-height: 2.5rem;
-  max-height: 2.5rem;
+  height: var(--app-topbar-height);
+  min-height: var(--app-topbar-height);
+  max-height: var(--app-topbar-height);
   gap: 0.375rem;
   padding-inline: 0.625rem 0.75rem;
-
-  .global-search,
-  .compact-search {
-    display: none;
-  }
 
   .quick-projects {
     gap: 0.125rem;
@@ -339,7 +334,6 @@ button svg,
   }
 
   .navigation-toggle,
-  .density-button,
   .notification-button,
   .profile-button {
     --mat-icon-button-state-layer-size: 2.25rem;
@@ -497,9 +491,22 @@ button svg,
       .navigation-toggle,
       .profile-button,
       .compact-search,
-      .density-button,
-      .notification-button
+          .notification-button
     ) {
     display: none;
+  }
+}
+
+@media (max-width: 599px) {
+  :host .topbar-compact {
+    height: var(--app-topbar-height-mobile);
+    min-height: var(--app-topbar-height-mobile);
+    max-height: var(--app-topbar-height-mobile);
+  }
+  :host .topbar-compact :is(.navigation-toggle, .notification-button, .profile-button) {
+    --mat-icon-button-state-layer-size: 2.75rem;
+    width: 2.75rem;
+    min-width: 2.75rem;
+    height: 2.75rem;
   }
 }

@@ -452,3 +452,14 @@
   .activity-card { padding: 0.85rem; }
   .focus-tags { align-self: flex-start; }
 }
+
+/* Shared interface density; mobile layout and actions remain available. */
+:host-context(html[data-ui-density='compact']) .dashboard { padding: var(--app-density-page-padding); }
+:host-context(html[data-ui-density='compact']) .focus-card,
+:host-context(html[data-ui-density='compact']) .activity-card { padding: var(--app-density-card-padding); }
+:host-context(html[data-ui-density='compact']) .dashboard-grid,
+:host-context(html[data-ui-density='compact']) .lower-grid,
+:host-context(html[data-ui-density='compact']) .metrics { gap: var(--app-density-gap); }
+:host-context(html[data-ui-density='compact']) .focus-item,
+:host-context(html[data-ui-density='compact']) .watch-item,
+:host-context(html[data-ui-density='compact']) .activity-item { padding-block: var(--app-density-row-padding); }

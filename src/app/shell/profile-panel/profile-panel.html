@@ -18,8 +18,26 @@
   </header>
 
   <div class="profile-panel-body">
+    <span class="profile-panel-section-kicker">PERSONAL PREFERENCES</span>
     <div class="profile-panel-section-heading">
-      <span class="profile-panel-section-kicker">PERSONAL PREFERENCES</span>
+      <strong>Interface density</strong>
+      <small class="profile-panel-sync">Applies to all screens · Saved on this device</small>
+    </div>
+    <div class="profile-density-list" role="radiogroup" aria-label="Interface density"
+      (keydown)="handleDensityKeydown($event)">
+      @for (option of densityOptions; track option.value) {
+        <button type="button" role="radio" class="profile-density-card"
+          [class.profile-layout-card-active]="density.mode() === option.value"
+          [attr.data-density]="option.value" [attr.aria-label]="option.label"
+          [attr.aria-checked]="density.mode() === option.value"
+          [attr.tabindex]="density.mode() === option.value ? 0 : -1"
+          (click)="density.setMode(option.value)">
+          <strong>{{ option.label }}</strong>
+          <small>{{ option.description }}</small>
+        </button>
+      }
+    </div>
+    <div class="profile-panel-section-heading">
       <strong>Story editor layout</strong>
       <small class="profile-panel-sync" aria-live="polite">
         @switch (editorLayout.syncState()) {

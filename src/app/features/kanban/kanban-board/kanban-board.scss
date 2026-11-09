@@ -890,3 +890,7 @@
     transition: none;
   }
 }
+
+/* Shared interface density; mobile layout and actions remain available. */
+:host-context(html[data-ui-density='compact']) .board-page.board-page-compact { padding: var(--app-density-page-padding); }
+:host-context(html[data-ui-density='compact']) .story-card { padding: var(--app-density-card-padding); }

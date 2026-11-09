@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, ElementRef, inject, input, output } from '@angular/core';
+import { UiDensityService, type UiDensity } from '../../shared/ui-density.service';
 import {
   StoryEditorLayoutService,
   type StoryEditorLayoutMode,
@@ -23,6 +24,11 @@ export class ProfilePanel {
   readonly logoutRequested = output<void>();
 
   protected readonly editorLayout = inject(StoryEditorLayoutService);
+  protected readonly density = inject(UiDensityService);
+  protected readonly densityOptions: readonly { value: UiDensity; label: string; description: string }[] = [
+    { value: 'comfortable', label: 'Comfortable', description: 'More room between items' },
+    { value: 'compact', label: 'Compact', description: 'Less spacing across all screens' },
+  ];
   private readonly element = inject<ElementRef<HTMLElement>>(ElementRef);
 
   protected readonly editorLayoutOptions: readonly EditorLayoutOption[] = [
@@ -57,5 +63,14 @@ export class ProfilePanel {
         .querySelector<HTMLButtonElement>(`[data-layout="${nextMode}"]`)
         ?.focus();
     });
+  }
+
+  protected handleDensityKeydown(event: KeyboardEvent): void {
+    if (!['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft'].includes(event.key)) return;
+    event.preventDefault();
+    const next = this.density.compact() ? 'comfortable' : 'compact';
+    this.density.setMode(next);
+    queueMicrotask(() => this.element.nativeElement
+      .querySelector<HTMLButtonElement>(`[data-density="${next}"]`)?.focus());
   }
 }

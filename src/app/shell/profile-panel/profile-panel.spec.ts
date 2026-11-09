@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   StoryEditorLayoutService,
   type StoryEditorLayoutMode,
@@ -8,6 +8,10 @@ import {
 import { ProfilePanel } from './profile-panel';
 
 describe('ProfilePanel', () => {
+  afterEach(() => {
+    localStorage.removeItem('taiga-modern:compact-mode');
+    document.documentElement.removeAttribute('data-ui-density');
+  });
   const layoutMode = signal<StoryEditorLayoutMode>('auto');
   const syncState = signal<'synced' | 'saving' | 'loading' | 'local'>('synced');
   const setMode = vi.fn((mode: StoryEditorLayoutMode) => layoutMode.set(mode));
@@ -79,5 +83,24 @@ describe('ProfilePanel', () => {
 
     host.querySelector<HTMLButtonElement>('.profile-logout')!.click();
     expect(logouts).toBe(1);
+  });
+
+  it('changes the shared density from profile settings without altering story layout', async () => {
+    const fixture = TestBed.createComponent(ProfilePanel);
+    fixture.componentRef.setInput('name', 'Ada');
+    fixture.componentRef.setInput('initials', 'AL');
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    const compact = host.querySelector<HTMLButtonElement>('[data-density="compact"]')!;
+    compact.click();
+    fixture.detectChanges();
+    expect(compact.getAttribute('aria-checked')).toBe('true');
+    expect(document.documentElement.dataset['uiDensity']).toBe('compact');
+    expect(layoutMode()).toBe('auto');
+    compact.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+    fixture.detectChanges();
+    await Promise.resolve();
+    expect(document.activeElement?.getAttribute('data-density')).toBe('comfortable');
+    expect(localStorage.getItem('taiga-modern:compact-mode')).toBe('false');
   });
 });

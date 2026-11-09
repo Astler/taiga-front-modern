@@ -271,11 +271,7 @@ export class Topbar {
     this.notificationsOpen.set(false);
   }
 
-  protected toggleCompactMode(): void {
-    this.compactKanbanToolbar.toggleCompactMode();
-  }
-
-  protected openGlobalSearch(): void {
+protected openGlobalSearch(): void {
     this.closeProfilePanel();
     this.closeNotifications();
     this.searchOpen.set(true);

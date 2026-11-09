@@ -809,3 +809,6 @@ time {
     padding-block: 0.35rem;
   }
 }
+
+/* Shared interface density; mobile layout and actions remain available. */
+:host-context(html[data-ui-density='compact']) .issues-page { padding: var(--app-density-page-padding); }

@@ -463,3 +463,8 @@
     padding-inline: 0.5rem;
   }
 }
+
+/* Shared interface density; mobile layout and actions remain available. */
+:host-context(html[data-ui-density='compact']) .projects-page { padding: var(--app-density-page-padding); }
+:host-context(html[data-ui-density='compact']) .project-card { padding: var(--app-density-card-padding); }
+:host-context(html[data-ui-density='compact']) .projects-grid { gap: var(--app-density-gap); }

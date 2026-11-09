@@ -526,3 +526,9 @@
     transition: none;
   }
 }
+
+/* Shared interface density; mobile layout and actions remain available. */
+:host-context(html[data-ui-density='compact']) .settings-page { padding: var(--app-density-page-padding); }
+:host-context(html[data-ui-density='compact']) .settings-card { padding: var(--app-density-card-padding); }
+:host-context(html[data-ui-density='compact']) .settings-page,
+:host-context(html[data-ui-density='compact']) .settings-grid { gap: var(--app-density-gap); }

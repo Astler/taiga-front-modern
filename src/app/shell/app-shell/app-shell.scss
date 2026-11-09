@@ -62,7 +62,7 @@
   height: auto;
   min-height: 0;
   flex: 1 1 0;
-  overflow: hidden;
+  overflow: auto;
 }
 
 :host-context(html[data-ui-density='compact']) router-outlet {

@@ -95,15 +95,7 @@ describe('Topbar', () => {
       '1 unread',
     );
 
-    const densityButton = host.querySelector<HTMLButtonElement>('.density-button')!;
-    expect(densityButton.getAttribute('aria-pressed')).toBe('false');
-    densityButton.click();
-    fixture.detectChanges();
-    expect(densityButton.getAttribute('aria-pressed')).toBe('true');
-    expect(document.documentElement.getAttribute('data-ui-density')).toBe('compact');
-
-    densityButton.click();
-    fixture.detectChanges();
+    expect(host.querySelector('.density-button')).toBeNull();
     search.value = 'release';
     search.dispatchEvent(new Event('input', { bubbles: true }));
     host
@@ -212,7 +204,8 @@ describe('Topbar', () => {
     expect(panel.closest('pf-profile-panel')).toBeTruthy();
     expect(getComputedStyle(panel).display).toBe('block');
     expect(panel.querySelector('.profile-panel-person')?.textContent).toContain('Ada Lovelace');
-    expect(panel.querySelector('.profile-panel-section-heading')?.textContent).toContain(
+    expect(panel.textContent).toContain('Interface density');
+    expect(panel.textContent).toContain(
       'Story editor layout',
     );
     expect(panel.querySelector('.mat-mdc-menu-item')).toBeNull();
@@ -355,7 +348,7 @@ describe('Topbar', () => {
     expect(search).toBeTruthy();
     expect(host.querySelector('.compact-board-count')?.textContent).toContain('6 open · 9 total');
     expect(host.querySelector('.compact-board-count')?.textContent).toContain('3 shown');
-    expect(host.querySelector('.global-search')).toBeTruthy();
+    expect(host.querySelector('.global-search')).toBeNull();
 
     search.value = 'release';
     search.dispatchEvent(new Event('input'));
