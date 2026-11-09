@@ -20,6 +20,7 @@ import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../core/auth';
 import { CompactKanbanToolbarService } from '../../../shared/compact-kanban-toolbar.service';
 import { StoryEditorLayoutService } from '../../../shared/story-editor-layout.service';
+import { AttachmentPreview } from '../../../shared/attachment-preview/attachment-preview';
 import { ModalTopLayerDirective } from '../../../shared/modal-top-layer.directive';
 import { KanbanSortPreferenceService } from '../data/kanban-sort-preference.service';
 import { KanbanPointsVisibilityService } from '../data/kanban-points-visibility.service';
@@ -108,6 +109,7 @@ const SORT_OPTIONS: readonly SortOption[] = [
     MatProgressBarModule,
     MatTooltipModule,
     ModalTopLayerDirective,
+    AttachmentPreview,
   ],
   providers: [KanbanStore],
   selector: 'pf-kanban-board',
@@ -176,7 +178,6 @@ export class KanbanBoard {
   protected readonly attachmentUploadError = signal<string | null>(null);
   protected readonly attachmentDeletingId = signal<TaigaId | null>(null);
   protected readonly attachmentPreview = signal<KanbanAttachmentSummary | null>(null);
-  protected readonly attachmentPreviewError = signal(false);
   protected readonly liveAnnouncement = signal('');
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private loadedProjectId: TaigaId | undefined;
@@ -1459,14 +1460,12 @@ export class KanbanBoard {
     if (this.attachmentKind(attachment) !== 'image' &&
         this.attachmentKind(attachment) !== 'video') return;
     if (!this.attachmentPreviewUrl(attachment)) return;
-    this.attachmentPreviewError.set(false);
     this.attachmentPreview.set(attachment);
   }
 
   protected closeAttachmentPreview(): void {
     const id = this.attachmentPreview()?.id;
     this.attachmentPreview.set(null);
-    this.attachmentPreviewError.set(false);
     if (id != null) {
       queueMicrotask(() => {
         const trigger = [...this.host.nativeElement.querySelectorAll<HTMLButtonElement>(
@@ -1475,12 +1474,6 @@ export class KanbanBoard {
         trigger?.focus();
       });
     }
-  }
-
-  protected cancelAttachmentPreview(event: Event): void {
-    event.preventDefault();
-    event.stopPropagation();
-    this.closeAttachmentPreview();
   }
 
   protected attachmentThumbnailError(attachment: KanbanAttachmentSummary, event: Event): void {

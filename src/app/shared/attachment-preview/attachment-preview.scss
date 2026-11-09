@@ -1,0 +1,187 @@
+:host {
+  display: contents;
+}
+.attachment-lightbox {
+  display: grid;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  box-sizing: border-box;
+  place-items: center;
+  overflow: auto;
+  margin: 0;
+  border: 0;
+  padding: clamp(0.5rem, 2.5vw, 1.5rem);
+  background: transparent;
+}
+
+.attachment-lightbox:not([open]) {
+  display: none;
+}
+
+.attachment-lightbox::backdrop {
+  background: rgb(0 0 0 / 84%);
+  backdrop-filter: blur(4px);
+}
+
+.attachment-lightbox-panel {
+  display: flex;
+  width: min(80rem, 100%);
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--app-border-color);
+  border-radius: var(--app-radius-lg);
+  background: var(--mat-sys-surface-container);
+  box-shadow: var(--mat-sys-level5);
+  color: var(--mat-sys-on-surface);
+}
+
+.attachment-lightbox-header {
+  display: flex;
+  min-height: 3.3rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.45rem clamp(0.65rem, 2vw, 1rem);
+}
+
+.attachment-lightbox-header strong {
+  min-width: 0;
+  overflow: hidden;
+  font: var(--mat-sys-title-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-lightbox-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.attachment-lightbox-actions a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--mat-sys-primary);
+  font: var(--mat-sys-label-medium);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.attachment-lightbox-actions a:hover {
+  text-decoration: underline;
+}
+
+.attachment-lightbox-actions a svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+}
+
+.attachment-lightbox-actions button {
+  display: grid;
+  width: 2.2rem;
+  height: 2.2rem;
+  flex: 0 0 2.2rem;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface);
+  cursor: pointer;
+  font-size: 1.6rem;
+}
+
+.attachment-lightbox-actions button:hover,
+.attachment-lightbox-actions button:focus-visible {
+  background: var(--mat-sys-surface-container-highest);
+}
+
+.attachment-lightbox-media {
+  display: grid;
+  min-height: 0;
+  flex: 1 1 auto;
+  place-items: center;
+  overflow: auto;
+  border-block-start: 1px solid var(--app-border-color);
+  background: var(--mat-sys-surface-container-low);
+  padding: clamp(0.35rem, 1.5vw, 1rem);
+}
+
+.attachment-lightbox-media img,
+.attachment-lightbox-media video {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100dvh - 7.5rem);
+  object-fit: contain;
+}
+
+.attachment-lightbox-media img {
+  width: auto;
+  height: auto;
+}
+
+.attachment-lightbox-media video {
+  width: min(60rem, 100%);
+}
+
+.attachment-lightbox-media p {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-medium);
+}
+
+.preview-loading {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+.attachment-lightbox-actions .zoom-button {
+  font-size: 0.8rem;
+}
+.attachment-lightbox-actions a {
+  gap: 0.4rem;
+}
+.attachment-lightbox-media.is-zoomed {
+  place-items: start;
+}
+.attachment-lightbox-media.is-zoomed img {
+  max-width: none;
+  max-height: none;
+}
+.preview-error {
+  padding: 1rem;
+  text-align: center;
+}
+.preview-error button {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--app-border-color);
+  border-radius: 0.5rem;
+  background: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface);
+  cursor: pointer;
+}
+@media (max-width: 38rem) {
+  .attachment-lightbox-header {
+    gap: 0.35rem;
+  }
+  .attachment-lightbox-actions a span {
+    display: none;
+  }
+  .attachment-lightbox-actions a {
+    min-width: 2rem;
+    min-height: 2rem;
+    justify-content: center;
+  }
+}

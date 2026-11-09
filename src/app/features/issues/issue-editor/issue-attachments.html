@@ -1,16 +1,17 @@
 <div class="issue-attachments">
   <div class="issue-attachments-toolbar">
     @if (issueId() === null) {
-      <span class="issue-attachments-count">
-        {{ stagedFiles().length }} queued
-      </span>
+      <span class="issue-attachments-count"> {{ stagedFiles().length }} queued </span>
     } @else if (!loading() && !loadError()) {
       <span class="issue-attachments-count">
         {{ attachments().length }} file{{ attachments().length === 1 ? '' : 's' }}
       </span>
     }
     @if (canManage()) {
-      <label class="issue-attachment-picker" [class.issue-attachment-picker-disabled]="busy() || processing()">
+      <label
+        class="issue-attachment-picker"
+        [class.issue-attachment-picker-disabled]="busy() || processing()"
+      >
         <input
           type="file"
           multiple
@@ -48,7 +49,9 @@
               [disabled]="busy()"
               [attr.aria-label]="'Remove queued attachment ' + file.name"
               (click)="removeStaged($index)"
-            >×</button>
+            >
+              ×
+            </button>
           </li>
         }
       </ul>
@@ -68,15 +71,49 @@
     <ul class="issue-attachments-list" aria-label="Issue files">
       @for (attachment of attachments(); track attachment.id) {
         <li class="issue-attachment">
-          <span class="issue-attachment-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24">
-              <path d="m8 12.5 5.5-5.5a3 3 0 0 1 4.2 4.2l-7.9 7.9a5 5 0 0 1-7.1-7.1l8.3-8.3" />
-            </svg>
-          </span>
+          @if (mediaKind(attachment) === 'image') {
+            <button
+              type="button"
+              class="issue-attachment-image"
+              [attr.aria-label]="'Preview image ' + attachment.name"
+              (click)="openPreview(attachment, $event)"
+            >
+              <img
+                [src]="attachment.thumbnail_card_url || attachment.preview_url || attachment.url"
+                alt=""
+                loading="lazy"
+                (error)="thumbnailError($event)"
+              />
+              <span aria-hidden="true">▧</span>
+            </button>
+          } @else {
+            <span class="issue-attachment-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="m8 12.5 5.5-5.5a3 3 0 0 1 4.2 4.2l-7.9 7.9a5 5 0 0 1-7.1-7.1l8.3-8.3" />
+              </svg>
+            </span>
+          }
           <span class="issue-attachment-info">
-            <a [href]="attachment.url" [title]="attachment.name" target="_blank" rel="noopener noreferrer">
-              {{ attachment.name }}
-            </a>
+            @if (mediaKind(attachment)) {
+              <button
+                class="issue-attachment-open"
+                type="button"
+                [title]="attachment.name"
+                [attr.aria-label]="'View ' + attachment.name"
+                (click)="openPreview(attachment, $event)"
+              >
+                {{ attachment.name }}
+              </button>
+            } @else {
+              <a
+                [href]="attachment.url"
+                [title]="attachment.name"
+                [attr.download]="attachment.name"
+                target="_blank"
+                rel="noopener noreferrer"
+                >{{ attachment.name }}</a
+              >
+            }
             <small>
               {{ fileSize(attachment.size) }}
               @if (attachment.description) {
@@ -84,6 +121,17 @@
               }
             </small>
           </span>
+          <a
+            class="issue-attachment-download"
+            [href]="attachment.url"
+            [attr.download]="attachment.name"
+            target="_blank"
+            rel="noopener noreferrer"
+            [attr.aria-label]="'Download ' + attachment.name"
+            title="Download original"
+            ><svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5" /></svg
+          ></a>
           @if (canManage()) {
             <button
               class="issue-attachment-remove"
@@ -91,7 +139,9 @@
               [disabled]="busy() || processing()"
               [attr.aria-label]="'Remove attachment ' + attachment.name"
               (click)="remove(attachment)"
-            >×</button>
+            >
+              ×
+            </button>
           }
         </li>
       }
@@ -102,8 +152,20 @@
     <p class="issue-attachments-error" role="alert">
       {{ message }}
       @if (failedUploads().length && !processing()) {
-        <button type="button" [disabled]="busy()" (click)="retryFailedUploads()">Retry failed files</button>
+        <button type="button" [disabled]="busy()" (click)="retryFailedUploads()">
+          Retry failed files
+        </button>
       }
     </p>
   }
 </div>
+
+@if (preview(); as current) {
+  <pf-attachment-preview
+    [name]="current.name"
+    [src]="current.preview_url || current.url"
+    [downloadUrl]="current.url"
+    [kind]="mediaKind(current) === 'video' ? 'video' : 'image'"
+    (closed)="closePreview()"
+  />
+}

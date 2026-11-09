@@ -8,6 +8,10 @@ import {
   output,
   signal,
 } from '@angular/core';
+import {
+  AttachmentPreview,
+  attachmentMediaKind,
+} from '../../../shared/attachment-preview/attachment-preview';
 import { firstValueFrom } from 'rxjs';
 import type { TaigaId } from '../../../shared/models';
 import { IssuesApiService, type IssueAttachment } from '../data';
@@ -15,6 +19,7 @@ import { IssuesApiService, type IssueAttachment } from '../data';
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pf-issue-attachments',
+  imports: [AttachmentPreview],
   templateUrl: './issue-attachments.html',
   styleUrl: './issue-attachments.scss',
 })
@@ -32,6 +37,25 @@ export class IssueAttachments implements OnDestroy {
   // Staged files are not sent to Taiga until the issue has been created.
   readonly stagedFiles = signal<readonly File[]>([]);
   protected readonly attachments = signal<readonly IssueAttachment[]>([]);
+  protected readonly preview = signal<IssueAttachment | null>(null);
+  private previewTrigger: HTMLElement | null = null;
+  protected mediaKind(attachment: IssueAttachment): 'image' | 'video' | null {
+    return attachmentMediaKind(attachment.name) ?? (attachment.thumbnail_card_url ? 'image' : null);
+  }
+  protected openPreview(attachment: IssueAttachment, event: Event): void {
+    if (!this.mediaKind(attachment)) return;
+    this.previewTrigger = event.currentTarget as HTMLElement;
+    this.preview.set(attachment);
+  }
+  protected closePreview(): void {
+    this.preview.set(null);
+    queueMicrotask(() => {
+      if (this.previewTrigger?.isConnected) this.previewTrigger.focus();
+    });
+  }
+  protected thumbnailError(event: Event): void {
+    (event.target as HTMLImageElement).hidden = true;
+  }
   protected readonly loading = signal(false);
   protected readonly loadError = signal<string | null>(null);
   protected readonly actionError = signal<string | null>(null);
@@ -44,6 +68,7 @@ export class IssueAttachments implements OnDestroy {
       const projectId = this.projectId();
       const issueId = this.issueId();
       this.loadError.set(null);
+      this.preview.set(null);
 
       if (issueId === null) {
         this.attachments.set([]);

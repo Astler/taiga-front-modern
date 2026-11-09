@@ -129,6 +129,8 @@ export const DEFAULT_ISSUE_QUERY: IssueListQuery = {
 };
 
 export interface IssueAttachment {
+  readonly preview_url?: string | null;
+  readonly thumbnail_card_url?: string | null;
   readonly id: TaigaId;
   readonly name: string;
   readonly url: string;

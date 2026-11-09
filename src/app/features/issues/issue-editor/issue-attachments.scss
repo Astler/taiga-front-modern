@@ -199,3 +199,71 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.issue-attachment-open {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--mat-sys-primary);
+  font: var(--mat-sys-body-medium);
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  cursor: pointer;
+}
+.issue-attachment-open:hover {
+  text-decoration: underline;
+}
+.issue-attachment-image {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 2.5rem;
+  padding: 0;
+  flex: 0 0 3rem;
+  overflow: hidden;
+  border: 1px solid var(--app-border-color);
+  border-radius: 0.4rem;
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+  cursor: pointer;
+}
+.issue-attachment-image img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.issue-attachment-download {
+  display: grid;
+  width: 1.85rem;
+  height: 1.85rem;
+  flex: 0 0 1.85rem;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--mat-sys-on-surface-variant);
+}
+.issue-attachment-download svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.issue-attachment-download:hover {
+  background: var(--mat-sys-secondary-container);
+}
+.issue-attachment-image:focus-visible,
+.issue-attachment-open:focus-visible,
+.issue-attachment-download:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
+}

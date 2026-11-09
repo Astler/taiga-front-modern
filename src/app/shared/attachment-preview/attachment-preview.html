@@ -1,0 +1,80 @@
+<dialog
+  pfModalTopLayer
+  class="attachment-lightbox"
+  aria-labelledby="attachment-lightbox-title"
+  (click)="backdropClick($event)"
+  (cancel)="close($event)"
+  (keydown)="keydown($event)"
+>
+  <div class="attachment-lightbox-panel">
+    <header class="attachment-lightbox-header">
+      <strong id="attachment-lightbox-title" [title]="name()">{{ name() }}</strong>
+      <div class="attachment-lightbox-actions">
+        @if (kind() === 'image' && !failed()) {
+          <button
+            type="button"
+            class="zoom-button"
+            [attr.aria-pressed]="zoomed()"
+            [attr.aria-label]="zoomed() ? 'Fit image to screen' : 'Show image at actual size'"
+            [title]="zoomed() ? 'Fit image to screen' : 'Actual size'"
+            (click)="zoomed.set(!zoomed())"
+          >
+            {{ zoomed() ? 'Fit' : '1:1' }}
+          </button>
+        }
+        @if (downloadUrl(); as url) {
+          <a
+            [href]="url"
+            [attr.download]="name()"
+            target="_blank"
+            rel="noopener noreferrer"
+            [attr.aria-label]="'Download ' + name()"
+            title="Download original"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5" /></svg
+            ><span>Download</span>
+          </a>
+        }
+        <button
+          type="button"
+          autofocus
+          aria-label="Close attachment preview"
+          (click)="close($event)"
+        >
+          ×
+        </button>
+      </div>
+    </header>
+    <div
+      class="attachment-lightbox-media"
+      [class.is-zoomed]="zoomed()"
+      [attr.aria-busy]="!loaded() && !failed()"
+    >
+      @if (failed()) {
+        <div class="preview-error">
+          <p role="alert">Could not display this file. Retry or download the original.</p>
+          <button type="button" (click)="retry()">Retry preview</button>
+        </div>
+      } @else {
+        @if (!loaded()) {
+          <span class="preview-loading" role="status">Loading preview…</span>
+        }
+        @if (kind() === 'video') {
+          <video
+            [src]="src()"
+            controls
+            playsinline
+            preload="metadata"
+            (loadedmetadata)="loaded.set(true)"
+            (error)="failed.set(true)"
+          >
+            Your browser cannot play this file. Download the original.
+          </video>
+        } @else {
+          <img [src]="src()" [alt]="name()" (load)="loaded.set(true)" (error)="failed.set(true)" />
+        }
+      }
+    </div>
+  </div>
+</dialog>

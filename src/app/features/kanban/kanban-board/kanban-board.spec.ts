@@ -843,7 +843,7 @@ describe('KanbanBoard', () => {
       .toBe('https://files.example.test/project.zip');
     expect(host.querySelector('.file-drop-zone-compact')).toBeTruthy();
 
-    cards[0]!.querySelector<HTMLButtonElement>('.attachment-image-trigger')!.click();
+    cards[0]!.querySelector<HTMLButtonElement>('.attachment-name-preview')!.click();
     fixture.detectChanges();
     const preview = host.querySelector<HTMLDialogElement>('.attachment-lightbox')!;
     expect(preview).toBeTruthy();

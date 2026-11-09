@@ -1106,7 +1106,9 @@
 
                     <div class="attachment-card-details">
                       <div class="attachment-card-name">
-                        @if (attachment.url; as url) {
+                        @if ((attachmentKind(attachment) === 'image' || attachmentKind(attachment) === 'video') && attachmentPreviewUrl(attachment)) {
+                          <button type="button" class="attachment-name-preview" [attr.data-attachment-preview]="attachment.id" [title]="attachmentName(attachment)" (click)="openAttachmentPreview(attachment)">{{ attachmentName(attachment) }}</button>
+                        } @else if (attachment.url; as url) {
                           <a [href]="url" target="_blank" rel="noopener noreferrer"
                              [title]="attachmentName(attachment)">
                             {{ attachmentName(attachment) }}
@@ -1130,11 +1132,12 @@
                             class="attachment-open-link"
                             target="_blank"
                             rel="noopener noreferrer"
-                            [attr.aria-label]="'Open original file ' + attachmentName(attachment)"
-                            title="Open original"
+                            [attr.aria-label]="'Download ' + attachmentName(attachment)"
+                            [attr.download]="attachmentName(attachment)"
+                            title="Download original"
                           >
                             <svg viewBox="0 0 24 24" aria-hidden="true">
-                              <path d="M7 17 17 7M8 7h9v9" />
+                              <path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5" />
                             </svg>
                           </a>
                         }
@@ -1324,53 +1327,7 @@
   }
 
   @if (attachmentPreview(); as preview) {
-    <dialog
-      pfModalTopLayer
-      class="attachment-lightbox"
-      aria-labelledby="attachment-lightbox-title"
-      (click)="closeAttachmentPreview()"
-      (cancel)="cancelAttachmentPreview($event)"
-      (keydown.escape)="cancelAttachmentPreview($event)"
-    >
-      <div class="attachment-lightbox-panel" (click)="$event.stopPropagation()">
-        <header class="attachment-lightbox-header">
-          <strong id="attachment-lightbox-title" [title]="attachmentName(preview)">
-            {{ attachmentName(preview) }}
-          </strong>
-          <div class="attachment-lightbox-actions">
-            @if (preview.url; as original) {
-              <a [href]="original" target="_blank" rel="noopener noreferrer">
-                Open original
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M7 17 17 7M8 7h9v9" />
-                </svg>
-              </a>
-            }
-            <button
-              type="button"
-              autofocus
-              aria-label="Close attachment preview"
-              (click)="closeAttachmentPreview()"
-            >×</button>
-          </div>
-        </header>
-        <div class="attachment-lightbox-media">
-          @if (attachmentKind(preview) === 'video') {
-            <video [src]="attachmentPreviewUrl(preview)" controls playsinline preload="metadata">
-              Your browser cannot play this file. Use Open original.
-            </video>
-          } @else if (attachmentPreviewError()) {
-            <p role="alert">Preview unavailable. Open the original file instead.</p>
-          } @else {
-            <img
-              [src]="attachmentPreviewUrl(preview)"
-              [alt]="attachmentName(preview)"
-              (error)="attachmentPreviewError.set(true)"
-            />
-          }
-        </div>
-      </div>
-    </dialog>
+    <pf-attachment-preview [name]="attachmentName(preview)" [src]="attachmentPreviewUrl(preview)!" [downloadUrl]="preview.url || null" [kind]="attachmentKind(preview) === 'video' ? 'video' : 'image'" (closed)="closeAttachmentPreview()" />
   }
 
   <p class="visually-hidden board-live-region" aria-live="polite">{{ liveAnnouncement() }}</p>

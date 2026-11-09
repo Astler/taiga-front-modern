@@ -15,7 +15,8 @@ describe('IssueAttachments', () => {
     api = {
       listAttachments: vi.fn(() => of([])),
       uploadAttachment: vi.fn(() =>
-        of({ id: 70, name: 'pasted.png', url: '/media/pasted.png', size: 10 })),
+        of({ id: 70, name: 'pasted.png', url: '/media/pasted.png', size: 10 }),
+      ),
       deleteAttachment: vi.fn(() => of(undefined)),
     };
     await TestBed.configureTestingModule({
@@ -32,6 +33,60 @@ describe('IssueAttachments', () => {
     fixture.detectChanges();
     return { fixture, host: fixture.nativeElement as HTMLElement };
   }
+
+  it('opens image names in the app with a separate download even for read-only members', () => {
+    api.listAttachments.mockReturnValue(
+      of([
+        {
+          id: 1,
+          name: 'report.png',
+          url: '/media/report.png?token=signed',
+          thumbnail_card_url: '/thumb.png',
+          size: 42,
+        },
+      ]),
+    );
+    const { fixture, host } = create(38);
+    fixture.componentRef.setInput('canManage', false);
+    fixture.detectChanges();
+    expect(host.querySelector('.issue-attachment-image img')?.getAttribute('src')).toBe(
+      '/thumb.png',
+    );
+    expect(host.querySelector('[aria-label="Remove attachment report.png"]')).toBeNull();
+    host.querySelector<HTMLButtonElement>('[aria-label="View report.png"]')!.click();
+    fixture.detectChanges();
+    expect(host.querySelector('.attachment-lightbox img')?.getAttribute('src')).toBe(
+      '/media/report.png?token=signed',
+    );
+    expect(host.querySelector('.issue-attachment-download')?.getAttribute('download')).toBe(
+      'report.png',
+    );
+    host
+      .querySelector('dialog')!
+      .dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      );
+    fixture.detectChanges();
+    expect(host.querySelector('.attachment-lightbox')).toBeNull();
+    expect(host.querySelector('[aria-label="Issue files"]')).toBeTruthy();
+  });
+
+  it('keeps ordinary document links and closes an old preview when the issue changes', () => {
+    api.listAttachments.mockReturnValue(
+      of([
+        { id: 1, name: 'report.png', url: '/report.png', size: 42 },
+        { id: 2, name: 'report.zip', url: '/report.zip', size: 42 },
+      ]),
+    );
+    const { fixture, host } = create(38);
+    expect(host.querySelector('a[href="/report.zip"]')?.hasAttribute('download')).toBe(true);
+    expect(host.querySelector('[aria-label="View report.zip"]')).toBeNull();
+    host.querySelector<HTMLButtonElement>('[aria-label="View report.png"]')!.click();
+    fixture.detectChanges();
+    fixture.componentRef.setInput('issueId', 39);
+    fixture.detectChanges();
+    expect(host.querySelector('.attachment-lightbox')).toBeNull();
+  });
 
   it('stages files without API requests until the issue exists', () => {
     const { fixture, host } = create(null);
@@ -50,7 +105,9 @@ describe('IssueAttachments', () => {
     expect(host.textContent).toContain('report.png');
     expect(host.textContent).toContain('Uploads when issue is created');
 
-    host.querySelector<HTMLButtonElement>('[aria-label="Remove queued attachment report.png"]')!.click();
+    host
+      .querySelector<HTMLButtonElement>('[aria-label="Remove queued attachment report.png"]')!
+      .click();
     fixture.detectChanges();
     expect(fixture.componentInstance.stagedFiles()).toEqual([]);
     expect(staged).toHaveBeenLastCalledWith([]);
@@ -73,9 +130,7 @@ describe('IssueAttachments', () => {
       .mockReturnValueOnce(throwError(() => new Error('Network failure')))
       .mockReturnValueOnce(of({ id: 70, name: 'pasted.png', url: '/media/pasted.png', size: 10 }));
     const { fixture, host } = create(38);
-    fixture.componentInstance.addFiles([
-      new File(['image'], 'pasted.png', { type: 'image/png' }),
-    ]);
+    fixture.componentInstance.addFiles([new File(['image'], 'pasted.png', { type: 'image/png' })]);
     await fixture.whenStable();
     fixture.detectChanges();
 
